@@ -3,6 +3,24 @@ name = "budget-data-server"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+path = "src/main.rs"
+name = "budget-data-server"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+
+
+[workspace]
+members = [
+    "budget-data-api",
+    "ynab",
+]
+
+[workspace.dependencies]
+serde = { version = "1.0.145", features = ["derive"] }
+serde_json = "1.0.85"
+chrono = "0.4.23"
+rrule = "0.10.0"
+uuid = { version = "1.2.2", features = ["serde"] }
