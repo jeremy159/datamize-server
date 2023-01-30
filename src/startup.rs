@@ -3,8 +3,12 @@ use std::{net::SocketAddr, sync::Arc};
 use anyhow::Ok;
 use axum::{routing::get, Router};
 use sqlx::{postgres::PgPoolOptions, PgPool};
+use tower_http::trace::TraceLayer;
 
-use crate::config::{DatabaseSettings, Settings};
+use crate::{
+    config::{DatabaseSettings, Settings},
+    routes::{health_check, template_details, template_summary, template_transactions},
+};
 
 pub struct Application {
     socket_addr: SocketAddr,
@@ -25,9 +29,13 @@ impl Application {
         );
         let socket_addr: SocketAddr = address.parse()?;
 
-        // build our application with a single route
         let app = Router::new()
             .route("/", get(|| async { "Hello, World!" }))
+            .route("/health_check", get(health_check))
+            .route("template/details", get(template_details))
+            .route("template/summary", get(template_summary))
+            .route("template/transactions", get(template_transactions))
+            .layer(TraceLayer::new_for_http())
             .with_state(db_conn_pool)
             .with_state(redis_conn)
             .with_state(ynab_client);
@@ -36,6 +44,7 @@ impl Application {
     }
 
     pub async fn run(self) -> Result<(), anyhow::Error> {
+        tracing::debug!("listening on {}", self.socket_addr);
         // run it with hyper
         axum::Server::bind(&self.socket_addr)
             .serve(self.app.into_make_service())

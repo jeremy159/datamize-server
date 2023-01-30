@@ -1,0 +1,21 @@
+[application]
+host = "0.0.0.0"
+port = 8000
+base_url = ""
+
+[ynab_client]
+# YNAB Personal Access Token
+pat = "MIQOo7PHzmTT8H15BBKLpiYa0LplxWF8YrTd6qOhTzc"
+base_url = "https://api.youneedabudget.com/v1/"
+
+[database]
+username = "postgres"
+password = "password"
+port = 5432
+host = "127.0.0.1"
+database_name = "budget_data"
+require_ssl = false
+
+[redis]
+host = "127.0.0.1"
+port = 6379
