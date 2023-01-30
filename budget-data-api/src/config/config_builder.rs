@@ -59,7 +59,11 @@ impl Default for BudgetDataConfig {
 impl BudgetDataConfig {
     pub fn build() -> Self {
         Figment::from(Serialized::defaults(BudgetDataConfig::default()))
-            .merge(Toml::file("budget-data-config.toml"))
+            .merge(Toml::file(
+                std::env::current_dir()
+                    .unwrap()
+                    .join("budget-data-api/budget-data-config.toml"),
+            ))
             .merge(Env::prefixed("BUDGET_DATA_"))
             .extract()
             .expect("Failed to extract config files and environment variables into a rust struct.")

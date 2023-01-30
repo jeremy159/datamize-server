@@ -2,13 +2,20 @@ use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::Ok;
 use axum::{routing::get, Router};
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::{postgres::PgPoolOptions, PgPool, Pool, Postgres};
 use tower_http::trace::TraceLayer;
 
 use crate::{
-    config::{DatabaseSettings, Settings},
+    config::{DatabaseSettings, RedisSettings, Settings},
     routes::{health_check, template_details, template_summary, template_transactions},
 };
+
+#[derive(Clone)]
+pub struct AppState {
+    pub ynab_client: Arc<ynab::Client>,
+    pub db_conn_pool: Pool<Postgres>,
+    pub redis_conn_pool: r2d2::Pool<redis::Client>,
+}
 
 pub struct Application {
     socket_addr: SocketAddr,
@@ -18,10 +25,14 @@ pub struct Application {
 impl Application {
     pub async fn build(configuration: Settings) -> Result<Self, anyhow::Error> {
         let db_conn_pool = get_connection_pool(&configuration.database);
-        let redis_conn = Arc::new(
-            redis::Client::open(configuration.redis.connection_string())?.get_connection()?,
-        );
+        let redis_conn_pool = get_redis_connection_pool(&configuration.redis);
         let ynab_client = Arc::new(configuration.ynab_client.client());
+
+        let app_state = AppState {
+            ynab_client,
+            db_conn_pool,
+            redis_conn_pool,
+        };
 
         let address = format!(
             "{}:{}",
@@ -32,13 +43,11 @@ impl Application {
         let app = Router::new()
             .route("/", get(|| async { "Hello, World!" }))
             .route("/health_check", get(health_check))
-            .route("template/details", get(template_details))
-            .route("template/summary", get(template_summary))
-            .route("template/transactions", get(template_transactions))
+            .route("/api/template/details", get(template_details))
+            .route("/api/template/summary", get(template_summary))
+            .route("/api/template/transactions", get(template_transactions))
             .layer(TraceLayer::new_for_http())
-            .with_state(db_conn_pool)
-            .with_state(redis_conn)
-            .with_state(ynab_client);
+            .with_state(app_state);
 
         Ok(Self { socket_addr, app })
     }
@@ -59,4 +68,13 @@ pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
         .max_connections(2)
         .acquire_timeout(std::time::Duration::from_secs(2))
         .connect_lazy_with(configuration.with_db())
+}
+
+pub fn get_redis_connection_pool(configuration: &RedisSettings) -> r2d2::Pool<redis::Client> {
+    let redis_client = redis::Client::open(configuration.connection_string()).unwrap();
+    r2d2::Pool::new(redis_client).unwrap()
+}
+
+pub fn get_redis_conn(pool: &r2d2::Pool<redis::Client>) -> r2d2::PooledConnection<redis::Client> {
+    pool.get().unwrap()
 }

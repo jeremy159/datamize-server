@@ -206,12 +206,14 @@ impl From<ScheduledTransactionDetail> for ExtendedScheduledTransactionDetail {
     }
 }
 
+pub type CategoryIdToNameMap = HashMap<uuid::Uuid, String>;
+
 pub type ScheduledTransactionsDistributionMap =
     HashMap<String, Vec<ExtendedScheduledTransactionDetail>>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScheduledTransactionsDistribution {
-    #[serde(serialize_with = "ordered_map")]
+    #[serde(serialize_with = "ordered_map", flatten)]
     pub map: ScheduledTransactionsDistributionMap,
 }
 

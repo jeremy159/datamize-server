@@ -13,14 +13,10 @@ ynab = { path = "../ynab", features = ["sqlx-postgres"] }
 
 reqwest = { version = "0.11.12", features = ["cookies", "json"] }
 scraper = "0.13.0"
-futures = "0.3.24"
 serde = { workspace = true }
 serde_json = { workspace = true }
 chrono = { workspace = true }
 figment = { version = "0.10.7", features = ["env", "toml"] }
-tokio = { version = "^1.21.0", features = ["full"] }
 anyhow = "1.0.68"
-sqlx = { version = "0.6.2", default-features = false, features = ["runtime-tokio-rustls", "postgres", "macros", "uuid", "chrono", "migrate", "json"] }
-redis = { version = "0.22.2", features = ["tokio-comp"] }
 uuid = { workspace = true }
 rrule = { workspace = true }

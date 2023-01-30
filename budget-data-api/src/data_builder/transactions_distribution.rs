@@ -1,17 +1,17 @@
 use std::collections::HashMap;
 
 use super::types::{
-    ExtendedScheduledTransactionDetail, ExtendedSubTransaction, ScheduledTransactionsDistribution,
-    ScheduledTransactionsDistributionMap,
+    CategoryIdToNameMap, ExtendedScheduledTransactionDetail, ExtendedSubTransaction,
+    ScheduledTransactionsDistribution, ScheduledTransactionsDistributionMap,
 };
 use super::utils;
 use anyhow::Result;
 use ynab::types::ScheduledTransactionDetail;
 
 /// Gives the scheduled transactions distribution over a month.
-pub async fn scheduled_transactions(
+pub fn scheduled_transactions(
     scheduled_transactions: &[ScheduledTransactionDetail],
-    category_id_to_name_map: &HashMap<uuid::Uuid, String>,
+    category_id_to_name_map: &CategoryIdToNameMap,
 ) -> Result<ScheduledTransactionsDistribution> {
     let mut output: ScheduledTransactionsDistributionMap = HashMap::new();
 

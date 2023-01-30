@@ -8,7 +8,7 @@ use uuid::Uuid;
 use ynab::types::{Category, ScheduledTransactionDetail};
 
 /// Gives bugdet details, spliting expanses by their type and sub-type.
-pub async fn budget_details(
+pub fn budget_details(
     categories: &[Category],
     scheduled_transactions: &[ScheduledTransactionDetail],
     config: &BugdetCalculationDataConfig,
