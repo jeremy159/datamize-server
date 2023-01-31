@@ -1,13 +1,15 @@
 pub mod config;
 mod data_builder;
+mod error;
 pub mod web_scraper;
 
 use crate::config::BudgetDataConfig;
-use anyhow::Result;
 pub use data_builder::types::CategoryIdToNameMap;
 pub use data_builder::utils::get_subtransactions_category_ids;
+pub use error::Error;
 use ynab::types::{Category, ScheduledTransactionDetail};
 
+pub type Result<T> = std::result::Result<T, Error>;
 pub type BudgetDetails = data_builder::types::BudgetDetails;
 pub type CommonExpanseEstimationPerPerson = data_builder::types::CommonExpanseEstimationPerPerson;
 pub type ScheduledTransactionsDistribution = data_builder::types::ScheduledTransactionsDistribution;

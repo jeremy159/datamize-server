@@ -15,8 +15,7 @@ name = "budget-data-server"
 [dependencies]
 ynab = { path = "./ynab", features = ["sqlx-postgres"] }
 budget-data-api = { path = "./budget-data-api" }
-
-anyhow = "1.0.68"
+anyhow = { version = "1.0.68", features = ["backtrace"] }
 axum = "0.6.4"
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

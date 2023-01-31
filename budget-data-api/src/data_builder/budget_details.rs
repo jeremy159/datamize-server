@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use super::types::{BudgetDetails, Expanse};
 use super::utils;
 use crate::config::types::{BugdetCalculationDataConfig, ExpanseType, SubExpanseType};
-use anyhow::Result;
+use crate::Result;
 use uuid::Uuid;
 use ynab::types::{Category, ScheduledTransactionDetail};
 

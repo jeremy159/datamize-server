@@ -5,7 +5,7 @@ use super::types::{
     ScheduledTransactionsDistribution, ScheduledTransactionsDistributionMap,
 };
 use super::utils;
-use anyhow::Result;
+use crate::Result;
 use ynab::types::ScheduledTransactionDetail;
 
 /// Gives the scheduled transactions distribution over a month.

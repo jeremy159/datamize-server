@@ -1,5 +1,5 @@
 use crate::config::types::CeliConfig;
-use anyhow::Result;
+use crate::Result;
 use reqwest::header;
 
 pub async fn get_current_amount_of_celi(celi_config: &CeliConfig) -> Result<Option<i64>> {

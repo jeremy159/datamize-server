@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use super::types::{BudgetDetails, CommonExpanseEstimationPerPerson, Expanse};
 use super::utils;
-use anyhow::Result;
+use crate::Result;
 use ynab::types::ScheduledTransactionDetail;
 
 /// Proportionally split common expanses
