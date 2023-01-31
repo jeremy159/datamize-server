@@ -69,36 +69,6 @@ pub struct RetirementSavings {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct DatabaseConfig {
-    pub username: String,
-    pub password: String,
-    pub port: u16,
-    pub host: String,
-    pub database_name: String,
-}
-
-impl DatabaseConfig {
-    pub fn connection_string(&self) -> String {
-        format!(
-            "postgres://{}:{}@{}:{}/{}",
-            self.username, self.password, self.host, self.port, self.database_name
-        )
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct RedisConfig {
-    pub host: String,
-    pub port: u16,
-}
-
-impl RedisConfig {
-    pub fn connection_string(&self) -> String {
-        format!("redis://{}:{}/", self.host, self.port)
-    }
-}
-
-#[derive(Serialize, Deserialize)]
 pub struct BugdetCalculationDataConfig {
     pub fixed_expanses: FixedExpanses,
     pub variable_expanses: VariableExpanses,

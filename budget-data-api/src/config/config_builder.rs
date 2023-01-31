@@ -1,6 +1,6 @@
 use super::types::{
-    BugdetCalculationDataConfig, CeliConfig, DatabaseConfig, FixedExpanses, LongTermSavings,
-    PersonSalaryConfig, RedisConfig, RetirementSavings, ShortTermSavings, VariableExpanses,
+    BugdetCalculationDataConfig, CeliConfig, FixedExpanses, LongTermSavings, PersonSalaryConfig,
+    RetirementSavings, ShortTermSavings, VariableExpanses,
 };
 use figment::{
     providers::{Env, Format, Serialized, Toml},
@@ -10,10 +10,6 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct BudgetDataConfig {
-    pub ynab_pat: String,
-    pub ynab_base_url: String,
-    pub database: DatabaseConfig,
-    pub redis: RedisConfig,
     pub budget_calculation_data: BugdetCalculationDataConfig,
     pub person_salaries: Vec<PersonSalaryConfig>,
     pub celis: Vec<CeliConfig>,
@@ -22,19 +18,6 @@ pub struct BudgetDataConfig {
 impl Default for BudgetDataConfig {
     fn default() -> BudgetDataConfig {
         BudgetDataConfig {
-            ynab_pat: "".into(),
-            ynab_base_url: "https://api.youneedabudget.com/v1/".into(),
-            database: DatabaseConfig {
-                username: String::from("postgres"),
-                password: String::from("password"),
-                port: 5432,
-                host: String::from("127.0.0.1"),
-                database_name: String::from("budget_data"),
-            },
-            redis: RedisConfig {
-                host: String::from("127.0.0.1"),
-                port: 6379,
-            },
             budget_calculation_data: BugdetCalculationDataConfig {
                 fixed_expanses: FixedExpanses {
                     housing_ids: vec![],
