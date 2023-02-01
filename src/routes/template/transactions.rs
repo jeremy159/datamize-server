@@ -11,7 +11,7 @@ use crate::{
         save_scheduled_transactions, set_scheduled_transactions_delta,
     },
     error::HttpJsonAppResult,
-    startup::{get_redis_conn, AppState},
+    startup::AppState,
 };
 
 /// Returns a budget template transactions, i.e. all the scheduled transactions in the upcoming month.
@@ -20,7 +20,13 @@ pub async fn template_transactions(
 ) -> HttpJsonAppResult<ScheduledTransactionsDistribution> {
     let ynab_client = app_state.ynab_client.as_ref();
     let db_conn_pool = app_state.db_conn_pool;
-    let mut redis_conn = get_redis_conn(&app_state.redis_conn_pool);
+    let mut redis_conn = app_state
+        .redis_client
+        .as_ref()
+        .get_connection()
+        .context("failed to connect to redis instance")?;
+    // let mut redis_conn = get_redis_conn(&app_state.redis_conn_pool)
+    //     .context("failed to get redis connection from pool")?;
 
     let saved_scheduled_transactions_delta = get_scheduled_transactions_delta(&mut redis_conn);
 

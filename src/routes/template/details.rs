@@ -10,7 +10,7 @@ use crate::{
         set_categories_detla, set_scheduled_transactions_delta,
     },
     error::HttpJsonAppResult,
-    startup::{get_redis_conn, AppState},
+    startup::AppState,
 };
 
 /// Returns a budget template details
@@ -19,7 +19,13 @@ pub async fn template_details(
 ) -> HttpJsonAppResult<BudgetDetails> {
     let ynab_client = app_state.ynab_client.as_ref();
     let db_conn_pool = app_state.db_conn_pool;
-    let mut redis_conn = get_redis_conn(&app_state.redis_conn_pool);
+    let mut redis_conn = app_state
+        .redis_client
+        .as_ref()
+        .get_connection()
+        .context("failed to connect to redis instance")?;
+    // let mut redis_conn = get_redis_conn(&app_state.redis_conn_pool)
+    //     .context("failed to get redis connection from pool")?;
 
     let saved_categories_delta = get_categories_delta(&mut redis_conn);
     let saved_scheduled_transactions_delta = get_scheduled_transactions_delta(&mut redis_conn);

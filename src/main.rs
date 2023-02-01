@@ -1,3 +1,4 @@
+use anyhow::Context;
 use budget_data_server::{
     config,
     startup::Application,
@@ -15,8 +16,14 @@ async fn main() -> anyhow::Result<()> {
     init_subscriber(subscriber);
 
     let configuration = config::Settings::build()?;
-    let application = Application::build(configuration.clone()).await?;
-    application.run().await?;
+    let application = Application::build(configuration.clone())
+        .await
+        .context("failed to build application")?;
+
+    application
+        .run()
+        .await
+        .context("failed to run application")?;
 
     Ok(())
 }

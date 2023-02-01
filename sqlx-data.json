@@ -1,0 +1,434 @@
+{
+  "db": "PostgreSQL",
+  "2810ecb69af60d82997849ed3ed7bc98e356c761242733a0eb276153f6a07910": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "category_group_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "hidden",
+          "ordinal": 3,
+          "type_info": "Bool"
+        },
+        {
+          "name": "original_category_group_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "note",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "budgeted",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "activity",
+          "ordinal": 7,
+          "type_info": "Int8"
+        },
+        {
+          "name": "balance",
+          "ordinal": 8,
+          "type_info": "Int8"
+        },
+        {
+          "name": "goal_type?: GoalType",
+          "ordinal": 9,
+          "type_info": "Text"
+        },
+        {
+          "name": "goal_creation_month",
+          "ordinal": 10,
+          "type_info": "Date"
+        },
+        {
+          "name": "goal_target",
+          "ordinal": 11,
+          "type_info": "Int8"
+        },
+        {
+          "name": "goal_target_month",
+          "ordinal": 12,
+          "type_info": "Date"
+        },
+        {
+          "name": "goal_percentage_complete",
+          "ordinal": 13,
+          "type_info": "Int8"
+        },
+        {
+          "name": "goal_months_to_budget",
+          "ordinal": 14,
+          "type_info": "Int8"
+        },
+        {
+          "name": "goal_under_funded",
+          "ordinal": 15,
+          "type_info": "Int8"
+        },
+        {
+          "name": "goal_overall_funded",
+          "ordinal": 16,
+          "type_info": "Int8"
+        },
+        {
+          "name": "goal_overall_left",
+          "ordinal": 17,
+          "type_info": "Int8"
+        },
+        {
+          "name": "deleted",
+          "ordinal": 18,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n        SELECT \n            id,\n            category_group_id,\n            name,\n            hidden,\n            original_category_group_id,\n            note,\n            budgeted,\n            activity,\n            balance,\n            goal_type AS \"goal_type?: GoalType\",\n            goal_creation_month,\n            goal_target,\n            goal_target_month,\n            goal_percentage_complete,\n            goal_months_to_budget,\n            goal_under_funded,\n            goal_overall_funded,\n            goal_overall_left,\n            deleted\n        FROM categories\n        "
+  },
+  "5ec115656afff53681a14da2be5b93d2ddfe069690e458d0748f204bc706b7ef": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Uuid",
+          "Text",
+          "Bool",
+          "Uuid",
+          "Text",
+          "Int8",
+          "Int8",
+          "Int8",
+          "Text",
+          "Date",
+          "Int8",
+          "Date",
+          "Int8",
+          "Int8",
+          "Int8",
+          "Int8",
+          "Int8",
+          "Bool"
+        ]
+      }
+    },
+    "query": "\n                INSERT INTO categories (id, category_group_id, name, hidden, original_category_group_id, note, budgeted, activity, balance, goal_type, goal_creation_month, goal_target, goal_target_month, goal_percentage_complete, goal_months_to_budget, goal_under_funded, goal_overall_funded, goal_overall_left, deleted)\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)\n                ON CONFLICT (id) DO UPDATE\n                SET category_group_id = EXCLUDED.category_group_id,\n                name = EXCLUDED.name,\n                hidden = EXCLUDED.hidden,\n                original_category_group_id = EXCLUDED.original_category_group_id,\n                note = EXCLUDED.note,\n                budgeted = EXCLUDED.budgeted,\n                activity = EXCLUDED.activity,\n                balance = EXCLUDED.balance,\n                goal_type = EXCLUDED.goal_type,\n                goal_creation_month = EXCLUDED.goal_creation_month,\n                goal_target = EXCLUDED.goal_target,\n                goal_target_month = EXCLUDED.goal_target_month,\n                goal_percentage_complete = EXCLUDED.goal_percentage_complete,\n                goal_months_to_budget = EXCLUDED.goal_months_to_budget,\n                goal_under_funded = EXCLUDED.goal_under_funded,\n                goal_overall_funded = EXCLUDED.goal_overall_funded,\n                goal_overall_left = EXCLUDED.goal_overall_left,\n                deleted = EXCLUDED.deleted;\n                "
+  },
+  "66fabff6eb284219c411e2a92d5eed0fa5e2dc0b8675f57d5193e4a4f6a8d10a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "date_first",
+          "ordinal": 1,
+          "type_info": "Date"
+        },
+        {
+          "name": "date_next",
+          "ordinal": 2,
+          "type_info": "Date"
+        },
+        {
+          "name": "frequency",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "amount",
+          "ordinal": 4,
+          "type_info": "Int8"
+        },
+        {
+          "name": "memo",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "flag_color",
+          "ordinal": 6,
+          "type_info": "Text"
+        },
+        {
+          "name": "account_id",
+          "ordinal": 7,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "payee_id",
+          "ordinal": 8,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "category_id",
+          "ordinal": 9,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "transfer_account_id",
+          "ordinal": 10,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "deleted",
+          "ordinal": 11,
+          "type_info": "Bool"
+        },
+        {
+          "name": "account_name",
+          "ordinal": 12,
+          "type_info": "Text"
+        },
+        {
+          "name": "payee_name",
+          "ordinal": 13,
+          "type_info": "Text"
+        },
+        {
+          "name": "category_name",
+          "ordinal": 14,
+          "type_info": "Text"
+        },
+        {
+          "name": "subtransactions",
+          "ordinal": 15,
+          "type_info": "Jsonb"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        false,
+        false,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n        SELECT \n            id,\n            date_first,\n            date_next,\n            frequency,\n            amount,\n            memo,\n            flag_color,\n            account_id,\n            payee_id,\n            category_id,\n            transfer_account_id,\n            deleted,\n            account_name,\n            payee_name,\n            category_name,\n            subtransactions\n        FROM scheduled_transactions\n        "
+  },
+  "83b523b818805655508a780c8d0fea46b179977b9d76ef6665fbfdf1631a09ec": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "category_group_id",
+          "ordinal": 1,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "hidden",
+          "ordinal": 3,
+          "type_info": "Bool"
+        },
+        {
+          "name": "original_category_group_id",
+          "ordinal": 4,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "note",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "budgeted",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "activity",
+          "ordinal": 7,
+          "type_info": "Int8"
+        },
+        {
+          "name": "balance",
+          "ordinal": 8,
+          "type_info": "Int8"
+        },
+        {
+          "name": "goal_type?: GoalType",
+          "ordinal": 9,
+          "type_info": "Text"
+        },
+        {
+          "name": "goal_creation_month",
+          "ordinal": 10,
+          "type_info": "Date"
+        },
+        {
+          "name": "goal_target",
+          "ordinal": 11,
+          "type_info": "Int8"
+        },
+        {
+          "name": "goal_target_month",
+          "ordinal": 12,
+          "type_info": "Date"
+        },
+        {
+          "name": "goal_percentage_complete",
+          "ordinal": 13,
+          "type_info": "Int8"
+        },
+        {
+          "name": "goal_months_to_budget",
+          "ordinal": 14,
+          "type_info": "Int8"
+        },
+        {
+          "name": "goal_under_funded",
+          "ordinal": 15,
+          "type_info": "Int8"
+        },
+        {
+          "name": "goal_overall_funded",
+          "ordinal": 16,
+          "type_info": "Int8"
+        },
+        {
+          "name": "goal_overall_left",
+          "ordinal": 17,
+          "type_info": "Int8"
+        },
+        {
+          "name": "deleted",
+          "ordinal": 18,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n        SELECT \n            id,\n            category_group_id,\n            name,\n            hidden,\n            original_category_group_id,\n            note,\n            budgeted,\n            activity,\n            balance,\n            goal_type AS \"goal_type?: GoalType\",\n            goal_creation_month,\n            goal_target,\n            goal_target_month,\n            goal_percentage_complete,\n            goal_months_to_budget,\n            goal_under_funded,\n            goal_overall_funded,\n            goal_overall_left,\n            deleted\n        FROM categories\n        WHERE id = $1\n        "
+  },
+  "bc3309136b0ee2648182ef2df9f8327d3a71aaab1d154b3099a2cf54c26bc753": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n                DELETE FROM scheduled_transactions\n                WHERE id = $1\n                "
+  },
+  "d5c67f9e6fa0d116b81ee4c2727291b2621e5db8c2ae90f19307e19a59bec663": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Date",
+          "Date",
+          "Text",
+          "Int8",
+          "Text",
+          "Text",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Uuid",
+          "Bool",
+          "Text",
+          "Text",
+          "Text",
+          "Jsonb"
+        ]
+      }
+    },
+    "query": "\n                INSERT INTO scheduled_transactions (id, date_first, date_next, frequency, amount, memo, flag_color, account_id, payee_id, category_id, transfer_account_id, deleted, account_name, payee_name, category_name, subtransactions)\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)\n                ON CONFLICT (id) DO UPDATE\n                SET date_first = EXCLUDED.date_first,\n                date_next = EXCLUDED.date_next,\n                frequency = EXCLUDED.frequency,\n                amount = EXCLUDED.amount,\n                memo = EXCLUDED.memo,\n                flag_color = EXCLUDED.flag_color,\n                account_id = EXCLUDED.account_id,\n                payee_id = EXCLUDED.payee_id,\n                category_id = EXCLUDED.category_id,\n                transfer_account_id = EXCLUDED.transfer_account_id,\n                deleted = EXCLUDED.deleted,\n                account_name = EXCLUDED.account_name,\n                payee_name = EXCLUDED.payee_name,\n                category_name = EXCLUDED.category_name,\n                subtransactions = EXCLUDED.subtransactions;\n                "
+  }
+}

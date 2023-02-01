@@ -29,7 +29,7 @@ impl IntoResponse for AppError {
         let (status, error_message) = match self {
             AppError::InternalServerError(inner) => {
                 tracing::debug!("stacktrace: {}", inner.backtrace());
-                (StatusCode::INTERNAL_SERVER_ERROR, "something wen wrong")
+                (StatusCode::INTERNAL_SERVER_ERROR, "something went wrong")
             }
             AppError::ValidationError => (StatusCode::UNPROCESSABLE_ENTITY, "validation errors"),
         };
