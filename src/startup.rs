@@ -6,7 +6,7 @@ use sqlx::{postgres::PgPoolOptions, PgPool, Pool, Postgres};
 use tower_http::trace::TraceLayer;
 
 use crate::{
-    config::{DatabaseSettings, Settings},
+    config::{DatabaseSettings, RedisSettings, Settings},
     routes::{health_check, template_details, template_summary, template_transactions},
 };
 
@@ -14,8 +14,7 @@ use crate::{
 pub struct AppState {
     pub ynab_client: Arc<ynab::Client>,
     pub db_conn_pool: Pool<Postgres>,
-    pub redis_client: Arc<redis::Client>,
-    // pub redis_conn_pool: r2d2::Pool<redis::Client>,
+    pub redis_conn_pool: r2d2::Pool<redis::Client>,
 }
 
 pub struct Application {
@@ -26,19 +25,14 @@ pub struct Application {
 impl Application {
     pub async fn build(configuration: Settings) -> Result<Self> {
         let db_conn_pool = get_connection_pool(&configuration.database);
-        let redis_client = Arc::new(
-            redis::Client::open(configuration.redis.connection_string())
-                .context("failed to establish connection to the redis instance")?,
-        );
-        // let redis_conn_pool = get_redis_connection_pool(&configuration.redis)
-        //     .context("failed to get redis connection pool")?;
+        let redis_conn_pool = get_redis_connection_pool(&configuration.redis)
+            .context("failed to get redis connection pool")?;
         let ynab_client = Arc::new(configuration.ynab_client.client());
 
         let app_state = AppState {
             ynab_client,
             db_conn_pool,
-            redis_client,
-            // redis_conn_pool,
+            redis_conn_pool,
         };
 
         let address = format!(
@@ -80,18 +74,16 @@ pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
         .connect_lazy_with(configuration.with_db())
 }
 
-// TODO: Not working right now, when building in docker, it tries to reach for the redis instance...
-// TODO: To uncomment and use docker-compose to setup all dockers (postgres and redis included)
-// pub fn get_redis_connection_pool(
-//     configuration: &RedisSettings,
-// ) -> Result<r2d2::Pool<redis::Client>> {
-//     let redis_client = redis::Client::open(configuration.connection_string())
-//         .context("failed to establish connection to the redis instance")?;
-//     Ok(r2d2::Pool::new(redis_client).context("failed to create pool of redis connections")?)
-// }
+pub fn get_redis_connection_pool(
+    configuration: &RedisSettings,
+) -> Result<r2d2::Pool<redis::Client>> {
+    let redis_client = redis::Client::open(configuration.connection_string())
+        .context("failed to establish connection to the redis instance")?;
+    Ok(r2d2::Pool::new(redis_client).context("failed to create pool of redis connections")?)
+}
 
-// pub fn get_redis_conn(
-//     pool: &r2d2::Pool<redis::Client>,
-// ) -> Result<r2d2::PooledConnection<redis::Client>, r2d2::Error> {
-//     pool.get()
-// }
+pub fn get_redis_conn(
+    pool: &r2d2::Pool<redis::Client>,
+) -> Result<r2d2::PooledConnection<redis::Client>, r2d2::Error> {
+    pool.get()
+}

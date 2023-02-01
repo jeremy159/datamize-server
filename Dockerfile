@@ -37,9 +37,9 @@ RUN apt-get update -y \
   && rm -rf /var/lib/apt/lists/*
 # Copy the compiled binary from the builder environment
 # to our runtime environment
-COPY --from=builder /app/target/release/budget-data-server budget-data-server
+COPY --from=builder /app/target/release/budget-data-server /usr/local/bin/budget-data-server
 # We need the configuration file at runtime!
-COPY configuration configuration
+COPY configuration /usr/local/bin/configuration
 ENV BUDGET_DATA_ENVIRONMENT production
 # When `docker run` is executed, launch the binary!
-ENTRYPOINT ["./budget-data-server"]
+CMD ["budget-data-server"]

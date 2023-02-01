@@ -1,0 +1,34 @@
+version: "3.9"
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      BUDGET_DATA_ENVIRONMENT: "staging"
+    depends_on:
+      - postgres
+      - redis
+  postgres:
+    image: postgres
+    restart: always
+    ports:
+      - 5432:5432
+    volumes:
+      - db:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: "password"
+      POSTGRES_USER: "postgres"
+      POSTGRES_DB: budget_data
+  redis:
+    image: "redis"
+    ports:
+      - 6379:6379
+    volumes:
+      - redis:/data
+volumes:
+  db:
+  redis:
+    driver: local

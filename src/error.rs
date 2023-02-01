@@ -28,6 +28,7 @@ impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, error_message) = match self {
             AppError::InternalServerError(inner) => {
+                tracing::error!("AppError::InternalServerError: {}", inner.to_string());
                 tracing::debug!("stacktrace: {}", inner.backtrace());
                 (StatusCode::INTERNAL_SERVER_ERROR, "something went wrong")
             }
