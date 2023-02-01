@@ -1,4 +1,5 @@
 version: "3.9"
+name: datamize
 services:
   api:
     build: .
@@ -7,7 +8,7 @@ services:
     volumes:
       - .:/app
     environment:
-      BUDGET_DATA_ENVIRONMENT: "staging"
+      DATAMIZE_ENVIRONMENT: "staging"
     depends_on:
       - postgres
       - redis
@@ -21,7 +22,7 @@ services:
     environment:
       POSTGRES_PASSWORD: "password"
       POSTGRES_USER: "postgres"
-      POSTGRES_DB: budget_data
+      POSTGRES_DB: datamize
   redis:
     image: "redis"
     ports:

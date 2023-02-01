@@ -21,7 +21,7 @@ RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
 ENV SQLX_OFFLINE true
 # Let's build our binary!
-RUN cargo build --release --bin budget-data-server
+RUN cargo build --release --bin datamize
 
 # Runtime stage
 FROM debian:bullseye-slim AS runtime
@@ -37,9 +37,9 @@ RUN apt-get update -y \
   && rm -rf /var/lib/apt/lists/*
 # Copy the compiled binary from the builder environment
 # to our runtime environment
-COPY --from=builder /app/target/release/budget-data-server /usr/local/bin/budget-data-server
+COPY --from=builder /app/target/release/datamize /usr/local/bin/datamize
 # We need the configuration file at runtime!
 COPY configuration /usr/local/bin/configuration
-ENV BUDGET_DATA_ENVIRONMENT production
+ENV DATAMIZE_ENVIRONMENT production
 # When `docker run` is executed, launch the binary!
-CMD ["budget-data-server"]
+CMD ["datamize"]

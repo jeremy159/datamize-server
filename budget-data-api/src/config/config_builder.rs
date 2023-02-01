@@ -47,7 +47,7 @@ impl BudgetDataConfig {
                     .unwrap()
                     .join("budget-data-api/budget-data-config.toml"),
             ))
-            .merge(Env::prefixed("BUDGET_DATA_"))
+            .merge(Env::prefixed("DATAMIZE_"))
             .extract()
             .expect("Failed to extract config files and environment variables into a rust struct.")
     }

@@ -19,8 +19,8 @@ fi
 DB_USER=${POSTGRES_USER:=postgres}
 # Check if a custom password has been set, otherwise default to 'password'
 DB_PASSWORD="${POSTGRES_PASSWORD:=password}"
-# Check if a custom database name has been set, otherwise default to 'budget_data'
-DB_NAME="${POSTGRES_DB:=budget_data}"
+# Check if a custom database name has been set, otherwise default to 'datamize'
+DB_NAME="${POSTGRES_DB:=datamize}"
 # Check if a custom port has been set, otherwise default to '5432'
 DB_PORT="${POSTGRES_PORT:=5432}"
 # Check if a custom host has been set, otherwise default to 'localhost'

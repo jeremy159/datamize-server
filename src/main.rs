@@ -1,16 +1,15 @@
 use anyhow::Context;
-use budget_data_server::{
+use datamize::{
     config,
     startup::Application,
     telemetry::{get_subscriber, init_subscriber},
 };
 
-// TODO: Rename to Dudget
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let subscriber = get_subscriber(
-        "budget_data_server".into(),
-        "budget_data_server=debug,tower_http=debug".into(),
+        "datamize".into(),
+        "datamize=debug,tower_http=debug".into(),
         std::io::stdout,
     );
     init_subscriber(subscriber);

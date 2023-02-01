@@ -9,12 +9,7 @@
       "request": "launch",
       "name": "Debug unit tests in library 'budget-data-api'",
       "cargo": {
-        "args": [
-          "test",
-          "--no-run",
-          "--lib",
-          "--package=budget-data-api"
-        ],
+        "args": ["test", "--no-run", "--lib", "--package=budget-data-api"],
         "filter": {
           "name": "budget-data-api",
           "kind": "lib"
@@ -28,12 +23,7 @@
       "request": "launch",
       "name": "Debug unit tests in library 'ynab'",
       "cargo": {
-        "args": [
-          "test",
-          "--no-run",
-          "--lib",
-          "--package=ynab"
-        ],
+        "args": ["test", "--no-run", "--lib", "--package=ynab"],
         "filter": {
           "name": "ynab",
           "kind": "lib"
@@ -45,16 +35,11 @@
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Debug unit tests in library 'budget-data-server'",
+      "name": "Debug unit tests in library 'datamize'",
       "cargo": {
-        "args": [
-          "test",
-          "--no-run",
-          "--lib",
-          "--package=budget-data-server"
-        ],
+        "args": ["test", "--no-run", "--lib", "--package=datamize"],
         "filter": {
-          "name": "budget-data-server",
+          "name": "datamize",
           "kind": "lib"
         }
       },
@@ -64,15 +49,11 @@
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Debug executable 'budget-data-server'",
+      "name": "Debug executable 'datamize'",
       "cargo": {
-        "args": [
-          "build",
-          "--bin=budget-data-server",
-          "--package=budget-data-server"
-        ],
+        "args": ["build", "--bin=datamize", "--package=datamize"],
         "filter": {
-          "name": "budget-data-server",
+          "name": "datamize",
           "kind": "bin"
         }
       },
@@ -82,16 +63,11 @@
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Debug unit tests in executable 'budget-data-server'",
+      "name": "Debug unit tests in executable 'datamize'",
       "cargo": {
-        "args": [
-          "test",
-          "--no-run",
-          "--bin=budget-data-server",
-          "--package=budget-data-server"
-        ],
+        "args": ["test", "--no-run", "--bin=datamize", "--package=datamize"],
         "filter": {
-          "name": "budget-data-server",
+          "name": "datamize",
           "kind": "bin"
         }
       },

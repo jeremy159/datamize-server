@@ -13,7 +13,7 @@ username = "postgres"
 password = "password"
 port = 5432
 host = "127.0.0.1"
-database_name = "budget_data"
+database_name = "datamize"
 require_ssl = false
 
 [redis]

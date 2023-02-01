@@ -89,7 +89,7 @@ impl Default for Settings {
                 password: String::from("password").into(),
                 port: 5432,
                 host: String::from("127.0.0.1"),
-                database_name: String::from("budget_data"),
+                database_name: String::from("datamize"),
                 require_ssl: false,
             },
             redis: RedisSettings {
@@ -107,10 +107,10 @@ impl Settings {
 
         // Detect the running environment.
         // Default to `local` if unspecified.
-        let environment: Environment = std::env::var("BUDGET_DATA_ENVIRONMENT")
+        let environment: Environment = std::env::var("DATAMIZE_ENVIRONMENT")
             .unwrap_or_else(|_| "local".into())
             .try_into()
-            .expect("Failed to parse BUDGET_DATA_ENVIRONMENT.");
+            .expect("Failed to parse DATAMIZE_ENVIRONMENT.");
         let environment_filename = format!("{}.toml", environment.as_str());
 
         let settings = config::Config::builder()
@@ -120,10 +120,10 @@ impl Settings {
             .add_source(config::File::from(
                 configuration_directory.join(environment_filename),
             ))
-            // Add in settings from environment variables (with a prefix of BUDGET_DATA and '__' as separator)
-            // E.g. `BUDGET_DATA_APPLICATION__PORT=5001 would set `Settings.application.port`
+            // Add in settings from environment variables (with a prefix of DATAMIZE and '__' as separator)
+            // E.g. `DATAMIZE_APPLICATION__PORT=5001 would set `Settings.application.port`
             .add_source(
-                config::Environment::with_prefix("BUDGET_DATA")
+                config::Environment::with_prefix("DATAMIZE")
                     .prefix_separator("_")
                     .separator("__"),
             )
