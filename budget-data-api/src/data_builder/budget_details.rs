@@ -140,32 +140,36 @@ fn get_projected_amount(
     category: &Category,
     scheduled_transactions_map: &HashMap<Uuid, Vec<ScheduledTransactionDetail>>,
 ) -> i64 {
-    let projected_amount = match category.goal_under_funded {
-        Some(0) => {
-            if let Some(percent) = category.goal_percentage_complete {
-                match category.goal_target_month {
-                    Some(_) => {
-                        if percent == 100 {
-                            category.budgeted
-                        } else {
-                            match category.goal_months_to_budget {
-                                Some(months_remaining) => match category.goal_overall_left {
-                                    Some(overall_left) => {
-                                        (overall_left + category.budgeted) / months_remaining
-                                    }
+    let projected_amount = match category.goal_type {
+        Some(ynab::types::GoalType::Debt) => 0, // Debt type goal should not be considered in the amount as they arlready have a scheduled transaction of the same amount
+        Some(_) => match category.goal_under_funded {
+            Some(0) => {
+                if let Some(percent) = category.goal_percentage_complete {
+                    match category.goal_target_month {
+                        Some(_) => {
+                            if percent == 100 {
+                                category.budgeted
+                            } else {
+                                match category.goal_months_to_budget {
+                                    Some(months_remaining) => match category.goal_overall_left {
+                                        Some(overall_left) => {
+                                            (overall_left + category.budgeted) / months_remaining
+                                        }
+                                        None => category.goal_target,
+                                    },
                                     None => category.goal_target,
-                                },
-                                None => category.goal_target,
+                                }
                             }
                         }
+                        None => category.goal_target,
                     }
-                    None => category.goal_target,
+                } else {
+                    panic!("Should not be possible to have a 'goal_under_funded' but no 'goal_percentage_complete'.");
                 }
-            } else {
-                panic!("Should not be possible to have a 'goal_under_funded' but no 'goal_percentage_complete'.");
             }
-        }
-        Some(i) => i + category.budgeted,
+            Some(i) => i + category.budgeted,
+            None => 0,
+        },
         None => 0,
     };
 
@@ -181,9 +185,13 @@ fn get_current_amount(
     category: &Category,
     scheduled_transactions_map: &HashMap<Uuid, Vec<ScheduledTransactionDetail>>,
 ) -> i64 {
-    let current_amount = match category.goal_under_funded {
-        Some(0) => category.budgeted,
-        Some(i) => i + category.budgeted,
+    let current_amount = match category.goal_type {
+        Some(ynab::types::GoalType::Debt) => 0, // Debt type goal should not be considered in the amount as they arlready have a scheduled transaction of the same amount
+        Some(_) => match category.goal_under_funded {
+            Some(0) => category.budgeted,
+            Some(i) => i + category.budgeted,
+            None => 0,
+        },
         None => 0,
     };
 
