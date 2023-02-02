@@ -3,7 +3,7 @@ use std::{net::SocketAddr, sync::Arc};
 use anyhow::{Context, Ok, Result};
 use axum::{routing::get, Router};
 use sqlx::{postgres::PgPoolOptions, PgPool, Pool, Postgres};
-use tower_http::trace::TraceLayer;
+use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 use crate::{
     config::{DatabaseSettings, RedisSettings, Settings},
@@ -50,6 +50,7 @@ impl Application {
             .route("/api/template/details", get(template_details))
             .route("/api/template/summary", get(template_summary))
             .route("/api/template/transactions", get(template_transactions))
+            .layer(CorsLayer::permissive()) // TODO: To be more restrictive...
             .layer(TraceLayer::new_for_http())
             .with_state(app_state);
 

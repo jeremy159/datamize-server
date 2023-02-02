@@ -9,7 +9,12 @@
       "request": "launch",
       "name": "Debug unit tests in library 'budget-data-api'",
       "cargo": {
-        "args": ["test", "--no-run", "--lib", "--package=budget-data-api"],
+        "args": [
+          "test",
+          "--no-run",
+          "--lib",
+          "--package=budget-data-api"
+        ],
         "filter": {
           "name": "budget-data-api",
           "kind": "lib"
@@ -23,7 +28,12 @@
       "request": "launch",
       "name": "Debug unit tests in library 'ynab'",
       "cargo": {
-        "args": ["test", "--no-run", "--lib", "--package=ynab"],
+        "args": [
+          "test",
+          "--no-run",
+          "--lib",
+          "--package=ynab"
+        ],
         "filter": {
           "name": "ynab",
           "kind": "lib"
@@ -37,7 +47,12 @@
       "request": "launch",
       "name": "Debug unit tests in library 'datamize'",
       "cargo": {
-        "args": ["test", "--no-run", "--lib", "--package=datamize"],
+        "args": [
+          "test",
+          "--no-run",
+          "--lib",
+          "--package=datamize"
+        ],
         "filter": {
           "name": "datamize",
           "kind": "lib"
@@ -51,7 +66,11 @@
       "request": "launch",
       "name": "Debug executable 'datamize'",
       "cargo": {
-        "args": ["build", "--bin=datamize", "--package=datamize"],
+        "args": [
+          "build",
+          "--bin=datamize",
+          "--package=datamize"
+        ],
         "filter": {
           "name": "datamize",
           "kind": "bin"
@@ -65,7 +84,12 @@
       "request": "launch",
       "name": "Debug unit tests in executable 'datamize'",
       "cargo": {
-        "args": ["test", "--no-run", "--bin=datamize", "--package=datamize"],
+        "args": [
+          "test",
+          "--no-run",
+          "--bin=datamize",
+          "--package=datamize"
+        ],
         "filter": {
           "name": "datamize",
           "kind": "bin"
