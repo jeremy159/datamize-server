@@ -25,6 +25,7 @@ services:
       POSTGRES_DB: datamize
   redis:
     image: "redis"
+    restart: always
     ports:
       - 6379:6379
     volumes:
