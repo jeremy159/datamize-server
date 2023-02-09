@@ -11,7 +11,7 @@ use ynab::types::{Category, ScheduledTransactionDetail};
 
 pub type Result<T> = std::result::Result<T, Error>;
 pub type BudgetDetails = data_builder::types::BudgetDetails;
-pub type CommonExpanseEstimationPerPerson = data_builder::types::CommonExpanseEstimationPerPerson;
+pub type CommonExpenseEstimationPerPerson = data_builder::types::CommonExpenseEstimationPerPerson;
 pub type ScheduledTransactionsDistribution = data_builder::types::ScheduledTransactionsDistribution;
 
 pub fn build_budget_details(
@@ -30,10 +30,10 @@ pub fn build_budget_details(
 pub fn build_budget_summary(
     categories: &[Category],
     scheduled_transactions: &[ScheduledTransactionDetail],
-) -> Result<Vec<CommonExpanseEstimationPerPerson>> {
+) -> Result<Vec<CommonExpenseEstimationPerPerson>> {
     let budget_details = build_budget_details(categories, scheduled_transactions)?;
 
-    data_builder::common_expanses(&budget_details, scheduled_transactions)
+    data_builder::common_expenses(&budget_details, scheduled_transactions)
 }
 
 pub fn build_scheduled_transactions(

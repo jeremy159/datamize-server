@@ -1,6 +1,6 @@
 use anyhow::Context;
 use axum::{extract::State, Json};
-use budget_data_api::CommonExpanseEstimationPerPerson;
+use budget_data_api::CommonExpenseEstimationPerPerson;
 use futures::try_join;
 
 use crate::{
@@ -16,7 +16,7 @@ use crate::{
 /// Returns a budget template summary.
 pub async fn template_summary(
     State(app_state): State<AppState>,
-) -> HttpJsonAppResult<Vec<CommonExpanseEstimationPerPerson>> {
+) -> HttpJsonAppResult<Vec<CommonExpenseEstimationPerPerson>> {
     let ynab_client = app_state.ynab_client.as_ref();
     let db_conn_pool = app_state.db_conn_pool;
     let mut redis_conn = get_redis_conn(&app_state.redis_conn_pool)

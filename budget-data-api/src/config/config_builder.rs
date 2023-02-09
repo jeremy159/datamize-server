@@ -1,6 +1,6 @@
 use super::types::{
-    BugdetCalculationDataConfig, CeliConfig, FixedExpanses, LongTermSavings, PersonSalaryConfig,
-    RetirementSavings, ShortTermSavings, VariableExpanses,
+    BugdetCalculationDataConfig, CeliConfig, FixedExpenses, LongTermSavings, PersonSalaryConfig,
+    RetirementSavings, ShortTermSavings, VariableExpenses,
 };
 use figment::{
     providers::{Env, Format, Serialized, Toml},
@@ -19,19 +19,19 @@ impl Default for BudgetDataConfig {
     fn default() -> BudgetDataConfig {
         BudgetDataConfig {
             budget_calculation_data: BugdetCalculationDataConfig {
-                fixed_expanses: FixedExpanses {
+                fixed_expenses: FixedExpenses {
                     housing_ids: vec![],
                     transport_ids: vec![],
                     other_ids: vec![],
                 },
-                variable_expanses: VariableExpanses {
+                variable_expenses: VariableExpenses {
                     subscription_ids: vec![],
                     other_ids: vec![],
                 },
                 short_term_savings: ShortTermSavings { ids: vec![] },
                 long_term_savings: LongTermSavings { ids: vec![] },
                 retirement_savings: RetirementSavings { ids: vec![] },
-                external_expanses: vec![],
+                external_expenses: vec![],
             },
             person_salaries: vec![],
             celis: vec![],

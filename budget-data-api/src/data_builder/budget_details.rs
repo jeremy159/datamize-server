@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
-use super::types::{BudgetDetails, Expanse};
+use super::types::{BudgetDetails, Expense};
 use super::utils;
-use crate::config::types::{BugdetCalculationDataConfig, ExpanseType, SubExpanseType};
+use crate::config::types::{BugdetCalculationDataConfig, ExpenseType, SubExpenseType};
 use crate::Result;
 use uuid::Uuid;
 use ynab::types::{Category, ScheduledTransactionDetail};
 
-/// Gives bugdet details, spliting expanses by their type and sub-type.
+/// Gives bugdet details, spliting expenses by their type and sub-type.
 pub fn budget_details(
     categories: &[Category],
     scheduled_transactions: &[ScheduledTransactionDetail],
@@ -17,7 +17,7 @@ pub fn budget_details(
         build_category_to_scheduled_transaction_map(scheduled_transactions);
 
     let mut output: BudgetDetails = BudgetDetails::default();
-    output.expanses.extend(
+    output.expenses.extend(
         categories
             .iter()
             .filter(|c| !c.hidden)
@@ -25,14 +25,14 @@ pub fn budget_details(
                 let projected_amount: i64 = get_projected_amount(c, &scheduled_transactions_map);
                 let current_amount: i64 = get_current_amount(c, &scheduled_transactions_map);
 
-                let (expanse_type, sub_expanse_type) =
-                    get_expanse_categorization(&c.category_group_id, config);
+                let (expense_type, sub_expense_type) =
+                    get_expense_categorization(&c.category_group_id, config);
 
-                Expanse::new(
+                Expense::new(
                     c.id,
                     c.name.clone(),
-                    expanse_type,
-                    sub_expanse_type,
+                    expense_type,
+                    sub_expense_type,
                     projected_amount,
                     current_amount,
                 )
@@ -41,23 +41,23 @@ pub fn budget_details(
     );
 
     output
-        .expanses
-        .sort_by(|first, second| first.sub_expanse_type.cmp(&second.sub_expanse_type));
+        .expenses
+        .sort_by(|first, second| first.sub_expense_type.cmp(&second.sub_expense_type));
 
     // Filter out undefined
     output
-        .expanses
-        .retain(|e| e.expanse_type != ExpanseType::Undefined);
+        .expenses
+        .retain(|e| e.expense_type != ExpenseType::Undefined);
 
     output
-        .expanses
-        .extend(config.external_expanses.iter().map(|ee| ee.clone().into()));
+        .expenses
+        .extend(config.external_expenses.iter().map(|ee| ee.clone().into()));
 
     // Compute monthly income total
     let salary_per_person = utils::get_salary_per_person_per_month(scheduled_transactions);
     output.global.monthly_income = salary_per_person.iter().map(|sp| sp.salary_per_month).sum();
     let health_insurance_amount = match output
-        .expanses
+        .expenses
         .iter()
         .find(|c| c.name.contains("Assurance Santé"))
     {
@@ -65,17 +65,17 @@ pub fn budget_details(
         None => 0,
     };
     let retirement_savings_total = output
-        .expanses
+        .expenses
         .iter()
-        .filter(|e| e.expanse_type == ExpanseType::RetirementSaving)
+        .filter(|e| e.expense_type == ExpenseType::RetirementSaving)
         .map(|c| c.projected_amount)
         .sum::<i64>();
 
     output.global.total_monthly_income =
         output.global.monthly_income + health_insurance_amount + retirement_savings_total;
 
-    // Compute proportion for each expanse
-    output.expanses.iter_mut().for_each(|e| {
+    // Compute proportion for each expense
+    output.expenses.iter_mut().for_each(|e| {
         e.projected_proportion =
             e.projected_amount as f64 / output.global.total_monthly_income as f64;
         e.current_proportion = e.current_amount as f64 / output.global.total_monthly_income as f64;
@@ -203,45 +203,45 @@ fn get_current_amount(
         }
 }
 
-fn get_expanse_categorization(
+fn get_expense_categorization(
     category_group_id: &Uuid,
     config: &BugdetCalculationDataConfig,
-) -> (ExpanseType, SubExpanseType) {
+) -> (ExpenseType, SubExpenseType) {
     if config
-        .fixed_expanses
+        .fixed_expenses
         .housing_ids
         .iter()
         .any(|v| v == category_group_id)
     {
-        (ExpanseType::Fixed, SubExpanseType::Housing)
+        (ExpenseType::Fixed, SubExpenseType::Housing)
     } else if config
-        .fixed_expanses
+        .fixed_expenses
         .transport_ids
         .iter()
         .any(|v| v == category_group_id)
     {
-        (ExpanseType::Fixed, SubExpanseType::Transport)
+        (ExpenseType::Fixed, SubExpenseType::Transport)
     } else if config
-        .fixed_expanses
+        .fixed_expenses
         .other_ids
         .iter()
         .any(|v| v == category_group_id)
     {
-        (ExpanseType::Fixed, SubExpanseType::OtherFixed)
+        (ExpenseType::Fixed, SubExpenseType::OtherFixed)
     } else if config
-        .variable_expanses
+        .variable_expenses
         .subscription_ids
         .iter()
         .any(|v| v == category_group_id)
     {
-        (ExpanseType::Variable, SubExpanseType::Subscription)
+        (ExpenseType::Variable, SubExpenseType::Subscription)
     } else if config
-        .variable_expanses
+        .variable_expenses
         .other_ids
         .iter()
         .any(|v| v == category_group_id)
     {
-        (ExpanseType::Variable, SubExpanseType::OtherVariable)
+        (ExpenseType::Variable, SubExpenseType::OtherVariable)
     } else if config
         .short_term_savings
         .ids
@@ -249,8 +249,8 @@ fn get_expanse_categorization(
         .any(|v| v == category_group_id)
     {
         (
-            ExpanseType::ShortTermSaving,
-            SubExpanseType::ShortTermSaving,
+            ExpenseType::ShortTermSaving,
+            SubExpenseType::ShortTermSaving,
         )
     } else if config
         .long_term_savings
@@ -258,7 +258,7 @@ fn get_expanse_categorization(
         .iter()
         .any(|v| v == category_group_id)
     {
-        (ExpanseType::LongTermSaving, SubExpanseType::LongTermSaving)
+        (ExpenseType::LongTermSaving, SubExpenseType::LongTermSaving)
     } else if config
         .retirement_savings
         .ids
@@ -266,10 +266,10 @@ fn get_expanse_categorization(
         .any(|v| v == category_group_id)
     {
         (
-            ExpanseType::RetirementSaving,
-            SubExpanseType::RetirementSaving,
+            ExpenseType::RetirementSaving,
+            SubExpenseType::RetirementSaving,
         )
     } else {
-        (ExpanseType::Undefined, SubExpanseType::Undefined)
+        (ExpenseType::Undefined, SubExpenseType::Undefined)
     }
 }

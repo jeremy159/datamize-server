@@ -1,4 +1,4 @@
-use crate::{config::BudgetDataConfig, CommonExpanseEstimationPerPerson};
+use crate::{config::BudgetDataConfig, CommonExpenseEstimationPerPerson};
 use chrono::{Local, Months, NaiveDate, NaiveTime, TimeZone};
 use rrule::{RRuleSet, Tz};
 use uuid::Uuid;
@@ -64,7 +64,7 @@ pub fn find_repeatable_transactions(
 
 pub fn get_salary_per_person_per_month(
     scheduled_transactions: &[ScheduledTransactionDetail],
-) -> Vec<CommonExpanseEstimationPerPerson> {
+) -> Vec<CommonExpenseEstimationPerPerson> {
     let mut output = vec![];
     let app_config = BudgetDataConfig::build();
     let salary_payee_ids: Vec<&Uuid> = app_config
@@ -85,7 +85,7 @@ pub fn get_salary_per_person_per_month(
                     .unwrap()
                     .name
                     .clone();
-                let ps = CommonExpanseEstimationPerPerson {
+                let ps = CommonExpenseEstimationPerPerson {
                     name,
                     salary: st.amount,
                     salary_per_month: st.amount

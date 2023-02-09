@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub enum ExpanseType {
+pub enum ExpenseType {
     Fixed,
     Variable,
     ShortTermSaving,
@@ -14,7 +14,7 @@ pub enum ExpanseType {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "camelCase")]
-pub enum SubExpanseType {
+pub enum SubExpenseType {
     Housing,
     Transport,
     OtherFixed,
@@ -27,28 +27,28 @@ pub enum SubExpanseType {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct ExternalExpanse {
+pub struct ExternalExpense {
     pub id: Option<String>,
     pub name: String,
-    /// The type the expanse relates to.
+    /// The type the expense relates to.
     #[serde(rename = "type")]
-    pub expanse_type: ExpanseType,
-    /// The sub_type the expanse relates to. This can be useful for example to group only housing expanses together.
+    pub expense_type: ExpenseType,
+    /// The sub_type the expense relates to. This can be useful for example to group only housing expenses together.
     #[serde(rename = "sub_type")]
-    pub sub_expanse_type: SubExpanseType,
+    pub sub_expense_type: SubExpenseType,
     /// Will either be the goal_under_funded or the amount of the linked scheduled transaction coming in the month
     pub projected_amount: i64,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct FixedExpanses {
+pub struct FixedExpenses {
     pub housing_ids: Vec<Uuid>,
     pub transport_ids: Vec<Uuid>,
     pub other_ids: Vec<Uuid>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct VariableExpanses {
+pub struct VariableExpenses {
     pub subscription_ids: Vec<Uuid>,
     pub other_ids: Vec<Uuid>,
 }
@@ -70,12 +70,12 @@ pub struct RetirementSavings {
 
 #[derive(Serialize, Deserialize)]
 pub struct BugdetCalculationDataConfig {
-    pub fixed_expanses: FixedExpanses,
-    pub variable_expanses: VariableExpanses,
+    pub fixed_expenses: FixedExpenses,
+    pub variable_expenses: VariableExpenses,
     pub short_term_savings: ShortTermSavings,
     pub long_term_savings: LongTermSavings,
     pub retirement_savings: RetirementSavings,
-    pub external_expanses: Vec<ExternalExpanse>,
+    pub external_expenses: Vec<ExternalExpense>,
 }
 
 #[derive(Serialize, Deserialize)]

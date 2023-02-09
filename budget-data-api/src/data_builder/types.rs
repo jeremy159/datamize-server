@@ -1,6 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 
-use crate::config::types::{ExpanseType, ExternalExpanse, SubExpanseType};
+use crate::config::types::{ExpenseType, ExternalExpense, SubExpenseType};
 use serde::{Deserialize, Serialize, Serializer};
 
 use uuid::Uuid;
@@ -9,20 +9,20 @@ use ynab::types::{
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Expanse {
+pub struct Expense {
     pub id: Option<Uuid>,
     pub is_external: bool,
     pub name: String,
-    /// The type the expanse relates to.
+    /// The type the expense relates to.
     #[serde(rename = "type")]
-    pub expanse_type: ExpanseType,
-    /// The sub_type the expanse relates to. This can be useful for example to group only housing expanses together.
+    pub expense_type: ExpenseType,
+    /// The sub_type the expense relates to. This can be useful for example to group only housing expenses together.
     #[serde(rename = "sub_type")]
-    pub sub_expanse_type: SubExpanseType,
+    pub sub_expense_type: SubExpenseType,
     /// Will either be the goal_under_funded, the goal_target for the month or the amount of the linked scheduled transaction coming in the month.
     pub projected_amount: i64,
     /// At the begining of the month, this amount will be the same as projected_amount,
-    /// but it will get updated during the month when some expanses occur in the category.
+    /// but it will get updated during the month when some expenses occur in the category.
     pub current_amount: i64,
     /// The proportion the projected amount represents relative to the total monthly income (salaries + health insurance + work-related RRSP)
     pub projected_proportion: f64,
@@ -30,12 +30,12 @@ pub struct Expanse {
     pub current_proportion: f64,
 }
 
-impl Expanse {
+impl Expense {
     pub fn new(
         id: Uuid,
         name: String,
-        expanse_type: ExpanseType,
-        sub_expanse_type: SubExpanseType,
+        expense_type: ExpenseType,
+        sub_expense_type: SubExpenseType,
         projected_amount: i64,
         current_amount: i64,
     ) -> Self {
@@ -43,8 +43,8 @@ impl Expanse {
             id: Some(id),
             is_external: false,
             name,
-            expanse_type,
-            sub_expanse_type,
+            expense_type,
+            sub_expense_type,
             projected_amount,
             current_amount,
             projected_proportion: 0.0,
@@ -53,8 +53,8 @@ impl Expanse {
     }
 }
 
-impl From<ExternalExpanse> for Expanse {
-    fn from(value: ExternalExpanse) -> Self {
+impl From<ExternalExpense> for Expense {
+    fn from(value: ExternalExpense) -> Self {
         Self {
             id: None,
             is_external: true,
@@ -63,8 +63,8 @@ impl From<ExternalExpanse> for Expanse {
             projected_proportion: 0.0,
             current_amount: value.projected_amount,
             current_proportion: 0.0,
-            expanse_type: value.expanse_type,
-            sub_expanse_type: value.sub_expanse_type,
+            expense_type: value.expense_type,
+            sub_expense_type: value.sub_expense_type,
         }
     }
 }
@@ -75,25 +75,25 @@ pub struct GlobalMetadata {
     pub monthly_income: i64,
     /// Total income, before substracting health insurance and work-related retirement savings
     pub total_monthly_income: i64,
-    /// The tartet each expanse type should follow. For example, all fixed expanses shouldn't go over 60% of total income.
-    pub proportion_target_per_expanse_type: HashMap<ExpanseType, f64>,
+    /// The tartet each expense type should follow. For example, all fixed expenses shouldn't go over 60% of total income.
+    pub proportion_target_per_expense_type: HashMap<ExpenseType, f64>,
 }
 
 impl Default for GlobalMetadata {
     fn default() -> Self {
         let tuples = [
-            (ExpanseType::Fixed, 0.6_f64),
-            (ExpanseType::Variable, 0.1_f64),
-            (ExpanseType::ShortTermSaving, 0.1_f64),
-            (ExpanseType::LongTermSaving, 0.1_f64),
-            (ExpanseType::RetirementSaving, 0.1_f64),
+            (ExpenseType::Fixed, 0.6_f64),
+            (ExpenseType::Variable, 0.1_f64),
+            (ExpenseType::ShortTermSaving, 0.1_f64),
+            (ExpenseType::LongTermSaving, 0.1_f64),
+            (ExpenseType::RetirementSaving, 0.1_f64),
         ];
-        let proportion_target_per_expanse_type = tuples.into_iter().collect();
+        let proportion_target_per_expense_type = tuples.into_iter().collect();
 
         Self {
             monthly_income: 0,
             total_monthly_income: 0,
-            proportion_target_per_expanse_type,
+            proportion_target_per_expense_type,
         }
     }
 }
@@ -101,17 +101,17 @@ impl Default for GlobalMetadata {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct BudgetDetails {
     pub global: GlobalMetadata,
-    pub expanses: Vec<Expanse>,
+    pub expenses: Vec<Expense>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct CommonExpanseEstimationPerPerson {
+pub struct CommonExpenseEstimationPerPerson {
     pub name: String,
     pub salary: i64,
     pub salary_per_month: i64,
     pub proportion: f64,
-    pub common_expanses: i64,
-    pub individual_expanses: i64,
+    pub common_expenses: i64,
+    pub individual_expenses: i64,
     pub left_over: i64,
 }
 

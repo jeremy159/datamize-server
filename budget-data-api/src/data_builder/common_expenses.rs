@@ -1,21 +1,21 @@
 use std::collections::HashMap;
 
-use super::types::{BudgetDetails, CommonExpanseEstimationPerPerson, Expanse};
+use super::types::{BudgetDetails, CommonExpenseEstimationPerPerson, Expense};
 use super::utils;
 use crate::Result;
 use ynab::types::ScheduledTransactionDetail;
 
-/// Proportionally split common expanses
-pub fn common_expanses(
+/// Proportionally split common expenses
+pub fn common_expenses(
     budget_details: &BudgetDetails,
     scheduled_transactions: &[ScheduledTransactionDetail],
-) -> Result<Vec<CommonExpanseEstimationPerPerson>> {
-    let mut output: Vec<CommonExpanseEstimationPerPerson> = vec![];
+) -> Result<Vec<CommonExpenseEstimationPerPerson>> {
+    let mut output: Vec<CommonExpenseEstimationPerPerson> = vec![];
     let salary_per_person = utils::get_salary_per_person_per_month(scheduled_transactions);
 
     output.extend(salary_per_person.clone());
 
-    let mut total_output = CommonExpanseEstimationPerPerson {
+    let mut total_output = CommonExpenseEstimationPerPerson {
         name: "Total".to_string(),
         salary: output.iter().map(|o| o.salary).sum(),
         salary_per_month: output.iter().map(|o| o.salary_per_month).sum(),
@@ -24,10 +24,10 @@ pub fn common_expanses(
 
     let names_from_person_input: Vec<&str> =
         salary_per_person.iter().map(|p| p.name.as_str()).collect();
-    let mut individual_expanses_per_person: HashMap<&str, Vec<&Expanse>> = HashMap::new();
+    let mut individual_expenses_per_person: HashMap<&str, Vec<&Expense>> = HashMap::new();
 
-    total_output.common_expanses = budget_details
-        .expanses
+    total_output.common_expenses = budget_details
+        .expenses
         .iter()
         .filter(|&e| !e.is_external)
         .filter(|&e| {
@@ -36,7 +36,7 @@ pub fn common_expanses(
             names_from_person_input.iter().for_each(|&n| {
                 if e.name.contains(n) && e.projected_amount > 0 {
                     keep_in_it = false;
-                    individual_expanses_per_person
+                    individual_expenses_per_person
                         .entry(n)
                         .and_modify(|ie| ie.push(e))
                         .or_insert_with(|| vec![e]);
@@ -51,17 +51,17 @@ pub fn common_expanses(
     for o in &mut output {
         o.proportion = o.salary_per_month as f64 / total_output.salary_per_month as f64;
         // The divide and multiply by 1000 is needed to convert from and to YNAB's milliunits format.
-        o.common_expanses =
-            ((o.proportion * (total_output.common_expanses as f64) / 1000_f64) * 1000_f64) as i64;
-        o.individual_expanses = match individual_expanses_per_person.get(o.name.as_str()) {
+        o.common_expenses =
+            ((o.proportion * (total_output.common_expenses as f64) / 1000_f64) * 1000_f64) as i64;
+        o.individual_expenses = match individual_expenses_per_person.get(o.name.as_str()) {
             None => 0,
             Some(ie) => ie.iter().map(|&ec| ec.projected_amount).sum(),
         };
-        o.left_over = o.salary_per_month - o.common_expanses - o.individual_expanses;
+        o.left_over = o.salary_per_month - o.common_expenses - o.individual_expenses;
     }
 
     total_output.proportion = output.iter().map(|o| o.proportion).sum();
-    total_output.individual_expanses = output.iter().map(|o| o.individual_expanses).sum();
+    total_output.individual_expenses = output.iter().map(|o| o.individual_expenses).sum();
     total_output.left_over = output.iter().map(|o| o.left_over).sum();
     output.push(total_output);
     Ok(output)
