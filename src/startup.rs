@@ -8,8 +8,8 @@ use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use crate::{
     config::{DatabaseSettings, RedisSettings, Settings},
     routes::{
-        balance_sheet_month, balance_sheet_months, health_check, template_details,
-        template_summary, template_transactions,
+        balance_sheet_year, balance_sheet_years, get_balance_sheet_month, health_check,
+        put_balance_sheet_month, template_details, template_summary, template_transactions,
     },
 };
 
@@ -47,15 +47,18 @@ impl Application {
             configuration.application.host, configuration.application.port
         ))?;
 
-        // TODO: use term BalanceSheet = a snapshot of a business on a particular date. It lists all of your assets and liabilities and works out the net assets.
         let app = Router::new()
             .route("/", get(|| async { "Hello, World!" }))
             .route("/health_check", get(health_check))
             .route("/api/template/details", get(template_details))
             .route("/api/template/summary", get(template_summary))
             .route("/api/template/transactions", get(template_transactions))
-            .route("/api/balance_sheet/months", get(balance_sheet_months))
-            .route("/api/balance_sheet/months/:month", get(balance_sheet_month))
+            .route("/api/balance_sheet/years", get(balance_sheet_years))
+            .route("/api/balance_sheet/years/:year", get(balance_sheet_year))
+            .route(
+                "/api/balance_sheet/years/:year/:month",
+                get(get_balance_sheet_month).put(put_balance_sheet_month),
+            )
             .layer(CorsLayer::permissive()) // TODO: To be more restrictive...
             .layer(TraceLayer::new_for_http())
             .with_state(app_state);

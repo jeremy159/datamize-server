@@ -13,12 +13,13 @@ use crate::{
     startup::AppState,
 };
 
-pub async fn balance_sheet_month(
-    Path(month): Path<chrono::NaiveDate>,
+/// Get The details of one month
+pub async fn get_balance_sheet_month(
+    Path((year, month)): Path<(i32, chrono::Month)>,
     State(app_state): State<AppState>,
 ) -> HttpJsonAppResult<Month> {
     let ynab_client = app_state.ynab_client.as_ref();
-    println!("Month received = {}", month);
+    println!("Month received = {:?}", month);
     let accounts = ynab_client.get_accounts().await?;
     let mut resources: HashMap<&str, FinancialResource> = HashMap::new();
     let bank_accounts = "Comptes Bancaires".to_string();
@@ -154,6 +155,27 @@ pub async fn balance_sheet_month(
         month,
         net_assets,
         net_portfolio,
-        financial_resources: resources,
+        resources,
+    }))
+}
+
+/// Updates the month
+pub async fn put_balance_sheet_month(
+    Path((year, month)): Path<(i32, chrono::Month)>,
+    State(app_state): State<AppState>,
+) -> HttpJsonAppResult<Month> {
+    Ok(Json(Month {
+        month,
+        net_assets: TotalSummary {
+            total: 0,
+            percent_variation: 0.0,
+            balance_variation: 0,
+        },
+        net_portfolio: TotalSummary {
+            total: 0,
+            percent_variation: 0.0,
+            balance_variation: 0,
+        },
+        resources: vec![],
     }))
 }

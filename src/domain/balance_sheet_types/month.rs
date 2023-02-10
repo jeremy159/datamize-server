@@ -16,7 +16,7 @@ pub struct TotalSummary {
 #[derive(Debug, Serialize)]
 pub struct Month {
     /// The month in ISO format, e.g. "2020-12-25".
-    pub month: chrono::NaiveDate,
+    pub month: chrono::Month,
     /// Net Assets summary section. Includes the variation with the previous month.
     /// Net Assets is the total of owned assets minus the total of liabilities.
     pub net_assets: TotalSummary,
@@ -25,5 +25,5 @@ pub struct Month {
     /// are tangible cash assets but not the value of your house or car.
     pub net_portfolio: TotalSummary,
     /// All of the Assets and Liabilities of the current month are regrouped here.
-    pub financial_resources: Vec<FinancialResource>,
+    pub resources: Vec<FinancialResource>,
 }
