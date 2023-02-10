@@ -42,3 +42,23 @@ pub fn build_scheduled_transactions(
 ) -> Result<ScheduledTransactionsDistribution> {
     data_builder::scheduled_transactions(scheduled_transactions, category_id_to_name_map)
 }
+
+pub async fn get_balance_celi_jeremy() -> Result<i64> {
+    let config = BudgetDataConfig::build();
+    let celi_config = config
+        .celis
+        .iter()
+        .find(|c| &c.name == "CELI Jeremy")
+        .unwrap();
+    web_scraper::get_current_amount_of_celi(celi_config).await
+}
+
+pub async fn get_balance_celi_sandryne() -> Result<i64> {
+    let config = BudgetDataConfig::build();
+    let celi_config = config
+        .celis
+        .iter()
+        .find(|c| &c.name == "CELI Sandryne")
+        .unwrap();
+    web_scraper::get_current_amount_of_celi(celi_config).await
+}

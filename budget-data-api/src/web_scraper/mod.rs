@@ -2,7 +2,7 @@ use crate::config::types::CeliConfig;
 use crate::Result;
 use reqwest::header;
 
-pub async fn get_current_amount_of_celi(celi_config: &CeliConfig) -> Result<Option<i64>> {
+pub async fn get_current_amount_of_celi(celi_config: &CeliConfig) -> Result<i64> {
     let mut headers = header::HeaderMap::new();
     let cargo_pkg_name = env!("CARGO_PKG_NAME");
     let cargo_pkg_version = env!("CARGO_PKG_VERSION");
@@ -33,8 +33,9 @@ pub async fn get_current_amount_of_celi(celi_config: &CeliConfig) -> Result<Opti
     if let Some(i) = res.find('|') {
         let amount = &res[i + 2..res.len() - 1];
         let amount = (amount.parse::<f64>().unwrap() * 1000_f64) as i64; // Amount in milliunits format
-        return Ok(Some(amount));
+        return Ok(amount);
     }
 
-    Ok(None)
+    // TODO: Return error of not found instead.
+    Ok(0)
 }
