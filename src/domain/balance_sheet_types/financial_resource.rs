@@ -19,7 +19,7 @@ pub enum ResourceType {
     /// Refers to current cash, owned or due, like bank accounts or credit cards.
     Cash,
     /// Refers to invested money, usually in the market.
-    Investement,
+    Investment,
     /// Refers to money related to house, vehicules or other long term holdings.
     LongTerm,
 }

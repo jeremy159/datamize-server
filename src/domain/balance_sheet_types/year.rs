@@ -1,25 +1,22 @@
 use serde::Serialize;
 use uuid::Uuid;
 
-use super::{Month, TotalSummary};
+use super::{Month, NetTotal};
 
 #[derive(Debug, Serialize)]
 pub struct YearSummary {
     pub id: Uuid,
     /// The year of the date, in format 2015.
     pub year: i32,
-    /// The final total net assets of the year.
+    /// The final total net assets or portfolio of the year.
     /// Basically equals to the total of the year's last month.
     /// The only difference is the variation is calculated with the previous year, not the previous month.
-    pub net_assets: TotalSummary,
-    /// The final total net portfolio of the year.
-    /// Basically equals to the total of the year's last month.
-    /// The only difference is the variation is calculated with the previous year, not the previous month.
-    pub net_portfolio: TotalSummary,
+    pub net_totals: Vec<NetTotal>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct SavingRatesPerPerson {
+    pub id: Uuid,
     pub name: String,
     /// Épargne (REER, CELI, compte non enregistré, capital sur le REEE)
     /// achetée avec le revenu net (n’inclue pas le régime de retraite de l’employeur)
@@ -38,7 +35,7 @@ pub struct SavingRatesPerPerson {
     /// remises en argent de carte de crédit, cadeaux en argent, revenus de location, etc.)
     pub incomes: i64,
     /// rate = (savings + employer_contribution + employee_contribution + mortgage_capital) / (incomes + employer_contribution + employee_contribution)
-    pub rate: f64,
+    pub rate: f32,
 }
 
 #[derive(Debug, Serialize)]
@@ -46,14 +43,10 @@ pub struct YearDetail {
     pub id: Uuid,
     /// The year of the date, in format 2015.
     pub year: i32,
-    /// The final total net assets of the year.
+    /// The final total net assets or portfolio of the year.
     /// Basically equals to the total of the year's last month.
     /// The only difference is the variation is calculated with the previous year, not the previous month.
-    pub net_assets: TotalSummary,
-    /// The final total net portfolio of the year.
-    /// Basically equals to the total of the year's last month.
-    /// The only difference is the variation is calculated with the previous year, not the previous month.
-    pub net_portfolio: TotalSummary,
+    pub net_totals: Vec<NetTotal>,
     /// All the months of the year.
     pub months: Vec<Month>,
     /// The common saving rates of the year.

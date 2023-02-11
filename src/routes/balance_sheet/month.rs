@@ -5,10 +5,11 @@ use axum::{
     Json,
 };
 
+use uuid::Uuid;
 use ynab::types::AccountType;
 
 use crate::{
-    domain::{FinancialResource, Month, ResourceType, TotalSummary},
+    domain::{FinancialResource, Month, NetTotal, NetTotalType, ResourceType},
     error::HttpJsonAppResult,
     startup::AppState,
 };
@@ -86,7 +87,7 @@ pub async fn get_balance_sheet_month(
             .and_modify(|v| v.override_balance(balance)) // Erase any previous balance with what we received
             .or_insert_with(|| {
                 FinancialResource::new_asset(celi_jeremy.clone())
-                    .of_type(ResourceType::Investement)
+                    .of_type(ResourceType::Investment)
                     .non_editable()
                     .with_balance(balance)
             });
@@ -99,7 +100,7 @@ pub async fn get_balance_sheet_month(
             .and_modify(|v| v.override_balance(balance)) // Erase any previous balance with what we received
             .or_insert_with(|| {
                 FinancialResource::new_asset(celi_sandryne.clone())
-                    .of_type(ResourceType::Investement)
+                    .of_type(ResourceType::Investment)
                     .non_editable()
                     .with_balance(balance)
             });
@@ -108,17 +109,17 @@ pub async fn get_balance_sheet_month(
     let mut resources = resources.into_values().collect::<Vec<_>>();
     resources.push(
         FinancialResource::new_asset("REER Jeremy".to_string())
-            .of_type(ResourceType::Investement)
+            .of_type(ResourceType::Investment)
             .with_balance(29809840),
     );
     resources.push(
         FinancialResource::new_asset("RPA Sandryne".to_string())
-            .of_type(ResourceType::Investement)
+            .of_type(ResourceType::Investment)
             .with_balance(4545820),
     );
     resources.push(
         FinancialResource::new_asset("REEE".to_string())
-            .of_type(ResourceType::Investement)
+            .of_type(ResourceType::Investment)
             .with_balance(0000),
     );
     resources.push(
@@ -133,28 +134,31 @@ pub async fn get_balance_sheet_month(
     );
 
     // TODO: To remove stub data...
-    let net_assets = TotalSummary {
+    let net_assets = NetTotal {
+        id: Uuid::new_v4(),
+        net_type: NetTotalType::Asset,
         total: resources.iter().map(|v| v.balance).sum(),
-        balance_variation: 2806000,
-        percent_variation: 0.013,
+        balance_var: 2806000,
+        percent_var: 0.013,
     };
-    let net_portfolio = TotalSummary {
+    let net_portfolio = NetTotal {
+        id: Uuid::new_v4(),
+        net_type: NetTotalType::Portfolio,
         total: resources
             .iter()
             .filter(|v| {
-                v.resource_type == ResourceType::Cash
-                    || v.resource_type == ResourceType::Investement
+                v.resource_type == ResourceType::Cash || v.resource_type == ResourceType::Investment
             })
             .map(|v| v.balance)
             .sum(),
-        balance_variation: 1200000,
-        percent_variation: 0.021,
+        balance_var: 1200000,
+        percent_var: 0.021,
     };
 
     Ok(Json(Month {
+        id: Uuid::new_v4(),
         month,
-        net_assets,
-        net_portfolio,
+        net_totals: vec![net_assets, net_portfolio],
         resources,
     }))
 }
@@ -165,17 +169,24 @@ pub async fn put_balance_sheet_month(
     State(app_state): State<AppState>,
 ) -> HttpJsonAppResult<Month> {
     Ok(Json(Month {
+        id: Uuid::new_v4(),
         month,
-        net_assets: TotalSummary {
-            total: 0,
-            percent_variation: 0.0,
-            balance_variation: 0,
-        },
-        net_portfolio: TotalSummary {
-            total: 0,
-            percent_variation: 0.0,
-            balance_variation: 0,
-        },
+        net_totals: vec![
+            NetTotal {
+                id: Uuid::new_v4(),
+                net_type: NetTotalType::Asset,
+                total: 0,
+                percent_var: 0.0,
+                balance_var: 0,
+            },
+            NetTotal {
+                id: Uuid::new_v4(),
+                net_type: NetTotalType::Portfolio,
+                total: 0,
+                percent_var: 0.0,
+                balance_var: 0,
+            },
+        ],
         resources: vec![],
     }))
 }
