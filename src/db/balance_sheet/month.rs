@@ -68,6 +68,47 @@ pub async fn add_new_month(
     .execute(db_conn_pool)
     .await?;
 
+    for nt in &month.net_totals {
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, month_id)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            "#,
+            nt.id,
+            nt.net_type.to_string(),
+            nt.total,
+            nt.percent_var,
+            nt.balance_var,
+            month.id,
+        )
+        .execute(db_conn_pool)
+        .await?;
+    }
+
+    for fr in &month.resources {
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_resources (id, name, category, type, balance, editable, month_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (id) DO UPDATE
+            SET name = EXCLUDED.name,
+            category = EXCLUDED.category,
+            type = EXCLUDED.type,
+            balance = EXCLUDED.balance,
+            editable = EXCLUDED.editable;
+            "#,
+            fr.id,
+            fr.name,
+            fr.category.to_string(),
+            fr.resource_type.to_string(),
+            fr.balance,
+            fr.editable,
+            month.id
+        )
+        .execute(db_conn_pool)
+        .await?;
+    }
+
     Ok(())
 }
 

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::Type)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, sqlx::Type)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 #[sqlx(type_name = "category")]
 #[sqlx(rename_all = "camelCase")]
@@ -21,7 +21,7 @@ impl std::fmt::Display for ResourceCategory {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, sqlx::Type)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, sqlx::Type)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 #[sqlx(type_name = "resource_type")]
 #[sqlx(rename_all = "camelCase")]
@@ -53,6 +53,7 @@ pub struct FinancialResource {
     /// The name of the resource.
     pub name: String,
     /// The category separates the resource in 2 groups: Assets vs Liabilities.
+    /// Liabilities should have a negative balance.
     pub category: ResourceCategory,
     /// Internal splitting beyond the category.
     #[serde(rename = "type")]
@@ -64,7 +65,65 @@ pub struct FinancialResource {
     pub editable: bool,
 }
 
+// TODO: customize template instead of enforcing names here...
 impl FinancialResource {
+    pub fn new_bank_accounts() -> Self {
+        FinancialResource::new_asset("Comptes Bancaires".to_string())
+            .of_type(ResourceType::Cash)
+            .non_editable()
+    }
+
+    pub fn new_tfsa_jeremy() -> Self {
+        FinancialResource::new_asset("CELI Jeremy".to_string())
+            .of_type(ResourceType::Investment)
+            .non_editable()
+    }
+
+    pub fn new_tfsa_sandryne() -> Self {
+        FinancialResource::new_asset("CELI Sandryne".to_string())
+            .of_type(ResourceType::Investment)
+            .non_editable()
+    }
+
+    pub fn new_rrsp_jeremy() -> Self {
+        FinancialResource::new_asset("REER Jeremy".to_string()).of_type(ResourceType::Investment)
+    }
+
+    pub fn new_rpp_sandryne() -> Self {
+        FinancialResource::new_asset("RPA Sandryne".to_string()).of_type(ResourceType::Investment)
+    }
+
+    pub fn new_resp() -> Self {
+        FinancialResource::new_asset("REEE".to_string()).of_type(ResourceType::Investment)
+    }
+
+    pub fn new_house_value() -> Self {
+        FinancialResource::new_asset("Valeur Maison".to_string()).of_type(ResourceType::LongTerm)
+    }
+
+    pub fn new_car_value() -> Self {
+        FinancialResource::new_asset("Valeur Automobile".to_string())
+            .of_type(ResourceType::LongTerm)
+    }
+
+    pub fn new_credit_cards() -> Self {
+        FinancialResource::new_liability("Cartes de Crédit".to_string())
+            .of_type(ResourceType::Cash)
+            .non_editable()
+    }
+
+    pub fn new_mortgage() -> Self {
+        FinancialResource::new_liability("Prêt Hypothécaire".to_string())
+            .of_type(ResourceType::LongTerm)
+            .non_editable()
+    }
+
+    pub fn new_cars_loan() -> Self {
+        FinancialResource::new_liability("Prêts Automobile".to_string())
+            .of_type(ResourceType::LongTerm)
+            .non_editable()
+    }
+
     pub fn new_asset(name: String) -> Self {
         FinancialResource {
             id: Uuid::new_v4(),

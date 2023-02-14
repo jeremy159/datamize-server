@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_repr::*;
 use uuid::Uuid;
 
-use super::{FinancialResource, NetTotal};
+use super::{FinancialResource, NetTotal, NetTotalType, ResourceCategory, ResourceType};
 
 #[derive(
     Serialize_repr, Deserialize_repr, PartialEq, Eq, Ord, PartialOrd, Debug, Clone, Copy, sqlx::Type,
@@ -116,9 +116,55 @@ impl Month {
         Month {
             id: Uuid::new_v4(),
             month,
-            net_totals: vec![],
-            resources: vec![],
+            net_totals: vec![NetTotal::new_asset(), NetTotal::new_portfolio()],
+            resources: vec![
+                FinancialResource::new_bank_accounts(),
+                FinancialResource::new_tfsa_jeremy(),
+                FinancialResource::new_tfsa_sandryne(),
+                FinancialResource::new_rrsp_jeremy(),
+                FinancialResource::new_rpp_sandryne(),
+                FinancialResource::new_resp(),
+                FinancialResource::new_house_value(),
+                FinancialResource::new_car_value(),
+                FinancialResource::new_credit_cards(),
+                FinancialResource::new_mortgage(),
+                FinancialResource::new_cars_loan(),
+            ],
         }
+    }
+
+    pub fn update_net_totals_with_previous(&mut self, prev_net_totals: &[NetTotal]) {
+        for nt in &mut self.net_totals {
+            if let Some(pnt) = prev_net_totals
+                .iter()
+                .find(|&pnt| pnt.net_type == nt.net_type)
+            {
+                nt.balance_var = nt.total - pnt.total;
+                nt.percent_var = nt.balance_var as f32 / pnt.total as f32;
+            }
+        }
+    }
+
+    pub fn compute_net_totals(&mut self) {
+        for nt in &mut self.net_totals {
+            if nt.net_type == NetTotalType::Asset {
+                nt.total = self.resources.iter().map(|r| r.balance).sum();
+            } else if nt.net_type == NetTotalType::Portfolio {
+                nt.total = self
+                    .resources
+                    .iter()
+                    .filter(|r| {
+                        r.category == ResourceCategory::Asset
+                            && r.resource_type != ResourceType::LongTerm
+                    })
+                    .map(|r| r.balance)
+                    .sum()
+            }
+        }
+    }
+
+    pub fn update_financial_resources(&mut self, resources: Vec<FinancialResource>) {
+        self.resources = resources;
     }
 }
 

@@ -13,21 +13,27 @@ use crate::{
     domain::{
         FinancialResource, Month, MonthNum, NetTotal, NetTotalType, ResourceType, UpdateMonth,
     },
-    error::{AppError, HttpJsonAppResult},
+    error::HttpJsonAppResult,
     startup::AppState,
 };
 
+/// Returns a specific month with its financial resources and net totals.
 pub async fn balance_sheet_month(
     Path((year, month)): Path<(i32, MonthNum)>,
     State(app_state): State<AppState>,
 ) -> HttpJsonAppResult<Month> {
     let db_conn_pool = app_state.db_conn_pool;
 
-    Ok(Json(get_month(&db_conn_pool, year, month).await?))
+    let Some(year_data) = db::get_year_data(&db_conn_pool, year)
+    .await? else {
+        return Err(crate::error::AppError::ResourceNotFound);
+    };
+
+    Ok(Json(get_month(&db_conn_pool, year_data.id, month).await?))
 }
 
-// TODO: To recompute net totals of current month and year after update.
 /// Updates the month, i.e. all the financial resources included in the month
+/// Will also update its net totals.
 pub async fn update_balance_sheet_month(
     Path((year, month)): Path<(i32, MonthNum)>,
     State(app_state): State<AppState>,
@@ -37,24 +43,36 @@ pub async fn update_balance_sheet_month(
 
     let Some(year_data) = db::get_year_data(&db_conn_pool, year)
     .await? else {
-        return Err(AppError::ResourceNotFound);
+        return Err(crate::error::AppError::ResourceNotFound);
     };
 
-    let Some(month_data) = db::get_month_data(&db_conn_pool, year_data.id, month as i16)
-    .await? else {
-        return Err(AppError::ResourceNotFound);
-    };
-
-    let net_totals = db::get_month_net_totals_for(&db_conn_pool, month_data.id).await?;
+    let mut month = get_month(&db_conn_pool, year_data.id, month).await?;
 
     db::update_financial_resources(&db_conn_pool, &body.resources).await?;
 
-    Ok(Json(Month {
-        id: month_data.id,
-        month,
-        net_totals,
-        resources: body.resources,
-    }))
+    month.update_financial_resources(body.resources);
+    month.compute_net_totals();
+
+    let year_data_opt = match month.month.pred() {
+        MonthNum::December => db::get_year_data(&db_conn_pool, year - 1).await,
+        _ => Ok(Some(year_data)),
+    };
+
+    if let Ok(Some(year_data)) = year_data_opt {
+        if let Ok(Some(prev_month)) =
+            db::get_month_data(&db_conn_pool, year_data.id, month.month.pred() as i16).await
+        {
+            if let Ok(prev_net_totals) =
+                db::get_month_net_totals_for(&db_conn_pool, prev_month.id).await
+            {
+                month.update_net_totals_with_previous(&prev_net_totals);
+            }
+        }
+    }
+
+    db::update_month_net_totals(&db_conn_pool, &month.net_totals).await?;
+
+    Ok(Json(month))
 }
 
 // TODO: To refactor to an endpoint to refresh data. Otherwise makes requests really slow.

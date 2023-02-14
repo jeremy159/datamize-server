@@ -46,15 +46,10 @@ pub async fn build_months(db_conn_pool: &PgPool, year_id: Uuid) -> Result<Vec<Mo
 
 pub async fn get_month(
     db_conn_pool: &PgPool,
-    year: i32,
+    year_id: Uuid,
     month: MonthNum,
 ) -> Result<Month, AppError> {
-    let Some(year_data) = db::get_year_data(db_conn_pool, year)
-    .await? else {
-        return Err(crate::error::AppError::ResourceNotFound);
-    };
-
-    let Some(month_data) = db::get_month_data(db_conn_pool, year_data.id, month as i16)
+    let Some(month_data) = db::get_month_data(db_conn_pool, year_id, month as i16)
     .await? else {
         return Err(crate::error::AppError::ResourceNotFound);
     };

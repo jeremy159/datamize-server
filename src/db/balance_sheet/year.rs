@@ -57,7 +57,7 @@ pub async fn get_years_summary(db_conn_pool: &PgPool) -> Result<Vec<YearSummary>
     Ok(years)
 }
 
-#[derive(sqlx::FromRow, Debug)]
+#[derive(sqlx::FromRow, Debug, Clone, Copy)]
 pub struct YearData {
     pub id: Uuid,
     pub year: i32,
