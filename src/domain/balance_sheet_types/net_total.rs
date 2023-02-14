@@ -1,10 +1,12 @@
+use std::str::FromStr;
+
 use serde::Serialize;
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Debug, Serialize, PartialEq, Clone, sqlx::Type)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
-// #[sqlx(type_name = "type")]
-// #[sqlx(rename_all = "camelCase")]
+#[sqlx(type_name = "net_type")]
+#[sqlx(rename_all = "camelCase")]
 pub enum NetTotalType {
     /// Net Assets is the total of owned assets minus the total of liabilities.
     Asset,
@@ -13,7 +15,17 @@ pub enum NetTotalType {
     Portfolio,
 }
 
-#[derive(Debug, Serialize)]
+impl FromStr for NetTotalType {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "asset" => Ok(Self::Asset),
+            "portfolio" => Ok(Self::Portfolio),
+            _ => Err(format!("Failed to parse {:?} to NetTotalType", s)),
+        }
+    }
+}
+#[derive(Debug, Serialize, Clone, sqlx::FromRow)]
 pub struct NetTotal {
     pub id: Uuid,
     /// Internal splitting beyond the category.

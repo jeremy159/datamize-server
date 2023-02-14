@@ -10,6 +10,9 @@ pub type HttpJsonAppResult<T> = Result<Json<T>, AppError>;
 #[derive(Debug)]
 pub enum AppError {
     InternalServerError(anyhow::Error),
+    ResourceNotFound,
+    YearAlreadyExist,
+    MonthAlreadyExist,
     ValidationError,
 }
 
@@ -33,6 +36,9 @@ impl IntoResponse for AppError {
                 (StatusCode::INTERNAL_SERVER_ERROR, "something went wrong")
             }
             AppError::ValidationError => (StatusCode::UNPROCESSABLE_ENTITY, "validation errors"),
+            AppError::ResourceNotFound => (StatusCode::NOT_FOUND, "resource does not exist"),
+            AppError::YearAlreadyExist => (StatusCode::BAD_REQUEST, "year already exist"),
+            AppError::MonthAlreadyExist => (StatusCode::BAD_REQUEST, "month already exist"),
         };
 
         let body = Json(json!({

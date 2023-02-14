@@ -1,15 +1,20 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::{Context, Ok, Result};
-use axum::{routing::get, Router};
+use axum::{
+    routing::{get, put},
+    Router,
+};
 use sqlx::{postgres::PgPoolOptions, PgPool, Pool, Postgres};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 use crate::{
     config::{DatabaseSettings, RedisSettings, Settings},
     routes::{
-        balance_sheet_year, balance_sheet_years, get_balance_sheet_month, health_check,
-        put_balance_sheet_month, template_details, template_summary, template_transactions,
+        balance_sheet_month, balance_sheet_months, balance_sheet_year, balance_sheet_years,
+        create_balance_sheet_month, create_balance_sheet_year, health_check, template_details,
+        template_summary, template_transactions, update_balance_sheet_month,
+        update_balance_sheet_year,
     },
 };
 
@@ -53,11 +58,22 @@ impl Application {
             .route("/api/template/details", get(template_details))
             .route("/api/template/summary", get(template_summary))
             .route("/api/template/transactions", get(template_transactions))
-            .route("/api/balance_sheet/years", get(balance_sheet_years))
+            .route(
+                "/api/balance_sheet/years",
+                get(balance_sheet_years).post(create_balance_sheet_year),
+            )
             .route("/api/balance_sheet/years/:year", get(balance_sheet_year))
             .route(
-                "/api/balance_sheet/years/:year/:month",
-                get(get_balance_sheet_month).put(put_balance_sheet_month),
+                "/api/balance_sheet/years/:year",
+                put(update_balance_sheet_year),
+            )
+            .route(
+                "/api/balance_sheet/years/:year/months",
+                get(balance_sheet_months).post(create_balance_sheet_month),
+            )
+            .route(
+                "/api/balance_sheet/years/:year/months/:month",
+                get(balance_sheet_month).put(update_balance_sheet_month),
             )
             .layer(CorsLayer::permissive()) // TODO: To be more restrictive...
             .layer(TraceLayer::new_for_http())

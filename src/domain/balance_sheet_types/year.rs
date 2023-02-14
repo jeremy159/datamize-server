@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use super::{Month, NetTotal};
@@ -14,7 +14,23 @@ pub struct YearSummary {
     pub net_totals: Vec<NetTotal>,
 }
 
-#[derive(Debug, Serialize)]
+impl YearSummary {
+    pub fn new(year: i32) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            year,
+            net_totals: vec![],
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SaveYear {
+    /// The year of the date, in format 2015.
+    pub year: i32,
+}
+
+#[derive(Debug, Serialize, Deserialize, sqlx::FromRow)]
 pub struct SavingRatesPerPerson {
     pub id: Uuid,
     pub name: String,
@@ -50,5 +66,10 @@ pub struct YearDetail {
     /// All the months of the year.
     pub months: Vec<Month>,
     /// The common saving rates of the year.
+    pub saving_rates: Vec<SavingRatesPerPerson>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateYear {
     pub saving_rates: Vec<SavingRatesPerPerson>,
 }

@@ -1,8 +1,10 @@
+use std::collections::HashMap;
+
 use axum::{extract::State, Json};
 use uuid::Uuid;
 
 use crate::{
-    domain::{NetTotal, NetTotalType, YearSummary},
+    domain::{NetTotal, SaveYear, YearSummary},
     error::HttpJsonAppResult,
     startup::AppState,
 };
@@ -12,6 +14,8 @@ pub async fn balance_sheet_years(
     State(app_state): State<AppState>,
 ) -> HttpJsonAppResult<Vec<YearSummary>> {
     let db_conn_pool = app_state.db_conn_pool;
+
+    let mut years = HashMap::<Uuid, YearSummary>::new();
 
     let db_rows = sqlx::query!(
         r#"
@@ -31,50 +35,70 @@ pub async fn balance_sheet_years(
     .fetch_all(&db_conn_pool)
     .await?;
 
-    println!("db_rows = {:?}", db_rows);
-    // TODO: transform above query to YearSummary struct.
+    for r in db_rows
+        .into_iter()
+        .filter(|v| v.year_id == v.net_total_year_id)
+    {
+        let net_total = NetTotal {
+            id: r.net_total_id,
+            net_type: r.r#type.parse().unwrap(),
+            total: r.total,
+            percent_var: r.percent_var,
+            balance_var: r.balance_var,
+        };
 
-    let years: Vec<YearSummary> = vec![
-        YearSummary {
-            id: Uuid::new_v4(),
-            year: 2021,
-            net_totals: vec![
-                NetTotal {
-                    id: Uuid::new_v4(),
-                    net_type: NetTotalType::Asset,
-                    total: 161694000,
-                    percent_var: 1.815,
-                    balance_var: 104258000,
-                },
-                NetTotal {
-                    id: Uuid::new_v4(),
-                    net_type: NetTotalType::Portfolio,
-                    total: 46895000,
-                    percent_var: 0.904,
-                    balance_var: 22260000,
-                },
-            ],
-        },
-        YearSummary {
-            id: Uuid::new_v4(),
-            year: 2022,
-            net_totals: vec![
-                NetTotal {
-                    id: Uuid::new_v4(),
-                    net_type: NetTotalType::Asset,
-                    total: 222976000,
-                    percent_var: 0.379,
-                    balance_var: 61282000,
-                },
-                NetTotal {
-                    id: Uuid::new_v4(),
-                    net_type: NetTotalType::Portfolio,
-                    total: 57762000,
-                    percent_var: 0.232,
-                    balance_var: 10867000,
-                },
-            ],
-        },
-    ];
+        years
+            .entry(r.year_id)
+            .and_modify(|y| {
+                y.net_totals.push(net_total.clone());
+            })
+            .or_insert_with(|| YearSummary {
+                id: r.year_id,
+                year: r.year,
+                net_totals: vec![net_total],
+            });
+    }
+
+    let mut years = years.into_values().collect::<Vec<_>>();
+
+    years.sort_by(|a, b| a.year.cmp(&b.year));
+
     Ok(Json(years))
+}
+
+// TODO: When creating year, update net totals for this year compared to previous one if any.
+/// Creates a new year if it doesn't already exist and returns the newly created entity.
+pub async fn create_balance_sheet_year(
+    State(app_state): State<AppState>,
+    Json(body): Json<SaveYear>,
+) -> HttpJsonAppResult<YearSummary> {
+    let db_conn_pool = app_state.db_conn_pool;
+
+    let None = sqlx::query!(
+        r#"
+        SELECT *
+        FROM balance_sheet_years
+        WHERE year = $1;
+        "#,
+        body.year,
+    )
+    .fetch_optional(&db_conn_pool)
+    .await? else {
+        return Err(crate::error::AppError::YearAlreadyExist);
+    };
+
+    let year = YearSummary::new(body.year);
+
+    sqlx::query!(
+        r#"
+        INSERT INTO balance_sheet_years (id, year)
+        VALUES ($1, $2);
+        "#,
+        year.id,
+        year.year,
+    )
+    .execute(&db_conn_pool)
+    .await?;
+
+    Ok(Json(year))
 }

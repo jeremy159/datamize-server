@@ -5,7 +5,7 @@ CREATE TABLE balance_sheet_resources(
   category TEXT NOT NULL,
   type TEXT NOT NULL,
   balance BIGINT NOT NULL,
-  editable BOOLEAN,
+  editable BOOLEAN NOT NULL,
   month_id uuid NOT NULL,
   PRIMARY KEY (id),
   FOREIGN KEY (month_id) REFERENCES balance_sheet_months(id)

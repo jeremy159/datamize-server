@@ -5,18 +5,221 @@ use axum::{
     Json,
 };
 
+use futures::try_join;
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 use ynab::types::AccountType;
 
 use crate::{
-    domain::{FinancialResource, Month, NetTotal, NetTotalType, ResourceType},
-    error::HttpJsonAppResult,
+    domain::{
+        FinancialResource, Month, MonthNum, NetTotal, NetTotalType, ResourceCategory, ResourceType,
+        UpdateMonth,
+    },
+    error::{AppError, HttpJsonAppResult},
     startup::AppState,
 };
 
-/// Get The details of one month
+pub async fn balance_sheet_month(
+    Path((year, month)): Path<(i32, MonthNum)>,
+    State(app_state): State<AppState>,
+) -> HttpJsonAppResult<Month> {
+    let db_conn_pool = app_state.db_conn_pool;
+
+    Ok(Json(get_month(&db_conn_pool, year, month).await?))
+}
+
+// TODO: To recompute net totals of current month and year after update.
+/// Updates the month, i.e. all the financial resources included in the month
+pub async fn update_balance_sheet_month(
+    Path((year, month)): Path<(i32, MonthNum)>,
+    State(app_state): State<AppState>,
+    Json(body): Json<UpdateMonth>,
+) -> HttpJsonAppResult<Month> {
+    let db_conn_pool = app_state.db_conn_pool;
+
+    #[derive(sqlx::FromRow, Debug)]
+    struct YearData {
+        id: Uuid,
+    }
+
+    let Some(year_data) = sqlx::query_as!(
+        YearData,
+        r#"
+        SELECT id
+        FROM balance_sheet_years
+        WHERE year = $1;
+        "#,
+        year
+    )
+    .fetch_optional(&db_conn_pool)
+    .await? else {
+        return Err(crate::error::AppError::ResourceNotFound);
+    };
+
+    #[derive(sqlx::FromRow, Debug)]
+    struct MonthData {
+        id: Uuid,
+    }
+
+    let Some(month_data) = sqlx::query_as!(
+        MonthData,
+        r#"
+        SELECT
+            id
+        FROM balance_sheet_months
+        WHERE month = $1 AND year_id = $2;
+        "#,
+        month as i16,
+        year_data.id
+    )
+    .fetch_optional(&db_conn_pool)
+    .await? else {
+        return Err(crate::error::AppError::ResourceNotFound);
+    };
+
+    let net_totals = sqlx::query_as!(
+        NetTotal,
+        r#"
+            SELECT
+                id,
+                type AS "net_type: NetTotalType",
+                total,
+                percent_var,
+                balance_var
+            FROM balance_sheet_net_totals_months
+            WHERE month_id = $1;
+            "#,
+        month_data.id,
+    )
+    .fetch_all(&db_conn_pool)
+    .await?;
+
+    for f in &body.resources {
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_resources (id, name, category, type, balance, editable, month_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (id) DO UPDATE
+            SET name = EXCLUDED.name,
+            category = EXCLUDED.category,
+            type = EXCLUDED.type,
+            balance = EXCLUDED.balance,
+            editable = EXCLUDED.editable,
+            month_id = EXCLUDED.month_id;
+            "#,
+            f.id,
+            f.name,
+            f.category.to_string(),
+            f.resource_type.to_string(),
+            f.balance,
+            f.editable,
+            month_data.id,
+        )
+        .execute(&db_conn_pool)
+        .await?;
+    }
+
+    Ok(Json(Month {
+        id: month_data.id,
+        month,
+        net_totals,
+        resources: body.resources,
+    }))
+}
+
+async fn get_month(
+    db_conn_pool: &Pool<Postgres>,
+    year: i32,
+    month: MonthNum,
+) -> Result<Month, AppError> {
+    #[derive(sqlx::FromRow, Debug)]
+    struct YearData {
+        id: Uuid,
+    }
+
+    let Some(year_data) = sqlx::query_as!(
+        YearData,
+        r#"
+        SELECT id
+        FROM balance_sheet_years
+        WHERE year = $1;
+        "#,
+        year
+    )
+    .fetch_optional(db_conn_pool)
+    .await? else {
+        return Err(crate::error::AppError::ResourceNotFound);
+    };
+
+    #[derive(sqlx::FromRow, Debug)]
+    struct MonthData {
+        id: Uuid,
+        month: MonthNum,
+    }
+
+    let Some(month_data) = sqlx::query_as!(
+        MonthData,
+        r#"
+        SELECT
+            id,
+            month AS "month: MonthNum"
+        FROM balance_sheet_months
+        WHERE month = $1 AND year_id = $2;
+        "#,
+        month as i16,
+        year_data.id
+    )
+    .fetch_optional(db_conn_pool)
+    .await? else {
+        return Err(crate::error::AppError::ResourceNotFound);
+    };
+
+    let net_totals_query = sqlx::query_as!(
+        NetTotal,
+        r#"
+            SELECT
+                id,
+                type AS "net_type: NetTotalType",
+                total,
+                percent_var,
+                balance_var
+            FROM balance_sheet_net_totals_months
+            WHERE month_id = $1;
+            "#,
+        month_data.id,
+    )
+    .fetch_all(db_conn_pool);
+
+    let financial_resources_query = sqlx::query_as!(
+        FinancialResource,
+        r#"
+            SELECT
+                id,
+                name,
+                category AS "category: ResourceCategory",
+                type AS "resource_type: ResourceType",
+                balance,
+                editable
+            FROM balance_sheet_resources
+            WHERE month_id = $1;
+            "#,
+        month_data.id,
+    )
+    .fetch_all(db_conn_pool);
+
+    let (net_totals, resources) = try_join!(net_totals_query, financial_resources_query)?;
+
+    Ok(Month {
+        id: month_data.id,
+        month: month_data.month,
+        net_totals,
+        resources,
+    })
+}
+
+/// Get The details of one month, including updating non_editable fields.
 pub async fn get_balance_sheet_month(
-    Path((year, month)): Path<(i32, chrono::Month)>,
+    Path((_year, month)): Path<(i32, MonthNum)>,
     State(app_state): State<AppState>,
 ) -> HttpJsonAppResult<Month> {
     let ynab_client = app_state.ynab_client.as_ref();
@@ -160,33 +363,5 @@ pub async fn get_balance_sheet_month(
         month,
         net_totals: vec![net_assets, net_portfolio],
         resources,
-    }))
-}
-
-/// Updates the month
-pub async fn put_balance_sheet_month(
-    Path((year, month)): Path<(i32, chrono::Month)>,
-    State(app_state): State<AppState>,
-) -> HttpJsonAppResult<Month> {
-    Ok(Json(Month {
-        id: Uuid::new_v4(),
-        month,
-        net_totals: vec![
-            NetTotal {
-                id: Uuid::new_v4(),
-                net_type: NetTotalType::Asset,
-                total: 0,
-                percent_var: 0.0,
-                balance_var: 0,
-            },
-            NetTotal {
-                id: Uuid::new_v4(),
-                net_type: NetTotalType::Portfolio,
-                total: 0,
-                percent_var: 0.0,
-                balance_var: 0,
-            },
-        ],
-        resources: vec![],
     }))
 }

@@ -1,9 +1,10 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::Type)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
-// #[sqlx(rename_all = "camelCase")]
+#[sqlx(type_name = "category")]
+#[sqlx(rename_all = "camelCase")]
 pub enum ResourceCategory {
     /// Things you own. These can be cash or something you can convert into cash such as property, vehicles, equipment and inventory.
     Asset,
@@ -11,10 +12,19 @@ pub enum ResourceCategory {
     Liability,
 }
 
-#[derive(Debug, Serialize, PartialEq)]
+impl std::fmt::Display for ResourceCategory {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            ResourceCategory::Asset => write!(f, "asset"),
+            ResourceCategory::Liability => write!(f, "liability"),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, sqlx::Type)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
-// #[sqlx(type_name = "type")]
-// #[sqlx(rename_all = "camelCase")]
+#[sqlx(type_name = "resource_type")]
+#[sqlx(rename_all = "camelCase")]
 pub enum ResourceType {
     /// Refers to current cash, owned or due, like bank accounts or credit cards.
     Cash,
@@ -24,9 +34,19 @@ pub enum ResourceType {
     LongTerm,
 }
 
+impl std::fmt::Display for ResourceType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            ResourceType::Cash => write!(f, "cash"),
+            ResourceType::Investment => write!(f, "investment"),
+            ResourceType::LongTerm => write!(f, "longTerm"),
+        }
+    }
+}
+
 /// A resource with economic value. It represents either an asset or a liability
 /// and adds more data to it.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
 pub struct FinancialResource {
     /// ID of the resource to be used when an update is needed.
     pub id: Uuid,
