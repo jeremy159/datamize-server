@@ -49,3 +49,25 @@ pub struct NetTotal {
     /// The money balance of variation compared to the previous month's section.
     pub balance_var: i64,
 }
+
+impl NetTotal {
+    pub fn new_asset() -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            net_type: NetTotalType::Asset,
+            total: 0,
+            percent_var: 0.0,
+            balance_var: 0,
+        }
+    }
+
+    pub fn new_portfolio() -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            net_type: NetTotalType::Portfolio,
+            total: 0,
+            percent_var: 0.0,
+            balance_var: 0,
+        }
+    }
+}

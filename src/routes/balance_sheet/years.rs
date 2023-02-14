@@ -2,7 +2,7 @@ use axum::{extract::State, Json};
 
 use crate::{
     db,
-    domain::{SaveYear, YearSummary},
+    domain::{SaveYear, YearDetail, YearSummary},
     error::{AppError, HttpJsonAppResult},
     startup::AppState,
 };
@@ -16,12 +16,12 @@ pub async fn balance_sheet_years(
     Ok(Json(db::get_years_summary(&db_conn_pool).await?))
 }
 
-// TODO: When creating year, update net totals for this year compared to previous one if any.
 /// Creates a new year if it doesn't already exist and returns the newly created entity.
+/// Will also update net totals for this year compared to previous one if any.
 pub async fn create_balance_sheet_year(
     State(app_state): State<AppState>,
     Json(body): Json<SaveYear>,
-) -> HttpJsonAppResult<YearSummary> {
+) -> HttpJsonAppResult<YearDetail> {
     let db_conn_pool = app_state.db_conn_pool;
 
     let None = db::get_year_data(&db_conn_pool, body.year)
@@ -29,7 +29,14 @@ pub async fn create_balance_sheet_year(
         return Err(AppError::YearAlreadyExist);
     };
 
-    let year = YearSummary::new(body.year);
+    let mut year = YearDetail::new(body.year);
+
+    if let Ok(Some(prev_year)) = db::get_year_data(&db_conn_pool, year.year - 1).await {
+        if let Ok(prev_net_totals) = db::get_year_net_totals_for(&db_conn_pool, prev_year.id).await
+        {
+            year.update_net_totals_with_previous(&prev_net_totals);
+        }
+    }
 
     db::add_new_year(&db_conn_pool, &year).await?;
 

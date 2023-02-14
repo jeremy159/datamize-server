@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::domain::{NetTotal, NetTotalType, SavingRatesPerPerson, YearSummary};
+use crate::domain::{NetTotal, NetTotalType, SavingRatesPerPerson, YearDetail, YearSummary};
 
 pub async fn get_years_summary(db_conn_pool: &PgPool) -> Result<Vec<YearSummary>, sqlx::Error> {
     let mut years = HashMap::<Uuid, YearSummary>::new();
@@ -80,7 +80,7 @@ pub async fn get_year_data(
     .await
 }
 
-pub async fn add_new_year(db_conn_pool: &PgPool, year: &YearSummary) -> Result<(), sqlx::Error> {
+pub async fn add_new_year(db_conn_pool: &PgPool, year: &YearDetail) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
         INSERT INTO balance_sheet_years (id, year)
@@ -91,6 +91,43 @@ pub async fn add_new_year(db_conn_pool: &PgPool, year: &YearSummary) -> Result<(
     )
     .execute(db_conn_pool)
     .await?;
+
+    for nt in &year.net_totals {
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, year_id)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            "#,
+            nt.id,
+            nt.net_type.to_string(),
+            nt.total,
+            nt.percent_var,
+            nt.balance_var,
+            year.id,
+        )
+        .execute(db_conn_pool)
+        .await?;
+    }
+
+    for sr in &year.saving_rates {
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_saving_rates (id, name, savings, employer_contribution, employee_contribution, mortgage_capital, incomes, rate, year_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            "#,
+            sr.id,
+            sr.name,
+            sr.savings,
+            sr.employer_contribution,
+            sr.employee_contribution,
+            sr.mortgage_capital,
+            sr.incomes,
+            sr.rate,
+            year.id,
+        )
+        .execute(db_conn_pool)
+        .await?;
+    }
 
     Ok(())
 }

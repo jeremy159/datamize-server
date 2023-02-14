@@ -100,7 +100,7 @@ impl MonthNum {
 }
 
 /// A balance sheet of the month.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct Month {
     pub id: Uuid,
     /// The month in the year, starting with January at 1.

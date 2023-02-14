@@ -18,11 +18,28 @@ pub async fn get_year(db_conn_pool: &PgPool, year: i32) -> Result<YearDetail, Ap
     let (net_totals, saving_rates) = try_join!(net_totals_query, saving_rates_query)?;
     let months = build_months(db_conn_pool, year_data.id).await?;
 
-    Ok(YearDetail {
+    let mut year = YearDetail {
         id: year_data.id,
         year: year_data.year,
         net_totals,
         saving_rates,
         months,
-    })
+    };
+
+    if let Some(last_month) = year.get_last_month() {
+        if year.needs_net_totals_update(&last_month.net_totals) {
+            year.update_net_totals_with_last_month(&last_month.net_totals);
+
+            // Also update with previous year since we just updated the total balance of current year.
+            if let Ok(Some(prev_year)) = db::get_year_data(db_conn_pool, year.year - 1).await {
+                if let Ok(prev_net_totals) =
+                    db::get_year_net_totals_for(db_conn_pool, prev_year.id).await
+                {
+                    year.update_net_totals_with_previous(&prev_net_totals);
+                }
+            }
+        }
+    }
+
+    Ok(year)
 }
