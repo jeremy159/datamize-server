@@ -25,6 +25,16 @@ impl FromStr for NetTotalType {
         }
     }
 }
+
+impl std::fmt::Display for NetTotalType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            NetTotalType::Asset => write!(f, "asset"),
+            NetTotalType::Portfolio => write!(f, "portfolio"),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Clone, sqlx::FromRow)]
 pub struct NetTotal {
     pub id: Uuid,

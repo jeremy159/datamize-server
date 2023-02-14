@@ -2,15 +2,14 @@ use axum::{
     extract::{Path, State},
     Json,
 };
-use uuid::Uuid;
 
 use crate::{
+    common::build_months,
+    db,
     domain::{Month, SaveMonth},
-    error::HttpJsonAppResult,
+    error::{AppError, HttpJsonAppResult},
     startup::AppState,
 };
-
-use super::build_months;
 
 pub async fn balance_sheet_months(
     Path(year): Path<i32>,
@@ -18,23 +17,9 @@ pub async fn balance_sheet_months(
 ) -> HttpJsonAppResult<Vec<Month>> {
     let db_conn_pool = app_state.db_conn_pool;
 
-    #[derive(sqlx::FromRow, Debug)]
-    struct YearData {
-        id: Uuid,
-    }
-
-    let Some(year_data) = sqlx::query_as!(
-        YearData,
-        r#"
-        SELECT id
-        FROM balance_sheet_years
-        WHERE year = $1;
-        "#,
-        year
-    )
-    .fetch_optional(&db_conn_pool)
+    let Some(year_data) = db::get_year_data(&db_conn_pool, year)
     .await? else {
-        return Err(crate::error::AppError::ResourceNotFound);
+        return Err(AppError::ResourceNotFound);
     };
 
     Ok(Json(build_months(&db_conn_pool, year_data.id).await?))
@@ -48,52 +33,19 @@ pub async fn create_balance_sheet_month(
 ) -> HttpJsonAppResult<Month> {
     let db_conn_pool = app_state.db_conn_pool;
 
-    #[derive(sqlx::FromRow, Debug)]
-    struct YearData {
-        id: Uuid,
-    }
-
-    let Some(year_data) = sqlx::query_as!(
-        YearData,
-        r#"
-        SELECT id
-        FROM balance_sheet_years
-        WHERE year = $1;
-        "#,
-        year
-    )
-    .fetch_optional(&db_conn_pool)
+    let Some(year_data) = db::get_year_data(&db_conn_pool, year)
     .await? else {
-        return Err(crate::error::AppError::ResourceNotFound);
+        return Err(AppError::ResourceNotFound);
     };
 
-    let None = sqlx::query!(
-        r#"
-        SELECT *
-        FROM balance_sheet_months
-        WHERE year_id = $1 AND month = $2;
-        "#,
-        year_data.id,
-        body.month as i16,
-    )
-    .fetch_optional(&db_conn_pool)
+    let None = db::get_month_data(&db_conn_pool, year_data.id, body.month as i16)
     .await? else {
-        return Err(crate::error::AppError::MonthAlreadyExist);
+        return Err(AppError::MonthAlreadyExist);
     };
 
     let month = Month::new(body.month);
 
-    sqlx::query!(
-        r#"
-        INSERT INTO balance_sheet_months (id, month, year_id)
-        VALUES ($1, $2, $3);
-        "#,
-        month.id,
-        month.month as i16,
-        year_data.id,
-    )
-    .execute(&db_conn_pool)
-    .await?;
+    db::add_new_month(&db_conn_pool, &month, year_data.id).await?;
 
     Ok(Json(month))
 }

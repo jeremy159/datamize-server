@@ -4,16 +4,14 @@ use axum::{
     extract::{Path, State},
     Json,
 };
-
-use futures::try_join;
-use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 use ynab::types::AccountType;
 
 use crate::{
+    common::get_month,
+    db,
     domain::{
-        FinancialResource, Month, MonthNum, NetTotal, NetTotalType, ResourceCategory, ResourceType,
-        UpdateMonth,
+        FinancialResource, Month, MonthNum, NetTotal, NetTotalType, ResourceType, UpdateMonth,
     },
     error::{AppError, HttpJsonAppResult},
     startup::AppState,
@@ -37,87 +35,19 @@ pub async fn update_balance_sheet_month(
 ) -> HttpJsonAppResult<Month> {
     let db_conn_pool = app_state.db_conn_pool;
 
-    #[derive(sqlx::FromRow, Debug)]
-    struct YearData {
-        id: Uuid,
-    }
-
-    let Some(year_data) = sqlx::query_as!(
-        YearData,
-        r#"
-        SELECT id
-        FROM balance_sheet_years
-        WHERE year = $1;
-        "#,
-        year
-    )
-    .fetch_optional(&db_conn_pool)
+    let Some(year_data) = db::get_year_data(&db_conn_pool, year)
     .await? else {
-        return Err(crate::error::AppError::ResourceNotFound);
+        return Err(AppError::ResourceNotFound);
     };
 
-    #[derive(sqlx::FromRow, Debug)]
-    struct MonthData {
-        id: Uuid,
-    }
-
-    let Some(month_data) = sqlx::query_as!(
-        MonthData,
-        r#"
-        SELECT
-            id
-        FROM balance_sheet_months
-        WHERE month = $1 AND year_id = $2;
-        "#,
-        month as i16,
-        year_data.id
-    )
-    .fetch_optional(&db_conn_pool)
+    let Some(month_data) = db::get_month_data(&db_conn_pool, year_data.id, month as i16)
     .await? else {
-        return Err(crate::error::AppError::ResourceNotFound);
+        return Err(AppError::ResourceNotFound);
     };
 
-    let net_totals = sqlx::query_as!(
-        NetTotal,
-        r#"
-            SELECT
-                id,
-                type AS "net_type: NetTotalType",
-                total,
-                percent_var,
-                balance_var
-            FROM balance_sheet_net_totals_months
-            WHERE month_id = $1;
-            "#,
-        month_data.id,
-    )
-    .fetch_all(&db_conn_pool)
-    .await?;
+    let net_totals = db::get_month_net_totals_for(&db_conn_pool, month_data.id).await?;
 
-    for f in &body.resources {
-        sqlx::query!(
-            r#"
-            INSERT INTO balance_sheet_resources (id, name, category, type, balance, editable, month_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            ON CONFLICT (id) DO UPDATE
-            SET name = EXCLUDED.name,
-            category = EXCLUDED.category,
-            type = EXCLUDED.type,
-            balance = EXCLUDED.balance,
-            editable = EXCLUDED.editable,
-            month_id = EXCLUDED.month_id;
-            "#,
-            f.id,
-            f.name,
-            f.category.to_string(),
-            f.resource_type.to_string(),
-            f.balance,
-            f.editable,
-            month_data.id,
-        )
-        .execute(&db_conn_pool)
-        .await?;
-    }
+    db::update_financial_resources(&db_conn_pool, &body.resources).await?;
 
     Ok(Json(Month {
         id: month_data.id,
@@ -127,96 +57,7 @@ pub async fn update_balance_sheet_month(
     }))
 }
 
-async fn get_month(
-    db_conn_pool: &Pool<Postgres>,
-    year: i32,
-    month: MonthNum,
-) -> Result<Month, AppError> {
-    #[derive(sqlx::FromRow, Debug)]
-    struct YearData {
-        id: Uuid,
-    }
-
-    let Some(year_data) = sqlx::query_as!(
-        YearData,
-        r#"
-        SELECT id
-        FROM balance_sheet_years
-        WHERE year = $1;
-        "#,
-        year
-    )
-    .fetch_optional(db_conn_pool)
-    .await? else {
-        return Err(crate::error::AppError::ResourceNotFound);
-    };
-
-    #[derive(sqlx::FromRow, Debug)]
-    struct MonthData {
-        id: Uuid,
-        month: MonthNum,
-    }
-
-    let Some(month_data) = sqlx::query_as!(
-        MonthData,
-        r#"
-        SELECT
-            id,
-            month AS "month: MonthNum"
-        FROM balance_sheet_months
-        WHERE month = $1 AND year_id = $2;
-        "#,
-        month as i16,
-        year_data.id
-    )
-    .fetch_optional(db_conn_pool)
-    .await? else {
-        return Err(crate::error::AppError::ResourceNotFound);
-    };
-
-    let net_totals_query = sqlx::query_as!(
-        NetTotal,
-        r#"
-            SELECT
-                id,
-                type AS "net_type: NetTotalType",
-                total,
-                percent_var,
-                balance_var
-            FROM balance_sheet_net_totals_months
-            WHERE month_id = $1;
-            "#,
-        month_data.id,
-    )
-    .fetch_all(db_conn_pool);
-
-    let financial_resources_query = sqlx::query_as!(
-        FinancialResource,
-        r#"
-            SELECT
-                id,
-                name,
-                category AS "category: ResourceCategory",
-                type AS "resource_type: ResourceType",
-                balance,
-                editable
-            FROM balance_sheet_resources
-            WHERE month_id = $1;
-            "#,
-        month_data.id,
-    )
-    .fetch_all(db_conn_pool);
-
-    let (net_totals, resources) = try_join!(net_totals_query, financial_resources_query)?;
-
-    Ok(Month {
-        id: month_data.id,
-        month: month_data.month,
-        net_totals,
-        resources,
-    })
-}
-
+// TODO: To refactor to an endpoint to refresh data. Otherwise makes requests really slow.
 /// Get The details of one month, including updating non_editable fields.
 pub async fn get_balance_sheet_month(
     Path((_year, month)): Path<(i32, MonthNum)>,
