@@ -8,6 +8,7 @@ use crate::{
 };
 
 /// Returns a summary of all the years with balance sheets.
+#[tracing::instrument(name = "Get a summary of all years", skip_all)]
 pub async fn balance_sheet_years(
     State(app_state): State<AppState>,
 ) -> HttpJsonAppResult<Vec<YearSummary>> {
@@ -18,6 +19,7 @@ pub async fn balance_sheet_years(
 
 /// Creates a new year if it doesn't already exist and returns the newly created entity.
 /// Will also update net totals for this year compared to previous one if any.
+#[tracing::instrument(skip_all)]
 pub async fn create_balance_sheet_year(
     State(app_state): State<AppState>,
     Json(body): Json<SaveYear>,

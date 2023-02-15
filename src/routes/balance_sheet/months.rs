@@ -12,6 +12,7 @@ use crate::{
 };
 
 /// Returns all the months within a year with balance sheets.
+#[tracing::instrument(name = "Get all months from a year", skip_all)]
 pub async fn balance_sheet_months(
     Path(year): Path<i32>,
     State(app_state): State<AppState>,
@@ -28,6 +29,7 @@ pub async fn balance_sheet_months(
 
 /// Creates a new month if it doesn't already exist and returns the newly created entity.
 /// Will also update net totals for this month compared to previous one if any.
+#[tracing::instrument(skip_all)]
 pub async fn create_balance_sheet_month(
     Path(year): Path<i32>,
     State(app_state): State<AppState>,

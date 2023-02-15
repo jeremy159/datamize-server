@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::domain::{NetTotal, NetTotalType, SavingRatesPerPerson, YearDetail, YearSummary};
 
+#[tracing::instrument(skip_all)]
 pub async fn get_years_summary(db_conn_pool: &PgPool) -> Result<Vec<YearSummary>, sqlx::Error> {
     let mut years = HashMap::<Uuid, YearSummary>::new();
 
@@ -63,6 +64,7 @@ pub struct YearData {
     pub year: i32,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn get_year_data(
     db_conn_pool: &PgPool,
     year: i32,
@@ -80,6 +82,7 @@ pub async fn get_year_data(
     .await
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn add_new_year(db_conn_pool: &PgPool, year: &YearDetail) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
@@ -132,6 +135,7 @@ pub async fn add_new_year(db_conn_pool: &PgPool, year: &YearDetail) -> Result<()
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn get_year_net_totals_for(
     db_conn_pool: &PgPool,
     year_id: Uuid,
@@ -154,6 +158,7 @@ pub async fn get_year_net_totals_for(
     .await
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn update_year_net_totals(
     db_conn_pool: &PgPool,
     net_totals: &[NetTotal],
@@ -182,6 +187,7 @@ pub async fn update_year_net_totals(
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn get_saving_rates_for(
     db_conn_pool: &PgPool,
     year_id: Uuid,
@@ -207,6 +213,7 @@ pub async fn get_saving_rates_for(
     .await
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn update_saving_rates(
     db_conn_pool: &PgPool,
     saving_rates: &[SavingRatesPerPerson],

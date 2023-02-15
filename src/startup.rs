@@ -52,6 +52,7 @@ impl Application {
             configuration.application.host, configuration.application.port
         ))?;
 
+        // TODO: Add tracing::instrument to appropriate requests.
         let app = Router::new()
             .route("/", get(|| async { "Hello, World!" }))
             .route("/health_check", get(health_check))

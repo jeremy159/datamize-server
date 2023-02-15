@@ -11,6 +11,7 @@ pub struct MonthData {
     pub month: i16,
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn get_month_data(
     db_conn_pool: &PgPool,
     year_id: Uuid,
@@ -32,6 +33,7 @@ pub async fn get_month_data(
     .await
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn get_months_data(
     db_conn_pool: &PgPool,
     year_id: Uuid,
@@ -51,6 +53,7 @@ pub async fn get_months_data(
     .await
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn add_new_month(
     db_conn_pool: &PgPool,
     month: &Month,
@@ -112,6 +115,7 @@ pub async fn add_new_month(
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn get_month_net_totals_for(
     db_conn_pool: &PgPool,
     month_id: Uuid,
@@ -134,6 +138,7 @@ pub async fn get_month_net_totals_for(
     .await
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn update_month_net_totals(
     db_conn_pool: &PgPool,
     net_totals: &[NetTotal],
@@ -162,6 +167,7 @@ pub async fn update_month_net_totals(
     Ok(())
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn get_financial_resources_for(
     db_conn_pool: &PgPool,
     month_id: Uuid,
@@ -185,6 +191,7 @@ pub async fn get_financial_resources_for(
     .await
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn update_financial_resources(
     db_conn_pool: &PgPool,
     resources: &[FinancialResource],

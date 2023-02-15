@@ -5,6 +5,7 @@ use crate::{db, domain::YearDetail, error::AppError};
 
 use super::build_months;
 
+#[tracing::instrument(skip_all)]
 pub async fn get_year(db_conn_pool: &PgPool, year: i32) -> Result<YearDetail, AppError> {
     let Some(year_data) = db::get_year_data(db_conn_pool, year)
     .await? else {

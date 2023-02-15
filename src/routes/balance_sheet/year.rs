@@ -12,6 +12,7 @@ use crate::{
 };
 
 /// Returns a detailed year with its balance sheet and its saving rates.
+#[tracing::instrument(name = "Get a detailed year", skip_all)]
 pub async fn balance_sheet_year(
     Path(year): Path<i32>,
     State(app_state): State<AppState>,
@@ -22,6 +23,7 @@ pub async fn balance_sheet_year(
 }
 
 /// Updates the saving rates of the received year.
+#[tracing::instrument(skip_all)]
 pub async fn update_balance_sheet_year(
     Path(year): Path<i32>,
     State(app_state): State<AppState>,

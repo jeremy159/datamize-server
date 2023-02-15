@@ -18,6 +18,7 @@ use crate::{
 /// Only resources from the current month will be refreshed by this endpoint.
 /// This endpoint basically calls the YNAB api for some resources and starts a web scrapper for others.
 /// Will return an array of ids for Financial Resources updated.
+#[tracing::instrument(skip_all)]
 pub async fn refresh_balance_sheet_resources(
     State(app_state): State<AppState>,
 ) -> HttpJsonAppResult<Vec<Uuid>> {

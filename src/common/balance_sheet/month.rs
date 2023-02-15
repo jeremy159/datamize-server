@@ -10,6 +10,7 @@ use crate::{
     error::AppError,
 };
 
+#[tracing::instrument(skip_all)]
 pub async fn build_months(db_conn_pool: &PgPool, year_id: Uuid) -> Result<Vec<Month>, AppError> {
     let months_data = db::get_months_data(db_conn_pool, year_id).await?;
 
@@ -44,6 +45,7 @@ pub async fn build_months(db_conn_pool: &PgPool, year_id: Uuid) -> Result<Vec<Mo
     Ok(months)
 }
 
+#[tracing::instrument(skip_all)]
 pub async fn get_month(
     db_conn_pool: &PgPool,
     year_id: Uuid,

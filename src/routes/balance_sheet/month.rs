@@ -12,6 +12,7 @@ use crate::{
 };
 
 /// Returns a specific month with its financial resources and net totals.
+#[tracing::instrument(name = "Get a month", skip_all)]
 pub async fn balance_sheet_month(
     Path((year, month)): Path<(i32, MonthNum)>,
     State(app_state): State<AppState>,
@@ -28,6 +29,7 @@ pub async fn balance_sheet_month(
 
 /// Updates the month, i.e. all the financial resources included in the month
 /// Will also update its net totals.
+#[tracing::instrument(skip_all)]
 pub async fn update_balance_sheet_month(
     Path((year, month)): Path<(i32, MonthNum)>,
     State(app_state): State<AppState>,
