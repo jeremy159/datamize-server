@@ -45,6 +45,28 @@ impl TryFrom<i16> for MonthNum {
     }
 }
 
+impl TryFrom<u32> for MonthNum {
+    type Error = String;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Self::January),
+            2 => Ok(Self::February),
+            3 => Ok(Self::March),
+            4 => Ok(Self::April),
+            5 => Ok(Self::May),
+            6 => Ok(Self::June),
+            7 => Ok(Self::July),
+            8 => Ok(Self::August),
+            9 => Ok(Self::September),
+            10 => Ok(Self::October),
+            11 => Ok(Self::November),
+            12 => Ok(Self::December),
+            _ => Err(format!("Failed to convert {:?} to MonthNum", value)),
+        }
+    }
+}
+
 impl MonthNum {
     /// The next month
     pub fn succ(&self) -> MonthNum {

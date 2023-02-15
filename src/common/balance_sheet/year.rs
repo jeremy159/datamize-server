@@ -1,4 +1,4 @@
-use futures::try_join;
+use futures::{try_join, TryFutureExt};
 use sqlx::PgPool;
 
 use crate::{db, domain::YearDetail, error::AppError};
@@ -15,8 +15,11 @@ pub async fn get_year(db_conn_pool: &PgPool, year: i32) -> Result<YearDetail, Ap
 
     let saving_rates_query = db::get_saving_rates_for(db_conn_pool, year_data.id);
 
-    let (net_totals, saving_rates) = try_join!(net_totals_query, saving_rates_query)?;
-    let months = build_months(db_conn_pool, year_data.id).await?;
+    let (net_totals, saving_rates, months) = try_join!(
+        net_totals_query.map_err(AppError::from),
+        saving_rates_query.map_err(AppError::from),
+        build_months(db_conn_pool, year_data.id).map_err(AppError::from)
+    )?;
 
     let mut year = YearDetail {
         id: year_data.id,

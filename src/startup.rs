@@ -2,7 +2,7 @@ use std::{net::SocketAddr, sync::Arc};
 
 use anyhow::{Context, Ok, Result};
 use axum::{
-    routing::{get, put},
+    routing::{get, post, put},
     Router,
 };
 use sqlx::{postgres::PgPoolOptions, PgPool, Pool, Postgres};
@@ -12,9 +12,9 @@ use crate::{
     config::{DatabaseSettings, RedisSettings, Settings},
     routes::{
         balance_sheet_month, balance_sheet_months, balance_sheet_year, balance_sheet_years,
-        create_balance_sheet_month, create_balance_sheet_year, health_check, template_details,
-        template_summary, template_transactions, update_balance_sheet_month,
-        update_balance_sheet_year,
+        create_balance_sheet_month, create_balance_sheet_year, health_check,
+        refresh_balance_sheet_resources, template_details, template_summary, template_transactions,
+        update_balance_sheet_month, update_balance_sheet_year,
     },
 };
 
@@ -74,6 +74,10 @@ impl Application {
             .route(
                 "/api/balance_sheet/years/:year/months/:month",
                 get(balance_sheet_month).put(update_balance_sheet_month),
+            )
+            .route(
+                "/api/balance_sheet/resources/refresh",
+                post(refresh_balance_sheet_resources),
             )
             .layer(CorsLayer::permissive()) // TODO: To be more restrictive...
             .layer(TraceLayer::new_for_http())
