@@ -122,7 +122,7 @@ impl MonthNum {
 }
 
 /// A balance sheet of the month.
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Month {
     pub id: Uuid,
     /// The month in the year, starting with January at 1.
@@ -190,12 +190,12 @@ impl Month {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SaveMonth {
     pub month: MonthNum,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct UpdateMonth {
     pub resources: Vec<FinancialResource>,
 }

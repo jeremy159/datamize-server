@@ -1,8 +1,11 @@
-use std::{net::SocketAddr, sync::Arc};
+use std::{
+    net::{SocketAddr, TcpListener},
+    sync::Arc,
+};
 
 use anyhow::{Context, Ok, Result};
 use axum::{
-    routing::{get, post, put},
+    routing::{get, post},
     Router,
 };
 use sqlx::{postgres::PgPoolOptions, PgPool, Pool, Postgres};
@@ -27,6 +30,7 @@ pub struct AppState {
 
 pub struct Application {
     socket_addr: SocketAddr,
+    port: u16,
     app: Router,
 }
 
@@ -47,10 +51,13 @@ impl Application {
             "{}:{}",
             configuration.application.host, configuration.application.port
         );
-        let socket_addr: SocketAddr = address.parse().context(format!(
+
+        let listener = TcpListener::bind(address)?;
+        let socket_addr = listener.local_addr().context(format!(
             "failed to parse {}:{} to SocketAddr",
             configuration.application.host, configuration.application.port
         ))?;
+        let port = socket_addr.port();
 
         // TODO: Add tracing::instrument to appropriate requests.
         let app = Router::new()
@@ -63,10 +70,9 @@ impl Application {
                 "/api/balance_sheet/years",
                 get(balance_sheet_years).post(create_balance_sheet_year),
             )
-            .route("/api/balance_sheet/years/:year", get(balance_sheet_year))
             .route(
                 "/api/balance_sheet/years/:year",
-                put(update_balance_sheet_year),
+                get(balance_sheet_year).put(update_balance_sheet_year),
             )
             .route(
                 "/api/balance_sheet/years/:year/months",
@@ -84,7 +90,15 @@ impl Application {
             .layer(TraceLayer::new_for_http())
             .with_state(app_state);
 
-        Ok(Self { socket_addr, app })
+        Ok(Self {
+            socket_addr,
+            port,
+            app,
+        })
+    }
+
+    pub fn port(&self) -> u16 {
+        self.port
     }
 
     pub async fn run(self) -> Result<()> {

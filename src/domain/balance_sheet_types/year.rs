@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use super::{Month, NetTotal};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct YearSummary {
     pub id: Uuid,
     /// The year of the date, in format 2015.
@@ -14,7 +14,7 @@ pub struct YearSummary {
     pub net_totals: Vec<NetTotal>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct SaveYear {
     /// The year of the date, in format 2015.
     pub year: i32,
@@ -85,7 +85,7 @@ impl SavingRatesPerPerson {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct YearDetail {
     pub id: Uuid,
     /// The year of the date, in format 2015.

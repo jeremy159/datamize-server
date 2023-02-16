@@ -37,8 +37,8 @@ impl IntoResponse for AppError {
             }
             AppError::ValidationError => (StatusCode::UNPROCESSABLE_ENTITY, "validation errors"),
             AppError::ResourceNotFound => (StatusCode::NOT_FOUND, "resource does not exist"),
-            AppError::YearAlreadyExist => (StatusCode::BAD_REQUEST, "year already exist"),
-            AppError::MonthAlreadyExist => (StatusCode::BAD_REQUEST, "month already exist"),
+            AppError::YearAlreadyExist => (StatusCode::CONFLICT, "year already exist"),
+            AppError::MonthAlreadyExist => (StatusCode::CONFLICT, "month already exist"),
         };
 
         let body = Json(json!({

@@ -22,8 +22,8 @@ pub struct ApplicationSettings {
 
 #[derive(Clone, Deserialize)]
 pub struct YnabClientSettings {
-    pat: Secret<String>,
-    base_url: String,
+    pub pat: Secret<String>,
+    pub base_url: String,
 }
 
 impl YnabClientSettings {

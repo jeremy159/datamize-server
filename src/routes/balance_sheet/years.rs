@@ -1,4 +1,4 @@
-use axum::{extract::State, Json};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 
 use crate::{
     db,
@@ -23,7 +23,7 @@ pub async fn balance_sheet_years(
 pub async fn create_balance_sheet_year(
     State(app_state): State<AppState>,
     Json(body): Json<SaveYear>,
-) -> HttpJsonAppResult<YearDetail> {
+) -> impl IntoResponse {
     let db_conn_pool = app_state.db_conn_pool;
 
     let None = db::get_year_data(&db_conn_pool, body.year)
@@ -42,5 +42,5 @@ pub async fn create_balance_sheet_year(
 
     db::add_new_year(&db_conn_pool, &year).await?;
 
-    Ok(Json(year))
+    Ok((StatusCode::CREATED, Json(year)))
 }
