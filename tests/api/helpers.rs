@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use chrono::{Datelike, NaiveDate};
 use datamize::{
     config::{self, DatabaseSettings},
@@ -58,12 +60,31 @@ impl TestApp {
             .expect("Failed to execute request.")
     }
 
-    pub async fn get_year(&self, year: i32) -> reqwest::Response {
+    pub async fn get_year<Y>(&self, year: Y) -> reqwest::Response
+    where
+        Y: Display,
+    {
         self.api_client
             .get(&format!(
                 "{}/api/balance_sheet/years/{}",
                 &self.address, year
             ))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
+    pub async fn update_year<Y, B>(&self, year: Y, body: &B) -> reqwest::Response
+    where
+        Y: Display,
+        B: Serialize,
+    {
+        self.api_client
+            .put(&format!(
+                "{}/api/balance_sheet/years/{}",
+                &self.address, year
+            ))
+            .json(body)
             .send()
             .await
             .expect("Failed to execute request.")

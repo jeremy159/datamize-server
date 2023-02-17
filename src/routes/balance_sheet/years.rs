@@ -1,9 +1,10 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
+use axum_extra::extract::WithRejection;
 
 use crate::{
     db,
     domain::{SaveYear, YearDetail, YearSummary},
-    error::{AppError, HttpJsonAppResult},
+    error::{AppError, HttpJsonAppResult, JsonError},
     startup::AppState,
 };
 
@@ -22,7 +23,7 @@ pub async fn balance_sheet_years(
 #[tracing::instrument(skip_all)]
 pub async fn create_balance_sheet_year(
     State(app_state): State<AppState>,
-    Json(body): Json<SaveYear>,
+    WithRejection(Json(body), _): WithRejection<Json<SaveYear>, JsonError>,
 ) -> impl IntoResponse {
     let db_conn_pool = app_state.db_conn_pool;
 

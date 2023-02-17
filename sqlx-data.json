@@ -17,25 +17,6 @@
     },
     "query": "\n            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, month_id)\n            VALUES ($1, $2, $3, $4, $5, $6)\n            "
   },
-  "1dc2f67a9448e9e24ee3713ea47d7af0d93f7c72b94cd436682354d849691e0e": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text",
-          "Int8",
-          "Int8",
-          "Int8",
-          "Int8",
-          "Int8",
-          "Float4"
-        ]
-      }
-    },
-    "query": "\n            INSERT INTO balance_sheet_saving_rates (id, name, savings, employer_contribution, employee_contribution, mortgage_capital, incomes, rate)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n            ON CONFLICT (id) DO UPDATE\n            SET name = EXCLUDED.name,\n            savings = EXCLUDED.savings,\n            employer_contribution = EXCLUDED.employer_contribution,\n            employee_contribution = EXCLUDED.employee_contribution,\n            mortgage_capital = EXCLUDED.mortgage_capital,\n            incomes = EXCLUDED.incomes,\n            rate = EXCLUDED.rate;\n            "
-  },
   "250d9ae6cfd025651ccc19b6c6fb123096faf73b53213e5cf36b2546b1e709cd": {
     "describe": {
       "columns": [
@@ -187,6 +168,23 @@
       }
     },
     "query": "\n        SELECT \n            id,\n            category_group_id,\n            name,\n            hidden,\n            original_category_group_id,\n            note,\n            budgeted,\n            activity,\n            balance,\n            goal_type AS \"goal_type?: GoalType\",\n            goal_creation_month,\n            goal_target,\n            goal_target_month,\n            goal_percentage_complete,\n            goal_months_to_budget,\n            goal_under_funded,\n            goal_overall_funded,\n            goal_overall_left,\n            deleted\n        FROM categories\n        "
+  },
+  "3867288d9e208a87ebf9b6d013ef3564aa444136fccb811de78851b56586e384": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Int8",
+          "Float4",
+          "Int8",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, month_id)\n            VALUES ($1, $2, $3, $4, $5, $6)\n            ON CONFLICT (id) DO UPDATE\n            SET type = EXCLUDED.type,\n            total = EXCLUDED.total,\n            percent_var = EXCLUDED.percent_var,\n            balance_var = EXCLUDED.balance_var;\n            "
   },
   "44a6356a7213c8e0b494d4ccae1c93625e743c28ab6e902fde10b04f77818828": {
     "describe": {
@@ -420,6 +418,23 @@
     },
     "query": "\n        SELECT \n            id,\n            date_first,\n            date_next,\n            frequency,\n            amount,\n            memo,\n            flag_color,\n            account_id,\n            payee_id,\n            category_id,\n            transfer_account_id,\n            deleted,\n            account_name,\n            payee_name,\n            category_name,\n            subtransactions\n        FROM scheduled_transactions\n        "
   },
+  "7f88d669c3e18ee34ab8d0d1e05d608f57fd96bd5b83a5af50887fce2b6bfc65": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Int8",
+          "Float4",
+          "Int8",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n            INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, year_id)\n            VALUES ($1, $2, $3, $4, $5, $6)\n            ON CONFLICT (id) DO UPDATE\n            SET type = EXCLUDED.type,\n            total = EXCLUDED.total,\n            percent_var = EXCLUDED.percent_var,\n            balance_var = EXCLUDED.balance_var;\n            "
+  },
   "83b523b818805655508a780c8d0fea46b179977b9d76ef6665fbfdf1631a09ec": {
     "describe": {
       "columns": [
@@ -560,23 +575,6 @@
       }
     },
     "query": "\n        INSERT INTO balance_sheet_years (id, year)\n        VALUES ($1, $2);\n        "
-  },
-  "8f437dd469c12b42f494030cf835c23f139221bf0be492a7628075c2199c2500": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text",
-          "Text",
-          "Text",
-          "Int8",
-          "Bool"
-        ]
-      }
-    },
-    "query": "\n            INSERT INTO balance_sheet_resources (id, name, category, type, balance, editable)\n            VALUES ($1, $2, $3, $4, $5, $6)\n            ON CONFLICT (id) DO UPDATE\n            SET name = EXCLUDED.name,\n            category = EXCLUDED.category,\n            type = EXCLUDED.type,\n            balance = EXCLUDED.balance,\n            editable = EXCLUDED.editable;\n            "
   },
   "933a8ccb3189d20be34bfd68e1b1be915a4a58569e5243fc5974f693f2df3956": {
     "describe": {
@@ -817,22 +815,6 @@
     },
     "query": "\n        SELECT\n            id,\n            month\n        FROM balance_sheet_months\n        WHERE year_id = $1 AND month = $2;\n        "
   },
-  "cdfd2eab6a7087455ad5a91a75560ebff39f479d602ef10c2a26159b55cc77ba": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text",
-          "Int8",
-          "Float4",
-          "Int8"
-        ]
-      }
-    },
-    "query": "\n            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var)\n            VALUES ($1, $2, $3, $4, $5)\n            ON CONFLICT (id) DO UPDATE\n            SET type = EXCLUDED.type,\n            total = EXCLUDED.total,\n            percent_var = EXCLUDED.percent_var,\n            balance_var = EXCLUDED.balance_var;\n            "
-  },
   "d0ba8bebcea04a5083f9c6dbff51b6d89368ffd8a37dec309c911c8767b7ed5c": {
     "describe": {
       "columns": [],
@@ -921,7 +903,7 @@
     },
     "query": "\n                INSERT INTO scheduled_transactions (id, date_first, date_next, frequency, amount, memo, flag_color, account_id, payee_id, category_id, transfer_account_id, deleted, account_name, payee_name, category_name, subtransactions)\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)\n                ON CONFLICT (id) DO UPDATE\n                SET date_first = EXCLUDED.date_first,\n                date_next = EXCLUDED.date_next,\n                frequency = EXCLUDED.frequency,\n                amount = EXCLUDED.amount,\n                memo = EXCLUDED.memo,\n                flag_color = EXCLUDED.flag_color,\n                account_id = EXCLUDED.account_id,\n                payee_id = EXCLUDED.payee_id,\n                category_id = EXCLUDED.category_id,\n                transfer_account_id = EXCLUDED.transfer_account_id,\n                deleted = EXCLUDED.deleted,\n                account_name = EXCLUDED.account_name,\n                payee_name = EXCLUDED.payee_name,\n                category_name = EXCLUDED.category_name,\n                subtransactions = EXCLUDED.subtransactions;\n                "
   },
-  "fb5ae83294705fb2dfa92e0dc4861a21c8816269a489e5d04233bcf2216a005f": {
+  "d8323c02b48a32c802ac28a020583d48e041b6d4693bfa870e213d5a71542411": {
     "describe": {
       "columns": [],
       "nullable": [],
@@ -930,11 +912,15 @@
           "Uuid",
           "Text",
           "Int8",
+          "Int8",
+          "Int8",
+          "Int8",
+          "Int8",
           "Float4",
-          "Int8"
+          "Uuid"
         ]
       }
     },
-    "query": "\n            INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var)\n            VALUES ($1, $2, $3, $4, $5)\n            ON CONFLICT (id) DO UPDATE\n            SET type = EXCLUDED.type,\n            total = EXCLUDED.total,\n            percent_var = EXCLUDED.percent_var,\n            balance_var = EXCLUDED.balance_var;\n            "
+    "query": "\n            INSERT INTO balance_sheet_saving_rates (id, name, savings, employer_contribution, employee_contribution, mortgage_capital, incomes, rate, year_id)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n            ON CONFLICT (id) DO UPDATE\n            SET name = EXCLUDED.name,\n            savings = EXCLUDED.savings,\n            employer_contribution = EXCLUDED.employer_contribution,\n            employee_contribution = EXCLUDED.employee_contribution,\n            mortgage_capital = EXCLUDED.mortgage_capital,\n            incomes = EXCLUDED.incomes,\n            rate = EXCLUDED.rate;\n            "
   }
 }

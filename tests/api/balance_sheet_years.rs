@@ -60,6 +60,63 @@ async fn post_years_returns_a_201_for_valid_body_data() {
 }
 
 #[tokio::test]
+async fn post_years_returns_a_422_for_invalid_body_format_data() {
+    // Arange
+    let app = spawn_app().await;
+    #[derive(Debug, Clone, Serialize)]
+    struct Body {
+        year: String,
+    }
+    let body = Body {
+        year: Date().fake::<NaiveDate>().year().to_string(),
+    };
+
+    // Act
+    let response = app.create_year(&body).await;
+
+    // Assert
+    assert_eq!(response.status(), reqwest::StatusCode::UNPROCESSABLE_ENTITY);
+}
+
+#[tokio::test]
+async fn post_years_returns_a_400_for_empty_body() {
+    // Arange
+    let app = spawn_app().await;
+
+    // Act
+    let response = app
+        .api_client
+        .post(&format!("{}/api/balance_sheet/years", &app.address))
+        .header(reqwest::header::CONTENT_TYPE, "application/json")
+        .send()
+        .await
+        .expect("Failed to execute request.");
+
+    // Assert
+    assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn post_years_returns_a_415_for_missing_json_content_type() {
+    // Arange
+    let app = spawn_app().await;
+
+    // Act
+    let response = app
+        .api_client
+        .post(&format!("{}/api/balance_sheet/years", &app.address))
+        .send()
+        .await
+        .expect("Failed to execute request.");
+
+    // Assert
+    assert_eq!(
+        response.status(),
+        reqwest::StatusCode::UNSUPPORTED_MEDIA_TYPE
+    );
+}
+
+#[tokio::test]
 async fn post_years_persists_the_new_year() {
     // Arange
     let app = spawn_app().await;

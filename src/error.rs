@@ -1,4 +1,5 @@
 use axum::{
+    extract::rejection::JsonRejection,
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
@@ -45,5 +46,34 @@ impl IntoResponse for AppError {
             "error": error_message,
         }));
         (status, body).into_response()
+    }
+}
+
+#[derive(Debug)]
+pub enum JsonError {
+    JsonExtractorRejection(JsonRejection),
+}
+
+impl From<JsonRejection> for JsonError {
+    fn from(value: JsonRejection) -> Self {
+        Self::JsonExtractorRejection(value)
+    }
+}
+
+impl IntoResponse for JsonError {
+    fn into_response(self) -> axum::response::Response {
+        let payload = json!({
+            "message": format!("{:?}", self),
+            "origin": "with_rejection"
+        });
+        let code = match self {
+            JsonError::JsonExtractorRejection(x) => match x {
+                JsonRejection::JsonDataError(_) => StatusCode::UNPROCESSABLE_ENTITY,
+                JsonRejection::JsonSyntaxError(_) => StatusCode::BAD_REQUEST,
+                JsonRejection::MissingJsonContentType(_) => StatusCode::UNSUPPORTED_MEDIA_TYPE,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            },
+        };
+        (code, Json(payload)).into_response()
     }
 }
