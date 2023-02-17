@@ -32,10 +32,9 @@ pub async fn update_balance_sheet_year(
     let db_conn_pool = app_state.db_conn_pool;
 
     let mut year = get_year(&db_conn_pool, year).await?;
-
-    db::update_saving_rates(&db_conn_pool, &body.saving_rates).await?;
-
     year.update_saving_rates(body.saving_rates);
+
+    db::update_saving_rates(&db_conn_pool, &year).await?;
 
     Ok(Json(year))
 }

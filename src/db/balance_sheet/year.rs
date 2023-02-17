@@ -64,7 +64,7 @@ pub struct YearData {
     pub year: i32,
 }
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(db_conn_pool))]
 pub async fn get_year_data(
     db_conn_pool: &PgPool,
     year: i32,
@@ -135,7 +135,7 @@ pub async fn add_new_year(db_conn_pool: &PgPool, year: &YearDetail) -> Result<()
     Ok(())
 }
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(db_conn_pool))]
 pub async fn get_year_net_totals_for(
     db_conn_pool: &PgPool,
     year_id: Uuid,
@@ -161,13 +161,13 @@ pub async fn get_year_net_totals_for(
 #[tracing::instrument(skip_all)]
 pub async fn update_year_net_totals(
     db_conn_pool: &PgPool,
-    net_totals: &[NetTotal],
+    year: &YearDetail,
 ) -> Result<(), sqlx::Error> {
-    for nt in net_totals {
+    for nt in &year.net_totals {
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, year_id)
+            VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (id) DO UPDATE
             SET type = EXCLUDED.type,
             total = EXCLUDED.total,
@@ -179,6 +179,7 @@ pub async fn update_year_net_totals(
             nt.total,
             nt.percent_var,
             nt.balance_var,
+            year.id,
         )
         .execute(db_conn_pool)
         .await?;
@@ -187,7 +188,7 @@ pub async fn update_year_net_totals(
     Ok(())
 }
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(db_conn_pool))]
 pub async fn get_saving_rates_for(
     db_conn_pool: &PgPool,
     year_id: Uuid,
@@ -216,13 +217,13 @@ pub async fn get_saving_rates_for(
 #[tracing::instrument(skip_all)]
 pub async fn update_saving_rates(
     db_conn_pool: &PgPool,
-    saving_rates: &[SavingRatesPerPerson],
+    year: &YearDetail,
 ) -> Result<(), sqlx::Error> {
-    for sr in saving_rates {
+    for sr in &year.saving_rates {
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_saving_rates (id, name, savings, employer_contribution, employee_contribution, mortgage_capital, incomes, rate)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO balance_sheet_saving_rates (id, name, savings, employer_contribution, employee_contribution, mortgage_capital, incomes, rate, year_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             ON CONFLICT (id) DO UPDATE
             SET name = EXCLUDED.name,
             savings = EXCLUDED.savings,
@@ -240,6 +241,7 @@ pub async fn update_saving_rates(
             sr.mortgage_capital,
             sr.incomes,
             sr.rate,
+            year.id
         )
         .execute(db_conn_pool)
         .await?;

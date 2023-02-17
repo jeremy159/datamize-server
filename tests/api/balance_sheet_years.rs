@@ -2,8 +2,6 @@ use chrono::{Datelike, Months, NaiveDate};
 use datamize::domain::{NetTotalType, YearDetail};
 use fake::faker::chrono::en::Date;
 use fake::Fake;
-use rand::distributions::OpenClosed01;
-use rand::prelude::*;
 use serde::Serialize;
 
 use crate::helpers::spawn_app;
@@ -148,30 +146,14 @@ async fn post_years_updates_net_totals_if_previous_year_exists() {
     let year_id = app
         .insert_year(date.checked_sub_months(Months::new(12)).unwrap().year())
         .await;
-    let mut rng = rand::thread_rng();
-    let total_assets = rng.gen();
-    let percentage_var = rng.sample(OpenClosed01);
-    let balance_var = rng.gen();
-    app.insert_net_total(
-        year_id,
-        NetTotalType::Asset,
-        total_assets,
-        percentage_var,
-        balance_var,
-    )
-    .await;
 
-    let total_portfolio = rng.gen();
-    let percentage_var = rng.sample(OpenClosed01);
-    let balance_var = rng.gen();
-    app.insert_net_total(
-        year_id,
-        NetTotalType::Portfolio,
-        total_portfolio,
-        percentage_var,
-        balance_var,
-    )
-    .await;
+    let (_, total_assets, _, _) = app
+        .insert_year_net_total(year_id, NetTotalType::Asset)
+        .await;
+
+    let (_, total_portfolio, _, _) = app
+        .insert_year_net_total(year_id, NetTotalType::Portfolio)
+        .await;
 
     #[derive(Debug, Clone, Serialize)]
     struct Body {

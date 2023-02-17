@@ -43,7 +43,7 @@ pub async fn get_year(db_conn_pool: &PgPool, year: i32) -> Result<YearDetail, Ap
                 }
             }
 
-            db::update_year_net_totals(db_conn_pool, &year.net_totals).await?;
+            db::update_year_net_totals(db_conn_pool, &year).await?;
         }
     }
 

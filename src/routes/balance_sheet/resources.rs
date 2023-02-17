@@ -95,7 +95,7 @@ pub async fn refresh_balance_sheet_resources(
     }
 
     if !refreshed.is_empty() {
-        db::update_financial_resources(&db_conn_pool, &month.resources).await?;
+        db::update_financial_resources(&db_conn_pool, &month).await?;
         month.compute_net_totals();
 
         let year_data_opt = match month.month.pred() {
@@ -115,7 +115,7 @@ pub async fn refresh_balance_sheet_resources(
             }
         }
 
-        db::update_month_net_totals(&db_conn_pool, &month.net_totals).await?;
+        db::update_month_net_totals(&db_conn_pool, &month).await?;
     }
 
     Ok(Json(refreshed))

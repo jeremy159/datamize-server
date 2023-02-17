@@ -43,10 +43,10 @@ pub async fn update_balance_sheet_month(
     };
 
     let mut month = get_month(&db_conn_pool, year_data.id, month).await?;
-
-    db::update_financial_resources(&db_conn_pool, &body.resources).await?;
-
     month.update_financial_resources(body.resources);
+
+    db::update_financial_resources(&db_conn_pool, &month).await?;
+
     month.compute_net_totals();
 
     let year_data_opt = match month.month.pred() {
@@ -66,7 +66,7 @@ pub async fn update_balance_sheet_month(
         }
     }
 
-    db::update_month_net_totals(&db_conn_pool, &month.net_totals).await?;
+    db::update_month_net_totals(&db_conn_pool, &month).await?;
 
     Ok(Json(month))
 }

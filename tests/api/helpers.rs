@@ -1,10 +1,14 @@
+use chrono::{Datelike, NaiveDate};
 use datamize::{
     config::{self, DatabaseSettings},
-    domain::NetTotalType,
+    domain::{MonthNum, NetTotalType},
     startup::{get_connection_pool, get_redis_connection_pool, Application},
     telemetry::{get_subscriber, init_subscriber},
 };
+use fake::{faker::chrono::en::Date, Fake};
 use once_cell::sync::Lazy;
+use rand::distributions::OpenClosed01;
+use rand::prelude::*;
 use serde::Serialize;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
@@ -82,15 +86,17 @@ impl TestApp {
         year_id
     }
 
-    pub async fn insert_net_total(
+    pub async fn insert_year_net_total(
         &self,
         year_id: Uuid,
         net_type: NetTotalType,
-        total: i64,
-        percent_var: f32,
-        balance_var: i64,
-    ) -> Uuid {
+    ) -> (Uuid, i64, f32, i64) {
         let net_total_id = uuid::Uuid::new_v4();
+        let mut rng = rand::thread_rng();
+        let total: i64 = rng.gen();
+        let percent_var: f32 = rng.sample(OpenClosed01);
+        let balance_var: i64 = rng.gen();
+
         sqlx::query!(
             r#"
             INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, year_id)
@@ -107,7 +113,102 @@ impl TestApp {
         .await
         .expect("Failed to insert net totals of a year.");
 
-        net_total_id
+        (net_total_id, total, percent_var, balance_var)
+    }
+
+    pub async fn insert_saving_rate(
+        &self,
+        year_id: Uuid,
+    ) -> (Uuid, String, i64, i64, i64, i64, i64, f32) {
+        let saving_rate_id = uuid::Uuid::new_v4();
+        let name = (1..100).fake::<String>();
+        let mut rng = rand::thread_rng();
+        let savings: i64 = rng.gen();
+        let employer_contribution: i64 = rng.gen();
+        let employee_contribution: i64 = rng.gen();
+        let mortgage_capital: i64 = rng.gen();
+        let incomes: i64 = rng.gen();
+        let rate: f32 = rng.sample(OpenClosed01);
+
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_saving_rates (id, name, savings, employer_contribution, employee_contribution, mortgage_capital, incomes, rate, year_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+            "#,
+            saving_rate_id,
+            name,
+            savings,
+            employer_contribution,
+            employee_contribution,
+            mortgage_capital,
+            incomes,
+            rate,
+            year_id,
+        )
+        .execute(&self.db_pool)
+        .await
+        .expect("Failed to insert saving rates of a year.");
+
+        (
+            saving_rate_id,
+            name,
+            savings,
+            employer_contribution,
+            employee_contribution,
+            mortgage_capital,
+            incomes,
+            rate,
+        )
+    }
+
+    pub async fn insert_month(&self, year_id: Uuid) -> (Uuid, MonthNum) {
+        let month_id = uuid::Uuid::new_v4();
+        let month: MonthNum = Date().fake::<NaiveDate>().month().try_into().unwrap();
+
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_months (id, month, year_id)
+            VALUES ($1, $2, $3);
+            "#,
+            month_id,
+            month as i16,
+            year_id,
+        )
+        .execute(&self.db_pool)
+        .await
+        .expect("Failed to insert net totals of a month.");
+
+        (month_id, month)
+    }
+
+    pub async fn insert_month_net_total(
+        &self,
+        month_id: Uuid,
+        net_type: NetTotalType,
+    ) -> (Uuid, i64, f32, i64) {
+        let net_total_id = uuid::Uuid::new_v4();
+        let mut rng = rand::thread_rng();
+        let total: i64 = rng.gen();
+        let percent_var: f32 = rng.sample(OpenClosed01);
+        let balance_var: i64 = rng.gen();
+
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, month_id)
+            VALUES ($1, $2, $3, $4, $5, $6);
+            "#,
+            net_total_id,
+            net_type.to_string(),
+            total,
+            percent_var,
+            balance_var,
+            month_id,
+        )
+        .execute(&self.db_pool)
+        .await
+        .expect("Failed to insert net totals of a month.");
+
+        (net_total_id, total, percent_var, balance_var)
     }
 }
 

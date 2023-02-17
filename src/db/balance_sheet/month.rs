@@ -11,7 +11,7 @@ pub struct MonthData {
     pub month: i16,
 }
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(db_conn_pool))]
 pub async fn get_month_data(
     db_conn_pool: &PgPool,
     year_id: Uuid,
@@ -33,7 +33,7 @@ pub async fn get_month_data(
     .await
 }
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(db_conn_pool))]
 pub async fn get_months_data(
     db_conn_pool: &PgPool,
     year_id: Uuid,
@@ -115,7 +115,7 @@ pub async fn add_new_month(
     Ok(())
 }
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(db_conn_pool))]
 pub async fn get_month_net_totals_for(
     db_conn_pool: &PgPool,
     month_id: Uuid,
@@ -141,13 +141,13 @@ pub async fn get_month_net_totals_for(
 #[tracing::instrument(skip_all)]
 pub async fn update_month_net_totals(
     db_conn_pool: &PgPool,
-    net_totals: &[NetTotal],
+    month: &Month,
 ) -> Result<(), sqlx::Error> {
-    for nt in net_totals {
+    for nt in &month.net_totals {
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, month_id)
+            VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (id) DO UPDATE
             SET type = EXCLUDED.type,
             total = EXCLUDED.total,
@@ -159,6 +159,7 @@ pub async fn update_month_net_totals(
             nt.total,
             nt.percent_var,
             nt.balance_var,
+            month.id,
         )
         .execute(db_conn_pool)
         .await?;
@@ -167,7 +168,7 @@ pub async fn update_month_net_totals(
     Ok(())
 }
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(db_conn_pool))]
 pub async fn get_financial_resources_for(
     db_conn_pool: &PgPool,
     month_id: Uuid,
@@ -194,13 +195,13 @@ pub async fn get_financial_resources_for(
 #[tracing::instrument(skip_all)]
 pub async fn update_financial_resources(
     db_conn_pool: &PgPool,
-    resources: &[FinancialResource],
+    month: &Month,
 ) -> Result<(), sqlx::Error> {
-    for f in resources {
+    for f in &month.resources {
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_resources (id, name, category, type, balance, editable)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO balance_sheet_resources (id, name, category, type, balance, editable, month_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (id) DO UPDATE
             SET name = EXCLUDED.name,
             category = EXCLUDED.category,
@@ -214,6 +215,7 @@ pub async fn update_financial_resources(
             f.resource_type.to_string(),
             f.balance,
             f.editable,
+            month.id,
         )
         .execute(db_conn_pool)
         .await?;
