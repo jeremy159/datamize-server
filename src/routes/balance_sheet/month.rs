@@ -2,12 +2,13 @@ use axum::{
     extract::{Path, State},
     Json,
 };
+use axum_extra::extract::WithRejection;
 
 use crate::{
     common::get_month,
     db,
     domain::{Month, MonthNum, UpdateMonth},
-    error::{AppError, HttpJsonAppResult},
+    error::{AppError, HttpJsonAppResult, JsonError},
     startup::AppState,
 };
 
@@ -33,7 +34,7 @@ pub async fn balance_sheet_month(
 pub async fn update_balance_sheet_month(
     Path((year, month)): Path<(i32, MonthNum)>,
     State(app_state): State<AppState>,
-    Json(body): Json<UpdateMonth>,
+    WithRejection(Json(body), _): WithRejection<Json<UpdateMonth>, JsonError>,
 ) -> HttpJsonAppResult<Month> {
     let db_conn_pool = app_state.db_conn_pool;
 

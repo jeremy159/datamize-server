@@ -3,11 +3,11 @@ use std::fmt::Display;
 use chrono::{Datelike, NaiveDate};
 use datamize::{
     config::{self, DatabaseSettings},
-    domain::{MonthNum, NetTotalType},
+    domain::{MonthNum, NetTotalType, ResourceCategory, ResourceType},
     startup::{get_connection_pool, get_redis_connection_pool, Application},
     telemetry::{get_subscriber, init_subscriber},
 };
-use fake::{faker::chrono::en::Date, Fake};
+use fake::{faker::chrono::en::Date, Fake, Faker};
 use once_cell::sync::Lazy;
 use rand::distributions::OpenClosed01;
 use rand::prelude::*;
@@ -90,6 +90,68 @@ impl TestApp {
             .expect("Failed to execute request.")
     }
 
+    pub async fn get_months<Y>(&self, year: Y) -> reqwest::Response
+    where
+        Y: Display,
+    {
+        self.api_client
+            .get(&format!(
+                "{}/api/balance_sheet/years/{}/months",
+                &self.address, year
+            ))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
+    pub async fn create_month<Y, B>(&self, year: Y, body: &B) -> reqwest::Response
+    where
+        Y: Display,
+        B: Serialize,
+    {
+        self.api_client
+            .post(&format!(
+                "{}/api/balance_sheet/years/{}/months",
+                &self.address, year
+            ))
+            .json(body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
+    pub async fn get_month<Y, M>(&self, year: Y, month: M) -> reqwest::Response
+    where
+        Y: Display,
+        M: Display,
+    {
+        self.api_client
+            .get(&format!(
+                "{}/api/balance_sheet/years/{}/months/{}",
+                &self.address, year, month
+            ))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
+    pub async fn update_month<Y, M, B>(&self, year: Y, month: M, body: &B) -> reqwest::Response
+    where
+        Y: Display,
+        M: Display,
+        B: Serialize,
+    {
+        self.api_client
+            .put(&format!(
+                "{}/api/balance_sheet/years/{}/months/{}",
+                &self.address, year, month
+            ))
+            .json(body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
     pub async fn insert_year(&self, year: i32) -> Uuid {
         let year_id = uuid::Uuid::new_v4();
         sqlx::query!(
@@ -114,9 +176,9 @@ impl TestApp {
     ) -> (Uuid, i64, f32, i64) {
         let net_total_id = uuid::Uuid::new_v4();
         let mut rng = rand::thread_rng();
-        let total: i64 = rng.gen();
+        let total: i64 = Faker.fake();
         let percent_var: f32 = rng.sample(OpenClosed01);
-        let balance_var: i64 = rng.gen();
+        let balance_var: i64 = Faker.fake();
 
         sqlx::query!(
             r#"
@@ -144,11 +206,11 @@ impl TestApp {
         let saving_rate_id = uuid::Uuid::new_v4();
         let name = (1..100).fake::<String>();
         let mut rng = rand::thread_rng();
-        let savings: i64 = rng.gen();
-        let employer_contribution: i64 = rng.gen();
-        let employee_contribution: i64 = rng.gen();
-        let mortgage_capital: i64 = rng.gen();
-        let incomes: i64 = rng.gen();
+        let savings: i64 = Faker.fake();
+        let employer_contribution: i64 = Faker.fake();
+        let employee_contribution: i64 = Faker.fake();
+        let mortgage_capital: i64 = Faker.fake();
+        let incomes: i64 = Faker.fake();
         let rate: f32 = rng.sample(OpenClosed01);
 
         sqlx::query!(
@@ -182,7 +244,26 @@ impl TestApp {
         )
     }
 
-    pub async fn insert_month(&self, year_id: Uuid) -> (Uuid, MonthNum) {
+    pub async fn insert_month(&self, year_id: Uuid, month: i16) -> Uuid {
+        let month_id = uuid::Uuid::new_v4();
+
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_months (id, month, year_id)
+            VALUES ($1, $2, $3);
+            "#,
+            month_id,
+            month,
+            year_id,
+        )
+        .execute(&self.db_pool)
+        .await
+        .expect("Failed to insert month.");
+
+        month_id
+    }
+
+    pub async fn insert_random_month(&self, year_id: Uuid) -> (Uuid, MonthNum) {
         let month_id = uuid::Uuid::new_v4();
         let month: MonthNum = Date().fake::<NaiveDate>().month().try_into().unwrap();
 
@@ -197,7 +278,7 @@ impl TestApp {
         )
         .execute(&self.db_pool)
         .await
-        .expect("Failed to insert net totals of a month.");
+        .expect("Failed to insert month.");
 
         (month_id, month)
     }
@@ -209,9 +290,9 @@ impl TestApp {
     ) -> (Uuid, i64, f32, i64) {
         let net_total_id = uuid::Uuid::new_v4();
         let mut rng = rand::thread_rng();
-        let total: i64 = rng.gen();
+        let total: i32 = Faker.fake();
         let percent_var: f32 = rng.sample(OpenClosed01);
-        let balance_var: i64 = rng.gen();
+        let balance_var: i32 = Faker.fake();
 
         sqlx::query!(
             r#"
@@ -220,16 +301,47 @@ impl TestApp {
             "#,
             net_total_id,
             net_type.to_string(),
-            total,
+            total as i64,
             percent_var,
-            balance_var,
+            balance_var as i64,
             month_id,
         )
         .execute(&self.db_pool)
         .await
         .expect("Failed to insert net totals of a month.");
 
-        (net_total_id, total, percent_var, balance_var)
+        (net_total_id, total as i64, percent_var, balance_var as i64)
+    }
+
+    pub async fn insert_financial_resource(
+        &self,
+        month_id: Uuid,
+        category: ResourceCategory,
+        res_type: ResourceType,
+    ) -> (Uuid, String, i64, bool) {
+        let resource_id = uuid::Uuid::new_v4();
+        let name: String = Faker.fake();
+        let balance: i64 = Faker.fake();
+        let editable: bool = Faker.fake();
+
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_resources (id, name, category, type, balance, editable, month_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7);
+            "#,
+            resource_id,
+            name,
+            category.to_string(),
+            res_type.to_string(),
+            balance,
+            editable,
+            month_id,
+        )
+        .execute(&self.db_pool)
+        .await
+        .expect("Failed to insert financial resource of a month.");
+
+        (resource_id, name, balance, editable)
     }
 }
 

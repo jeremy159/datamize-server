@@ -86,7 +86,7 @@ async fn get_year_returns_net_totals_saving_rates_and_months_of_the_year() {
         .insert_year_net_total(year_id, NetTotalType::Portfolio)
         .await;
     let saving_rate = app.insert_saving_rate(year_id).await;
-    let month = app.insert_month(year_id).await;
+    let month = app.insert_random_month(year_id).await;
     let month_net_total_assets = app
         .insert_month_net_total(month.0, NetTotalType::Asset)
         .await;
@@ -188,7 +188,7 @@ async fn get_year_returns_has_net_totals_update_persisted() {
     let year_net_total_portfolio = app
         .insert_year_net_total(year_id, NetTotalType::Portfolio)
         .await;
-    let month = app.insert_month(year_id).await;
+    let month = app.insert_random_month(year_id).await;
     app.insert_month_net_total(month.0, NetTotalType::Asset)
         .await;
     app.insert_month_net_total(month.0, NetTotalType::Portfolio)
@@ -426,7 +426,7 @@ async fn put_year_returns_a_422_for_wrong_body_attribute_type() {
         pub name: i64,
         pub savings: i64,
         pub employer_contribution: i64,
-        // pub employee_contribution: i64,
+        pub employee_contribution: i64,
         pub mortgage_capital: i64,
         pub incomes: i64,
         pub rate: f32,
