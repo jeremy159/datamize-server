@@ -361,11 +361,6 @@ pub async fn spawn_app(db_pool: PgPool) -> TestApp {
     let application_port = application.port();
     let _ = tokio::spawn(application.run());
 
-    // Just to make sure the server has started listening to the port, otherwise we will get 'Connection Refused' sometimes.
-    tokio::spawn(async { Duration::from_millis(100) })
-        .await
-        .expect("Failed to wait 1 second.");
-
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
         .cookie_store(true)
