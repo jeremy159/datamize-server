@@ -4,13 +4,14 @@ use fake::faker::chrono::en::Date;
 use fake::Fake;
 use reqwest::StatusCode;
 use serde::Serialize;
+use sqlx::PgPool;
 
 use crate::helpers::spawn_app;
 
-#[tokio::test]
-async fn get_months_returns_a_404_if_year_does_not_exist() {
+#[sqlx::test]
+async fn get_months_returns_a_404_if_year_does_not_exist(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
 
     // Act
     let year = Date().fake::<NaiveDate>().year();
@@ -20,10 +21,10 @@ async fn get_months_returns_a_404_if_year_does_not_exist() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
-#[tokio::test]
-async fn get_months_returns_an_empty_list_when_nothing_in_database() {
+#[sqlx::test]
+async fn get_months_returns_an_empty_list_when_nothing_in_database(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
 
@@ -36,10 +37,10 @@ async fn get_months_returns_an_empty_list_when_nothing_in_database() {
     assert!(value.is_array());
 }
 
-#[tokio::test]
-async fn get_months_fails_if_there_is_a_fatal_database_error() {
+#[sqlx::test]
+async fn get_months_fails_if_there_is_a_fatal_database_error(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
     // Sabotage the database
@@ -58,10 +59,10 @@ async fn get_months_fails_if_there_is_a_fatal_database_error() {
     );
 }
 
-#[tokio::test]
-async fn get_months_returns_net_totals_and_financial_resources_of_all_months() {
+#[sqlx::test]
+async fn get_months_returns_net_totals_and_financial_resources_of_all_months(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     let year_id = app.insert_year(year).await;
     let month1 = app.insert_random_month(year_id).await;
@@ -144,10 +145,10 @@ async fn get_months_returns_net_totals_and_financial_resources_of_all_months() {
     }
 }
 
-#[tokio::test]
-async fn post_months_returns_a_201_for_valid_body_data() {
+#[sqlx::test]
+async fn post_months_returns_a_201_for_valid_body_data(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
     #[derive(Debug, Clone, Serialize)]
@@ -165,10 +166,10 @@ async fn post_months_returns_a_201_for_valid_body_data() {
     assert_eq!(response.status(), reqwest::StatusCode::CREATED);
 }
 
-#[tokio::test]
-async fn post_months_returns_a_422_for_invalid_month_number() {
+#[sqlx::test]
+async fn post_months_returns_a_422_for_invalid_month_number(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
     #[derive(Debug, Clone, Serialize)]
@@ -186,10 +187,10 @@ async fn post_months_returns_a_422_for_invalid_month_number() {
     assert_eq!(response.status(), reqwest::StatusCode::UNPROCESSABLE_ENTITY);
 }
 
-#[tokio::test]
-async fn post_months_returns_a_400_for_empty_body() {
+#[sqlx::test]
+async fn post_months_returns_a_400_for_empty_body(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
 
     // Act
@@ -208,10 +209,10 @@ async fn post_months_returns_a_400_for_empty_body() {
     assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
 }
 
-#[tokio::test]
-async fn post_months_returns_a_415_for_missing_json_content_type() {
+#[sqlx::test]
+async fn post_months_returns_a_415_for_missing_json_content_type(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
 
     // Act
@@ -232,10 +233,10 @@ async fn post_months_returns_a_415_for_missing_json_content_type() {
     );
 }
 
-#[tokio::test]
-async fn post_months_persists_the_new_month() {
+#[sqlx::test]
+async fn post_months_persists_the_new_month(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
     #[derive(Debug, Clone, Serialize)]
@@ -257,10 +258,10 @@ async fn post_months_persists_the_new_month() {
     assert_eq!(saved.month, body.month);
 }
 
-#[tokio::test]
-async fn post_months_returns_a_409_if_month_already_exists() {
+#[sqlx::test]
+async fn post_months_returns_a_409_if_month_already_exists(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     let year_id = app.insert_year(year).await;
     let month = (1..12).fake();
@@ -279,10 +280,10 @@ async fn post_months_returns_a_409_if_month_already_exists() {
     assert_eq!(response.status(), reqwest::StatusCode::CONFLICT);
 }
 
-#[tokio::test]
-async fn post_months_persits_net_totals_and_resources_for_new_month() {
+#[sqlx::test]
+async fn post_months_persits_net_totals_and_resources_for_new_month(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
     #[derive(Debug, Clone, Serialize)]
@@ -317,10 +318,10 @@ async fn post_months_persits_net_totals_and_resources_for_new_month() {
     assert!(!saved_resources.is_empty());
 }
 
-#[tokio::test]
-async fn post_months_updates_net_totals_if_previous_month_exists() {
+#[sqlx::test]
+async fn post_months_updates_net_totals_if_previous_month_exists(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     let year_id = app.insert_year(year).await;
     let month = (2..12).fake();
@@ -355,10 +356,10 @@ async fn post_months_updates_net_totals_if_previous_month_exists() {
     }
 }
 
-#[tokio::test]
-async fn post_months_updates_net_totals_if_previous_month_exists_in_prev_year() {
+#[sqlx::test]
+async fn post_months_updates_net_totals_if_previous_month_exists_in_prev_year(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
     let month = 1; // January

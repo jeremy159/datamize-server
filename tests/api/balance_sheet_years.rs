@@ -3,13 +3,14 @@ use datamize::domain::{NetTotalType, YearDetail};
 use fake::faker::chrono::en::Date;
 use fake::Fake;
 use serde::Serialize;
+use sqlx::PgPool;
 
 use crate::helpers::spawn_app;
 
-#[tokio::test]
-async fn get_years_returns_an_empty_list_when_nothing_in_database() {
+#[sqlx::test]
+async fn get_years_returns_an_empty_list_when_nothing_in_database(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
 
     // Act
     let response = app.get_years_summary().await;
@@ -20,12 +21,12 @@ async fn get_years_returns_an_empty_list_when_nothing_in_database() {
     assert!(value.is_array());
 }
 
-#[tokio::test]
-async fn get_years_fails_if_there_is_a_fatal_database_error() {
+#[sqlx::test]
+async fn get_years_fails_if_there_is_a_fatal_database_error(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     // Sabotage the database
-    sqlx::query!("ALTER TABLE balance_sheet_years DROP COLUMN year;",)
+    sqlx::query!("ALTER TABLE balance_sheet_years DROP COLUMN year;")
         .execute(&app.db_pool)
         .await
         .unwrap();
@@ -40,10 +41,10 @@ async fn get_years_fails_if_there_is_a_fatal_database_error() {
     );
 }
 
-#[tokio::test]
-async fn post_years_returns_a_201_for_valid_body_data() {
+#[sqlx::test]
+async fn post_years_returns_a_201_for_valid_body_data(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     #[derive(Debug, Clone, Serialize)]
     struct Body {
         year: i32,
@@ -59,10 +60,10 @@ async fn post_years_returns_a_201_for_valid_body_data() {
     assert_eq!(response.status(), reqwest::StatusCode::CREATED);
 }
 
-#[tokio::test]
-async fn post_years_returns_a_422_for_invalid_body_format_data() {
+#[sqlx::test]
+async fn post_years_returns_a_422_for_invalid_body_format_data(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     #[derive(Debug, Clone, Serialize)]
     struct Body {
         year: String,
@@ -78,10 +79,10 @@ async fn post_years_returns_a_422_for_invalid_body_format_data() {
     assert_eq!(response.status(), reqwest::StatusCode::UNPROCESSABLE_ENTITY);
 }
 
-#[tokio::test]
-async fn post_years_returns_a_400_for_empty_body() {
+#[sqlx::test]
+async fn post_years_returns_a_400_for_empty_body(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
 
     // Act
     let response = app
@@ -96,10 +97,10 @@ async fn post_years_returns_a_400_for_empty_body() {
     assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
 }
 
-#[tokio::test]
-async fn post_years_returns_a_415_for_missing_json_content_type() {
+#[sqlx::test]
+async fn post_years_returns_a_415_for_missing_json_content_type(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
 
     // Act
     let response = app
@@ -116,10 +117,10 @@ async fn post_years_returns_a_415_for_missing_json_content_type() {
     );
 }
 
-#[tokio::test]
-async fn post_years_persists_the_new_year() {
+#[sqlx::test]
+async fn post_years_persists_the_new_year(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     #[derive(Debug, Clone, Serialize)]
     struct Body {
         year: i32,
@@ -139,10 +140,10 @@ async fn post_years_persists_the_new_year() {
     assert_eq!(saved.year, body.year);
 }
 
-#[tokio::test]
-async fn post_years_returns_a_409_if_year_already_exists() {
+#[sqlx::test]
+async fn post_years_returns_a_409_if_year_already_exists(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
 
@@ -159,10 +160,10 @@ async fn post_years_returns_a_409_if_year_already_exists() {
     assert_eq!(response.status(), reqwest::StatusCode::CONFLICT);
 }
 
-#[tokio::test]
-async fn post_years_persits_net_totals_and_saving_rates_for_new_year() {
+#[sqlx::test]
+async fn post_years_persits_net_totals_and_saving_rates_for_new_year(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     #[derive(Debug, Clone, Serialize)]
     struct Body {
         year: i32,
@@ -195,10 +196,10 @@ async fn post_years_persits_net_totals_and_saving_rates_for_new_year() {
     assert!(!saved_saving_rates.is_empty());
 }
 
-#[tokio::test]
-async fn post_years_updates_net_totals_if_previous_year_exists() {
+#[sqlx::test]
+async fn post_years_updates_net_totals_if_previous_year_exists(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let date = Date().fake::<NaiveDate>();
     let year_id = app
         .insert_year(date.checked_sub_months(Months::new(12)).unwrap().year())

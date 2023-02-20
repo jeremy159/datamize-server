@@ -8,11 +8,11 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use sqlx::{postgres::PgPoolOptions, PgPool, Pool, Postgres};
+use sqlx::{PgPool, Pool, Postgres};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 use crate::{
-    config::{DatabaseSettings, RedisSettings, Settings},
+    config::{RedisSettings, Settings},
     routes::{
         balance_sheet_month, balance_sheet_months, balance_sheet_year, balance_sheet_years,
         create_balance_sheet_month, create_balance_sheet_year, health_check,
@@ -35,8 +35,7 @@ pub struct Application {
 }
 
 impl Application {
-    pub async fn build(configuration: Settings) -> Result<Self> {
-        let db_conn_pool = get_connection_pool(&configuration.database);
+    pub async fn build(configuration: Settings, db_conn_pool: PgPool) -> Result<Self> {
         let redis_conn_pool = get_redis_connection_pool(&configuration.redis)
             .context("failed to get redis connection pool")?;
         let ynab_client = Arc::new(configuration.ynab_client.client());
@@ -59,7 +58,7 @@ impl Application {
         ))?;
         let port = socket_addr.port();
 
-        // TODO: Add tracing::instrument to appropriate requests.
+        // TODO: Add tracing::instrument with request id to requests.
         let app = Router::new()
             .route("/", get(|| async { "Hello, World!" }))
             .route("/health_check", get(health_check))
@@ -110,13 +109,6 @@ impl Application {
             .context("failed to start hyper server")?;
         Ok(())
     }
-}
-
-pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
-    PgPoolOptions::new()
-        .max_connections(2)
-        .acquire_timeout(std::time::Duration::from_secs(2))
-        .connect_lazy_with(configuration.with_db())
 }
 
 pub fn get_redis_connection_pool(

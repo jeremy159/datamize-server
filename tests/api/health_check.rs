@@ -1,9 +1,11 @@
+use sqlx::PgPool;
+
 use crate::helpers::spawn_app;
 
-#[tokio::test]
-async fn health_check_works() {
+#[sqlx::test]
+async fn health_check_works(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let client = reqwest::Client::new();
 
     // Act

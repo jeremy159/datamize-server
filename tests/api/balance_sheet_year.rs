@@ -3,14 +3,15 @@ use datamize::domain::{NetTotalType, YearDetail};
 use fake::{faker::chrono::en::Date, Dummy, Fake, Faker};
 use rand::Rng;
 use serde::Serialize;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::helpers::spawn_app;
 
-#[tokio::test]
-async fn get_year_returns_a_404_for_a_non_existing_year() {
+#[sqlx::test]
+async fn get_year_returns_a_404_for_a_non_existing_year(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
 
     // Act
     let response = app.get_year(Date().fake::<NaiveDate>().year()).await;
@@ -19,10 +20,10 @@ async fn get_year_returns_a_404_for_a_non_existing_year() {
     assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
 }
 
-#[tokio::test]
-async fn get_year_returns_a_400_for_invalid_year_in_path() {
+#[sqlx::test]
+async fn get_year_returns_a_400_for_invalid_year_in_path(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
 
@@ -36,10 +37,10 @@ async fn get_year_returns_a_400_for_invalid_year_in_path() {
     assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
 }
 
-#[tokio::test]
-async fn get_year_returns_a_200_for_an_existing_year() {
+#[sqlx::test]
+async fn get_year_returns_a_200_for_an_existing_year(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
 
@@ -50,10 +51,10 @@ async fn get_year_returns_a_200_for_an_existing_year() {
     assert_eq!(response.status(), reqwest::StatusCode::OK);
 }
 
-#[tokio::test]
-async fn get_year_fails_if_there_is_a_fatal_database_error() {
+#[sqlx::test]
+async fn get_year_fails_if_there_is_a_fatal_database_error(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
     // Sabotage the database
@@ -72,10 +73,10 @@ async fn get_year_fails_if_there_is_a_fatal_database_error() {
     );
 }
 
-#[tokio::test]
-async fn get_year_returns_net_totals_saving_rates_and_months_of_the_year() {
+#[sqlx::test]
+async fn get_year_returns_net_totals_saving_rates_and_months_of_the_year(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     let year_id = app.insert_year(year).await;
 
@@ -138,10 +139,10 @@ async fn get_year_returns_net_totals_saving_rates_and_months_of_the_year() {
     }
 }
 
-#[tokio::test]
-async fn get_year_returns_net_totals_saving_rates_without_months_of_the_year() {
+#[sqlx::test]
+async fn get_year_returns_net_totals_saving_rates_without_months_of_the_year(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     let year_id = app.insert_year(year).await;
 
@@ -175,10 +176,10 @@ async fn get_year_returns_net_totals_saving_rates_without_months_of_the_year() {
     assert!(year.months.is_empty());
 }
 
-#[tokio::test]
-async fn get_year_returns_has_net_totals_update_persisted() {
+#[sqlx::test]
+async fn get_year_returns_has_net_totals_update_persisted(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     let year_id = app.insert_year(year).await;
 
@@ -248,10 +249,10 @@ struct SavingRatesPerPerson {
     pub rate: f32,
 }
 
-#[tokio::test]
-async fn put_year_returns_a_200_for_valid_data() {
+#[sqlx::test]
+async fn put_year_returns_a_200_for_valid_data(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
     #[derive(Debug, Clone, Serialize)]
@@ -269,10 +270,10 @@ async fn put_year_returns_a_200_for_valid_data() {
     assert_eq!(response.status(), reqwest::StatusCode::OK);
 }
 
-#[tokio::test]
-async fn put_year_returns_a_404_for_non_existing_year() {
+#[sqlx::test]
+async fn put_year_returns_a_404_for_non_existing_year(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     #[derive(Debug, Clone, Serialize)]
     struct Body {
@@ -289,10 +290,10 @@ async fn put_year_returns_a_404_for_non_existing_year() {
     assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
 }
 
-#[tokio::test]
-async fn put_year_persists_data() {
+#[sqlx::test]
+async fn put_year_persists_data(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
     #[derive(Debug, Clone, Serialize)]
@@ -329,10 +330,10 @@ async fn put_year_persists_data() {
     assert_eq!(saved.rate, body.saving_rates[0].rate);
 }
 
-#[tokio::test]
-async fn put_year_returns_a_422_for_wrong_root_body_attribute() {
+#[sqlx::test]
+async fn put_year_returns_a_422_for_wrong_root_body_attribute(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
     #[derive(Debug, Clone, Serialize)]
@@ -350,10 +351,10 @@ async fn put_year_returns_a_422_for_wrong_root_body_attribute() {
     assert_eq!(response.status(), reqwest::StatusCode::UNPROCESSABLE_ENTITY);
 }
 
-#[tokio::test]
-async fn put_year_returns_a_422_for_wrong_body_attributes() {
+#[sqlx::test]
+async fn put_year_returns_a_422_for_wrong_body_attributes(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
     #[derive(Debug, Clone, Serialize, Dummy)]
@@ -382,10 +383,10 @@ async fn put_year_returns_a_422_for_wrong_body_attributes() {
     assert_eq!(response.status(), reqwest::StatusCode::UNPROCESSABLE_ENTITY);
 }
 
-#[tokio::test]
-async fn put_year_returns_a_422_for_missing_body_attributes() {
+#[sqlx::test]
+async fn put_year_returns_a_422_for_missing_body_attributes(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
     #[derive(Debug, Clone, Serialize, Dummy)]
@@ -414,10 +415,10 @@ async fn put_year_returns_a_422_for_missing_body_attributes() {
     assert_eq!(response.status(), reqwest::StatusCode::UNPROCESSABLE_ENTITY);
 }
 
-#[tokio::test]
-async fn put_year_returns_a_422_for_wrong_body_attribute_type() {
+#[sqlx::test]
+async fn put_year_returns_a_422_for_wrong_body_attribute_type(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
     #[derive(Debug, Clone, Serialize, Dummy)]
@@ -446,10 +447,10 @@ async fn put_year_returns_a_422_for_wrong_body_attribute_type() {
     assert_eq!(response.status(), reqwest::StatusCode::UNPROCESSABLE_ENTITY);
 }
 
-#[tokio::test]
-async fn put_year_returns_a_400_for_empty_body() {
+#[sqlx::test]
+async fn put_year_returns_a_400_for_empty_body(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
 
@@ -469,10 +470,10 @@ async fn put_year_returns_a_400_for_empty_body() {
     assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
 }
 
-#[tokio::test]
-async fn put_year_returns_a_415_for_missing_content_type() {
+#[sqlx::test]
+async fn put_year_returns_a_415_for_missing_content_type(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
 
@@ -494,10 +495,10 @@ async fn put_year_returns_a_415_for_missing_content_type() {
     );
 }
 
-#[tokio::test]
-async fn put_year_returns_a_400_for_invalid_year_in_path() {
+#[sqlx::test]
+async fn put_year_returns_a_400_for_invalid_year_in_path(pool: PgPool) {
     // Arange
-    let app = spawn_app().await;
+    let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
     #[derive(Debug, Clone, Serialize)]

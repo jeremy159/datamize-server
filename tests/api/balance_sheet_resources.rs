@@ -1,0 +1,458 @@
+use chrono::{Datelike, Local};
+use datamize::domain::{Month, NetTotalType};
+use fake::{Dummy, Fake, Faker};
+use num_traits::FromPrimitive;
+use serde::Serialize;
+use sqlx::PgPool;
+use uuid::Uuid;
+use wiremock::{
+    matchers::{any, path_regex},
+    Mock, ResponseTemplate,
+};
+
+use crate::helpers::spawn_app;
+
+#[sqlx::test]
+async fn post_resources_returns_a_404_if_curent_year_does_not_exist(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+
+    // Act
+    let response = app.refresh_resources().await;
+
+    // Assert
+    assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
+}
+
+#[sqlx::test]
+async fn post_resources_returns_a_404_if_curent_month_does_not_exist(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let current_date = Local::now().date_naive();
+    let year = current_date.year();
+    app.insert_year(year).await;
+
+    // Act
+    let response = app.refresh_resources().await;
+
+    // Assert
+    assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
+}
+
+#[sqlx::test]
+async fn post_resources_should_not_call_ynab_server_if_year_does_not_exist(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    Mock::given(any())
+        .respond_with(ResponseTemplate::new(200))
+        .expect(0)
+        .mount(&app.ynab_server)
+        .await;
+
+    // Act
+    app.refresh_resources().await;
+
+    // Assert
+    // Mock verifies on Drop that we haven't sent the request to ynab
+}
+
+#[sqlx::test]
+async fn post_resources_should_not_call_ynab_server_if_month_does_not_exist(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let current_date = Local::now().date_naive();
+    let year = current_date.year();
+    app.insert_year(year).await;
+    Mock::given(any())
+        .respond_with(ResponseTemplate::new(200))
+        .expect(0)
+        .mount(&app.ynab_server)
+        .await;
+
+    // Act
+    app.refresh_resources().await;
+
+    // Assert
+    // Mock verifies on Drop that we haven't sent the request to ynab
+}
+
+#[sqlx::test]
+async fn post_resources_should_get_accounts_from_ynab(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let current_date = Local::now().date_naive();
+    let year = current_date.year();
+    let year_id = app.insert_year(year).await;
+    let month = current_date.month();
+    app.insert_month(year_id, month as i16).await;
+    Mock::given(path_regex("/accounts"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(1)
+        .mount(&app.ynab_server)
+        .await;
+
+    // Act
+    app.refresh_resources().await;
+
+    // Assert
+    // Mock verifies on Drop that we haven't sent the request to ynab
+}
+
+#[derive(Debug, Clone, Serialize, Dummy)]
+#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
+enum AccountType {
+    Checking,
+    Savings,
+    Cash,
+    CreditCard,
+    LineOfCredit,
+    OtherAsset,
+    OtherLiability,
+    Mortgage,
+    AutoLoan,
+    StudentLoan,
+}
+
+#[derive(Debug, Clone, Serialize, Dummy)]
+struct Account {
+    pub id: Uuid,
+    pub name: String,
+    #[serde(rename = "type")]
+    pub account_type: AccountType,
+    pub on_budget: bool,
+    pub closed: bool,
+    pub note: Option<String>,
+    // i32 to not overvlow when testing additions
+    pub balance: i32,
+    pub cleared_balance: i64,
+    pub uncleared_balance: i64,
+    pub transfer_payee_id: Uuid,
+    pub direct_import_linked: Option<bool>,
+    pub direct_import_in_error: Option<bool>,
+    pub deleted: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct AccountsResp {
+    pub accounts: Vec<Account>,
+    pub server_knowledge: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct BodyResp {
+    pub data: AccountsResp,
+}
+
+#[sqlx::test]
+async fn post_resources_should_return_empty_vec_when_get_accounts_from_ynab_is_empty(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let current_date = Local::now().date_naive();
+    let year = current_date.year();
+    let year_id = app.insert_year(year).await;
+    let month = current_date.month();
+    app.insert_month(year_id, month as i16).await;
+    let accounts: Vec<Account> = vec![];
+    Mock::given(path_regex("/accounts"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(BodyResp {
+            data: AccountsResp {
+                accounts,
+                server_knowledge: 0,
+            },
+        }))
+        .mount(&app.ynab_server)
+        .await;
+
+    // Act
+    let response = app.refresh_resources().await;
+    let ids: Vec<Uuid> = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+
+    // Assert
+    assert!(ids.is_empty());
+}
+
+#[sqlx::test]
+async fn post_resources_should_return_as_many_ids_as_accounts_from_ynab_when_nothing_in_db(
+    pool: PgPool,
+) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let current_date = Local::now().date_naive();
+    let year = current_date.year();
+    let year_id = app.insert_year(year).await;
+    let month = current_date.month();
+    app.insert_month(year_id, month as i16).await;
+    let accounts: Vec<Account> = vec![
+        Account {
+            account_type: AccountType::Mortgage,
+            closed: false,
+            deleted: false,
+            ..Faker.fake()
+        },
+        Account {
+            account_type: AccountType::AutoLoan,
+            closed: false,
+            deleted: false,
+            ..Faker.fake()
+        },
+        Account {
+            account_type: AccountType::Checking,
+            closed: false,
+            deleted: false,
+            ..Faker.fake()
+        },
+    ];
+    Mock::given(path_regex("/accounts"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(BodyResp {
+            data: AccountsResp {
+                accounts: accounts.clone(),
+                server_knowledge: 0,
+            },
+        }))
+        .mount(&app.ynab_server)
+        .await;
+
+    // Act
+    let response = app.refresh_resources().await;
+    let ids: Vec<Uuid> = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+
+    // Assert
+    assert_eq!(ids.len(), accounts.len());
+}
+
+#[sqlx::test]
+async fn post_resources_should_persit_refreshed_ids_in_db(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let current_date = Local::now().date_naive();
+    let year = current_date.year();
+    let year_id = app.insert_year(year).await;
+    let month = current_date.month();
+    app.insert_month(year_id, month as i16).await;
+    let accounts: Vec<Account> = vec![
+        Account {
+            account_type: AccountType::Mortgage,
+            closed: false,
+            deleted: false,
+            ..Faker.fake()
+        },
+        Account {
+            account_type: AccountType::AutoLoan,
+            closed: false,
+            deleted: false,
+            ..Faker.fake()
+        },
+        Account {
+            account_type: AccountType::Checking,
+            closed: false,
+            deleted: false,
+            ..Faker.fake()
+        },
+    ];
+    Mock::given(path_regex("/accounts"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(BodyResp {
+            data: AccountsResp {
+                accounts: accounts.clone(),
+                server_knowledge: 0,
+            },
+        }))
+        .mount(&app.ynab_server)
+        .await;
+
+    // Act
+    let response = app.refresh_resources().await;
+    let ids: Vec<Uuid> = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+
+    // Assert
+    assert!(!ids.is_empty());
+    for id in &ids {
+        let saved = sqlx::query!(
+            r#"
+                SELECT * FROM balance_sheet_resources WHERE id = $1;
+                "#,
+            id,
+        )
+        .fetch_one(&app.db_pool)
+        .await
+        .expect("Failed to select financial resource of a month.");
+
+        if let Some(account) = accounts.iter().find(|a| a.name == saved.name) {
+            assert_eq!(account.balance as i64, saved.balance);
+        }
+    }
+}
+
+#[sqlx::test]
+async fn post_resources_should_add_balance_from_same_ynab_accounts(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let current_date = Local::now().date_naive();
+    let year = current_date.year();
+    let year_id = app.insert_year(year).await;
+    let month = current_date.month();
+    app.insert_month(year_id, month as i16).await;
+    let accounts: Vec<Account> = vec![
+        Account {
+            account_type: AccountType::AutoLoan,
+            closed: false,
+            deleted: false,
+            ..Faker.fake()
+        },
+        Account {
+            account_type: AccountType::AutoLoan,
+            closed: false,
+            deleted: false,
+            ..Faker.fake()
+        },
+    ];
+    Mock::given(path_regex("/accounts"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(BodyResp {
+            data: AccountsResp {
+                accounts: accounts.clone(),
+                server_knowledge: 0,
+            },
+        }))
+        .mount(&app.ynab_server)
+        .await;
+
+    // Act
+    let response = app.refresh_resources().await;
+    let ids: Vec<Uuid> = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+
+    // Assert
+    let saved = sqlx::query!(
+        r#"
+            SELECT * FROM balance_sheet_resources WHERE id = $1;
+            "#,
+        ids[0],
+    )
+    .fetch_one(&app.db_pool)
+    .await
+    .expect("Failed to select financial resource of a month.");
+
+    assert_eq!(
+        accounts.iter().map(|a| a.balance as i64).sum::<i64>(),
+        saved.balance
+    )
+}
+
+#[sqlx::test]
+async fn post_resources_should_update_month_net_totals(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let current_date = Local::now().date_naive();
+    let year = current_date.year();
+    let year_id = app.insert_year(year).await;
+    let month = current_date.month();
+    app.insert_month(year_id, month as i16).await;
+    let accounts: Vec<Account> = vec![
+        Account {
+            account_type: AccountType::Mortgage,
+            closed: false,
+            deleted: false,
+            ..Faker.fake()
+        },
+        Account {
+            account_type: AccountType::AutoLoan,
+            closed: false,
+            deleted: false,
+            ..Faker.fake()
+        },
+        Account {
+            account_type: AccountType::Checking,
+            closed: false,
+            deleted: false,
+            ..Faker.fake()
+        },
+        Account {
+            account_type: AccountType::CreditCard,
+            closed: false,
+            deleted: false,
+            ..Faker.fake()
+        },
+    ];
+    Mock::given(path_regex("/accounts"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(BodyResp {
+            data: AccountsResp {
+                accounts: accounts.clone(),
+                server_knowledge: 0,
+            },
+        }))
+        .mount(&app.ynab_server)
+        .await;
+
+    // Act
+    let response = app.refresh_resources().await;
+    assert!(response.status().is_success());
+
+    // Assert
+    let month: Month =
+        serde_json::from_str(&app.get_month(year, month).await.text().await.unwrap()).unwrap();
+    for nt in &month.net_totals {
+        assert_ne!(nt.total, 0);
+    }
+}
+
+#[sqlx::test]
+async fn post_resources_should_update_month_net_totals_with_prev_month(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let current_date = Local::now().date_naive();
+    let year = current_date.year();
+    let year_id = app.insert_year(year).await;
+    let month = current_date.month();
+    app.insert_month(year_id, month as i16).await;
+
+    let chrono_prev_month = chrono::Month::from_u32(month).unwrap().pred();
+    let prev_month_id = match chrono_prev_month {
+        chrono::Month::December => {
+            let year = year - 1;
+            let year_id = app.insert_year(year).await;
+            app.insert_month(year_id, 12).await
+        }
+        _ => app.insert_month(year_id, month as i16 - 1).await,
+    };
+    let (_, prev_total_assets, _, _) = app
+        .insert_month_net_total(prev_month_id, NetTotalType::Asset)
+        .await;
+    let (_, prev_total_portfolio, _, _) = app
+        .insert_month_net_total(prev_month_id, NetTotalType::Portfolio)
+        .await;
+
+    let accounts: Vec<Account> = vec![Account {
+        account_type: AccountType::Checking,
+        closed: false,
+        deleted: false,
+        ..Faker.fake()
+    }];
+    Mock::given(path_regex("/accounts"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(BodyResp {
+            data: AccountsResp {
+                accounts: accounts.clone(),
+                server_knowledge: 0,
+            },
+        }))
+        .mount(&app.ynab_server)
+        .await;
+
+    // Act
+    let response = app.refresh_resources().await;
+    assert!(response.status().is_success());
+
+    // Assert
+    let month: Month =
+        serde_json::from_str(&app.get_month(year, month).await.text().await.unwrap()).unwrap();
+    for nt in &month.net_totals {
+        if nt.net_type == NetTotalType::Asset {
+            assert_ne!(
+                nt.balance_var,
+                accounts[0].balance as i64 - prev_total_assets
+            );
+        } else if nt.net_type == NetTotalType::Portfolio {
+            assert_ne!(
+                nt.balance_var,
+                accounts[0].balance as i64 - prev_total_portfolio
+            );
+        }
+    }
+}

@@ -2,14 +2,13 @@ use std::collections::HashMap;
 
 use axum::{extract::State, Json};
 use chrono::{Datelike, Local};
-use futures::{try_join, TryFutureExt};
 use uuid::Uuid;
 use ynab::types::AccountType;
 
 use crate::{
     common::get_month,
     db,
-    domain::MonthNum,
+    domain::{FinancialResource, MonthNum},
     error::{AppError, HttpJsonAppResult},
     startup::AppState,
 };
@@ -31,17 +30,20 @@ pub async fn refresh_balance_sheet_resources(
         return Err(AppError::ResourceNotFound);
     };
 
+    let mut month = get_month(
+        &db_conn_pool,
+        year_data.id,
+        current_date.month().try_into().unwrap(),
+    )
+    .await?;
+
+    let accounts = ynab_client.get_accounts().await?;
     // TODO: Add scrapping of other accounts.
-    let (accounts, balance_celi_j, balance_celi_s, mut month) = try_join!(
-        ynab_client.get_accounts().map_err(AppError::from),
-        budget_data_api::get_balance_celi_jeremy().map_err(AppError::from),
-        budget_data_api::get_balance_celi_sandryne().map_err(AppError::from),
-        get_month(
-            &db_conn_pool,
-            year_data.id,
-            current_date.month().try_into().unwrap()
-        )
-    )?;
+    // try_join!(
+    //     // TODO: Make it more testable, not able to mock at the moment...
+    //     budget_data_api::get_balance_celi_jeremy().map_err(AppError::from),
+    //     budget_data_api::get_balance_celi_sandryne().map_err(AppError::from),
+    // )?;
     let mut refreshed = vec![];
     let mut resources_balance: HashMap<&str, i64> = HashMap::new();
     // TODO: Find a better way than having those hard coded...
@@ -49,11 +51,11 @@ pub async fn refresh_balance_sheet_resources(
     let credit_cards = "Cartes de Crédit";
     let mortgage = "Prêt Hypothécaire";
     let cars_loan = "Prêts Automobile";
-    let celi_jeremy = "CELI Jeremy";
-    let celi_sandryne = "CELI Sandryne";
+    // let celi_jeremy = "CELI Jeremy";
+    // let celi_sandryne = "CELI Sandryne";
 
-    resources_balance.insert(celi_jeremy, balance_celi_j);
-    resources_balance.insert(celi_sandryne, balance_celi_s);
+    // resources_balance.insert(celi_jeremy, balance_celi_j);
+    // resources_balance.insert(celi_sandryne, balance_celi_s);
 
     for account in accounts.iter().filter(|a| !a.closed && !a.deleted) {
         match account.account_type {
@@ -91,6 +93,18 @@ pub async fn refresh_balance_sheet_resources(
                 fr.balance = *balance;
                 refreshed.push(fr.id);
             }
+        } else {
+            let res = match *name {
+                "Comptes Bancaires" => {
+                    FinancialResource::new_bank_accounts().with_balance(*balance)
+                }
+                "Cartes de Crédit" => FinancialResource::new_credit_cards().with_balance(*balance),
+                "Prêt Hypothécaire" => FinancialResource::new_mortgage().with_balance(*balance),
+                "Prêts Automobile" => FinancialResource::new_cars_loan().with_balance(*balance),
+                _ => unreachable!(),
+            };
+            refreshed.push(res.id);
+            month.resources.push(res);
         }
     }
 
