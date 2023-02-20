@@ -6,7 +6,10 @@ use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::helpers::spawn_app;
+use crate::{
+    dummy_types::{DummyNetTotalType, DummySavingRatesPerPerson},
+    helpers::spawn_app,
+};
 
 #[sqlx::test]
 async fn get_year_returns_a_404_for_a_non_existing_year(pool: PgPool) {
@@ -81,18 +84,18 @@ async fn get_year_returns_net_totals_saving_rates_and_months_of_the_year(pool: P
     let year_id = app.insert_year(year).await;
 
     let year_net_total_assets = app
-        .insert_year_net_total(year_id, NetTotalType::Asset)
+        .insert_year_net_total(year_id, DummyNetTotalType::Asset)
         .await;
     let year_net_total_portfolio = app
-        .insert_year_net_total(year_id, NetTotalType::Portfolio)
+        .insert_year_net_total(year_id, DummyNetTotalType::Portfolio)
         .await;
     let saving_rate = app.insert_saving_rate(year_id).await;
     let month = app.insert_random_month(year_id).await;
     let month_net_total_assets = app
-        .insert_month_net_total(month.0, NetTotalType::Asset)
+        .insert_month_net_total(month.0, DummyNetTotalType::Asset)
         .await;
     let month_net_total_portfolio = app
-        .insert_month_net_total(month.0, NetTotalType::Portfolio)
+        .insert_month_net_total(month.0, DummyNetTotalType::Portfolio)
         .await;
 
     // Act
@@ -104,18 +107,18 @@ async fn get_year_returns_net_totals_saving_rates_and_months_of_the_year(pool: P
     // Assert
     for nt in &year.net_totals {
         if nt.net_type == NetTotalType::Asset {
-            assert_eq!(nt.id, year_net_total_assets.0);
-            assert_eq!(nt.total, month_net_total_assets.1);
+            assert_eq!(nt.id, year_net_total_assets.id);
+            assert_eq!(nt.total, month_net_total_assets.total as i64);
         } else if nt.net_type == NetTotalType::Portfolio {
-            assert_eq!(nt.id, year_net_total_portfolio.0);
-            assert_eq!(nt.total, month_net_total_portfolio.1);
+            assert_eq!(nt.id, year_net_total_portfolio.id);
+            assert_eq!(nt.total, month_net_total_portfolio.total as i64);
         }
     }
 
     // Make sure update on net_totals is persisted.
     let saved_net_total = sqlx::query!(
         "SELECT * FROM balance_sheet_net_totals_years WHERE id = $1 AND year_id = $2",
-        year_net_total_assets.0,
+        year_net_total_assets.id,
         year.id
     )
     .fetch_one(&app.db_pool)
@@ -131,7 +134,7 @@ async fn get_year_returns_net_totals_saving_rates_and_months_of_the_year(pool: P
     );
 
     for sr in &year.saving_rates {
-        assert_eq!(sr.id, saving_rate.0);
+        assert_eq!(sr.id, saving_rate.id);
     }
 
     for m in &year.months {
@@ -147,10 +150,10 @@ async fn get_year_returns_net_totals_saving_rates_without_months_of_the_year(poo
     let year_id = app.insert_year(year).await;
 
     let year_net_total_assets = app
-        .insert_year_net_total(year_id, NetTotalType::Asset)
+        .insert_year_net_total(year_id, DummyNetTotalType::Asset)
         .await;
     let year_net_total_portfolio = app
-        .insert_year_net_total(year_id, NetTotalType::Portfolio)
+        .insert_year_net_total(year_id, DummyNetTotalType::Portfolio)
         .await;
     let saving_rate = app.insert_saving_rate(year_id).await;
 
@@ -163,14 +166,14 @@ async fn get_year_returns_net_totals_saving_rates_without_months_of_the_year(poo
     // Assert
     for nt in &year.net_totals {
         if nt.net_type == NetTotalType::Asset {
-            assert_eq!(nt.id, year_net_total_assets.0);
+            assert_eq!(nt.id, year_net_total_assets.id);
         } else if nt.net_type == NetTotalType::Portfolio {
-            assert_eq!(nt.id, year_net_total_portfolio.0);
+            assert_eq!(nt.id, year_net_total_portfolio.id);
         }
     }
 
     for sr in &year.saving_rates {
-        assert_eq!(sr.id, saving_rate.0);
+        assert_eq!(sr.id, saving_rate.id);
     }
 
     assert!(year.months.is_empty());
@@ -184,15 +187,15 @@ async fn get_year_returns_has_net_totals_update_persisted(pool: PgPool) {
     let year_id = app.insert_year(year).await;
 
     let year_net_total_assets = app
-        .insert_year_net_total(year_id, NetTotalType::Asset)
+        .insert_year_net_total(year_id, DummyNetTotalType::Asset)
         .await;
     let year_net_total_portfolio = app
-        .insert_year_net_total(year_id, NetTotalType::Portfolio)
+        .insert_year_net_total(year_id, DummyNetTotalType::Portfolio)
         .await;
     let month = app.insert_random_month(year_id).await;
-    app.insert_month_net_total(month.0, NetTotalType::Asset)
+    app.insert_month_net_total(month.0, DummyNetTotalType::Asset)
         .await;
-    app.insert_month_net_total(month.0, NetTotalType::Portfolio)
+    app.insert_month_net_total(month.0, DummyNetTotalType::Portfolio)
         .await;
 
     // Act
@@ -204,7 +207,7 @@ async fn get_year_returns_has_net_totals_update_persisted(pool: PgPool) {
     // Assert
     let saved_net_total_assets = sqlx::query!(
         "SELECT * FROM balance_sheet_net_totals_years WHERE id = $1 AND year_id = $2",
-        year_net_total_assets.0,
+        year_net_total_assets.id,
         year.id
     )
     .fetch_one(&app.db_pool)
@@ -221,7 +224,7 @@ async fn get_year_returns_has_net_totals_update_persisted(pool: PgPool) {
 
     let saved_net_total_portfolio = sqlx::query!(
         "SELECT * FROM balance_sheet_net_totals_years WHERE id = $1 AND year_id = $2",
-        year_net_total_portfolio.0,
+        year_net_total_portfolio.id,
         year.id
     )
     .fetch_one(&app.db_pool)
@@ -237,16 +240,9 @@ async fn get_year_returns_has_net_totals_update_persisted(pool: PgPool) {
     );
 }
 
-#[derive(Debug, Clone, Serialize, Dummy)]
-struct SavingRatesPerPerson {
-    pub id: Uuid,
-    pub name: String,
-    pub savings: i64,
-    pub employer_contribution: i64,
-    pub employee_contribution: i64,
-    pub mortgage_capital: i64,
-    pub incomes: i64,
-    pub rate: f32,
+#[derive(Debug, Clone, Serialize)]
+struct Body {
+    saving_rates: Vec<DummySavingRatesPerPerson>,
 }
 
 #[sqlx::test]
@@ -255,10 +251,6 @@ async fn put_year_returns_a_200_for_valid_data(pool: PgPool) {
     let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
-    #[derive(Debug, Clone, Serialize)]
-    struct Body {
-        saving_rates: Vec<SavingRatesPerPerson>,
-    }
     let body = Body {
         saving_rates: vec![Faker.fake(), Faker.fake()],
     };
@@ -275,10 +267,6 @@ async fn put_year_returns_a_404_for_non_existing_year(pool: PgPool) {
     // Arange
     let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
-    #[derive(Debug, Clone, Serialize)]
-    struct Body {
-        saving_rates: Vec<SavingRatesPerPerson>,
-    }
     let body = Body {
         saving_rates: vec![Faker.fake()],
     };
@@ -296,10 +284,6 @@ async fn put_year_persists_data(pool: PgPool) {
     let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
-    #[derive(Debug, Clone, Serialize)]
-    struct Body {
-        saving_rates: Vec<SavingRatesPerPerson>,
-    }
     let body = Body {
         saving_rates: vec![Faker.fake()],
     };
@@ -338,7 +322,7 @@ async fn put_year_returns_a_422_for_wrong_root_body_attribute(pool: PgPool) {
     app.insert_year(year).await;
     #[derive(Debug, Clone, Serialize)]
     struct Body {
-        savings: Vec<SavingRatesPerPerson>,
+        savings: Vec<DummySavingRatesPerPerson>,
     }
     let body = Body {
         savings: vec![Faker.fake()],
@@ -501,10 +485,6 @@ async fn put_year_returns_a_400_for_invalid_year_in_path(pool: PgPool) {
     let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     app.insert_year(year).await;
-    #[derive(Debug, Clone, Serialize)]
-    struct Body {
-        saving_rates: Vec<SavingRatesPerPerson>,
-    }
     let body = Body {
         saving_rates: vec![Faker.fake()],
     };

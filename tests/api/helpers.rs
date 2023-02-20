@@ -3,18 +3,21 @@ use std::fmt::Display;
 use chrono::{Datelike, NaiveDate};
 use datamize::{
     config,
-    domain::{MonthNum, NetTotalType, ResourceCategory, ResourceType},
+    domain::MonthNum,
     startup::{get_redis_connection_pool, Application},
     telemetry::{get_subscriber, init_subscriber},
 };
 use fake::{faker::chrono::en::Date, Fake, Faker};
 use once_cell::sync::Lazy;
-use rand::distributions::OpenClosed01;
-use rand::prelude::*;
 use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 use wiremock::MockServer;
+
+use crate::dummy_types::{
+    DummyFinancialResource, DummyNetTotal, DummyNetTotalType, DummyResourceCategory,
+    DummyResourceType, DummySavingRatesPerPerson,
+};
 
 // Ensure that the `tracing` stack is only initialised once using `once_cell`
 static TRACING: Lazy<()> = Lazy::new(|| {
@@ -183,76 +186,55 @@ impl TestApp {
     pub async fn insert_year_net_total(
         &self,
         year_id: Uuid,
-        net_type: NetTotalType,
-    ) -> (Uuid, i64, f32, i64) {
-        let net_total_id = uuid::Uuid::new_v4();
-        let mut rng = rand::thread_rng();
-        let total: i64 = Faker.fake();
-        let percent_var: f32 = rng.sample(OpenClosed01);
-        let balance_var: i64 = Faker.fake();
+        net_type: DummyNetTotalType,
+    ) -> DummyNetTotal {
+        let net_total = DummyNetTotal {
+            net_type: net_type.clone(),
+            ..Faker.fake()
+        };
 
         sqlx::query!(
             r#"
             INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, year_id)
             VALUES ($1, $2, $3, $4, $5, $6);
             "#,
-            net_total_id,
+            net_total.id,
             net_type.to_string(),
-            total,
-            percent_var,
-            balance_var,
+            net_total.total as i64,
+            net_total.percent_var,
+            net_total.balance_var,
             year_id,
         )
         .execute(&self.db_pool)
         .await
         .expect("Failed to insert net totals of a year.");
 
-        (net_total_id, total, percent_var, balance_var)
+        net_total
     }
 
-    pub async fn insert_saving_rate(
-        &self,
-        year_id: Uuid,
-    ) -> (Uuid, String, i64, i64, i64, i64, i64, f32) {
-        let saving_rate_id = uuid::Uuid::new_v4();
-        let name = (1..100).fake::<String>();
-        let mut rng = rand::thread_rng();
-        let savings: i64 = Faker.fake();
-        let employer_contribution: i64 = Faker.fake();
-        let employee_contribution: i64 = Faker.fake();
-        let mortgage_capital: i64 = Faker.fake();
-        let incomes: i64 = Faker.fake();
-        let rate: f32 = rng.sample(OpenClosed01);
+    pub async fn insert_saving_rate(&self, year_id: Uuid) -> DummySavingRatesPerPerson {
+        let saving_rate: DummySavingRatesPerPerson = Faker.fake();
 
         sqlx::query!(
             r#"
             INSERT INTO balance_sheet_saving_rates (id, name, savings, employer_contribution, employee_contribution, mortgage_capital, incomes, rate, year_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
             "#,
-            saving_rate_id,
-            name,
-            savings,
-            employer_contribution,
-            employee_contribution,
-            mortgage_capital,
-            incomes,
-            rate,
+            saving_rate.id,
+            saving_rate.name,
+            saving_rate.savings,
+            saving_rate.employer_contribution,
+            saving_rate.employee_contribution,
+            saving_rate.mortgage_capital,
+            saving_rate.incomes,
+            saving_rate.rate,
             year_id,
         )
         .execute(&self.db_pool)
         .await
         .expect("Failed to insert saving rates of a year.");
 
-        (
-            saving_rate_id,
-            name,
-            savings,
-            employer_contribution,
-            employee_contribution,
-            mortgage_capital,
-            incomes,
-            rate,
-        )
+        saving_rate
     }
 
     pub async fn insert_month(&self, year_id: Uuid, month: i16) -> Uuid {
@@ -297,62 +279,62 @@ impl TestApp {
     pub async fn insert_month_net_total(
         &self,
         month_id: Uuid,
-        net_type: NetTotalType,
-    ) -> (Uuid, i64, f32, i64) {
-        let net_total_id = uuid::Uuid::new_v4();
-        let mut rng = rand::thread_rng();
-        let total: i32 = Faker.fake();
-        let percent_var: f32 = rng.sample(OpenClosed01);
-        let balance_var: i32 = Faker.fake();
+        net_type: DummyNetTotalType,
+    ) -> DummyNetTotal {
+        let net_total = DummyNetTotal {
+            net_type: net_type.clone(),
+            ..Faker.fake()
+        };
 
         sqlx::query!(
             r#"
             INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, month_id)
             VALUES ($1, $2, $3, $4, $5, $6);
             "#,
-            net_total_id,
-            net_type.to_string(),
-            total as i64,
-            percent_var,
-            balance_var as i64,
+            net_total.id,
+            net_total.net_type.to_string(),
+            net_total.total as i64,
+            net_total.percent_var,
+            net_total.balance_var as i64,
             month_id,
         )
         .execute(&self.db_pool)
         .await
         .expect("Failed to insert net totals of a month.");
 
-        (net_total_id, total as i64, percent_var, balance_var as i64)
+        net_total
     }
 
     pub async fn insert_financial_resource(
         &self,
         month_id: Uuid,
-        category: ResourceCategory,
-        res_type: ResourceType,
-    ) -> (Uuid, String, i64, bool) {
-        let resource_id = uuid::Uuid::new_v4();
-        let name: String = Faker.fake();
-        let balance: i64 = Faker.fake();
-        let editable: bool = Faker.fake();
+        category: DummyResourceCategory,
+        res_type: DummyResourceType,
+    ) -> DummyFinancialResource {
+        let resource = DummyFinancialResource {
+            category,
+            resource_type: res_type,
+            ..Faker.fake()
+        };
 
         sqlx::query!(
             r#"
             INSERT INTO balance_sheet_resources (id, name, category, type, balance, editable, month_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7);
             "#,
-            resource_id,
-            name,
-            category.to_string(),
-            res_type.to_string(),
-            balance,
-            editable,
+            resource.id,
+            resource.name,
+            resource.category.to_string(),
+            resource.resource_type.to_string(),
+            resource.balance,
+            resource.editable,
             month_id,
         )
         .execute(&self.db_pool)
         .await
         .expect("Failed to insert financial resource of a month.");
 
-        (resource_id, name, balance, editable)
+        resource
     }
 }
 

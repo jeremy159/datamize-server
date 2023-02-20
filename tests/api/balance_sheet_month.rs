@@ -1,12 +1,17 @@
 use chrono::{Datelike, NaiveDate};
-use datamize::domain::{Month, NetTotalType, ResourceCategory, ResourceType};
+use datamize::domain::{Month, NetTotalType};
 use fake::{faker::chrono::en::Date, Dummy, Fake, Faker};
 use rand::Rng;
 use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::helpers::spawn_app;
+use crate::{
+    dummy_types::{
+        DummyFinancialResource, DummyNetTotalType, DummyResourceCategory, DummyResourceType,
+    },
+    helpers::spawn_app,
+};
 
 #[sqlx::test]
 async fn get_month_returns_a_404_for_a_non_existing_year(pool: PgPool) {
@@ -128,16 +133,24 @@ async fn get_month_returns_net_totals_and_resources_of_the_month(pool: PgPool) {
     let month_id = app.insert_month(year_id, month as i16).await;
 
     let month_net_total_assets = app
-        .insert_month_net_total(month_id, NetTotalType::Asset)
+        .insert_month_net_total(month_id, DummyNetTotalType::Asset)
         .await;
     let month_net_total_portfolio = app
-        .insert_month_net_total(month_id, NetTotalType::Portfolio)
+        .insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
         .await;
     let month_first_res = app
-        .insert_financial_resource(month_id, ResourceCategory::Asset, ResourceType::Cash)
+        .insert_financial_resource(
+            month_id,
+            DummyResourceCategory::Asset,
+            DummyResourceType::Cash,
+        )
         .await;
     let month_second_res = app
-        .insert_financial_resource(month_id, ResourceCategory::Liability, ResourceType::Cash)
+        .insert_financial_resource(
+            month_id,
+            DummyResourceCategory::Liability,
+            DummyResourceType::Cash,
+        )
         .await;
 
     // Act
@@ -149,68 +162,28 @@ async fn get_month_returns_net_totals_and_resources_of_the_month(pool: PgPool) {
     // Assert
     for nt in &month.net_totals {
         if nt.net_type == NetTotalType::Asset {
-            assert_eq!(nt.id, month_net_total_assets.0);
-            assert_eq!(nt.total, month_net_total_assets.1);
+            assert_eq!(nt.id, month_net_total_assets.id);
+            assert_eq!(nt.total, month_net_total_assets.total as i64);
         } else if nt.net_type == NetTotalType::Portfolio {
-            assert_eq!(nt.id, month_net_total_portfolio.0);
-            assert_eq!(nt.total, month_net_total_portfolio.1);
+            assert_eq!(nt.id, month_net_total_portfolio.id);
+            assert_eq!(nt.total, month_net_total_portfolio.total as i64);
         }
     }
 
     for r in &month.resources {
-        if r.id == month_first_res.0 {
-            assert_eq!(r.balance, month_first_res.2);
-            assert_eq!(r.name, month_first_res.1);
-        } else if r.id == month_second_res.0 {
-            assert_eq!(r.balance, month_second_res.2);
-            assert_eq!(r.name, month_second_res.1);
+        if r.id == month_first_res.id {
+            assert_eq!(r.balance, month_first_res.balance);
+            assert_eq!(r.name, month_first_res.name);
+        } else if r.id == month_second_res.id {
+            assert_eq!(r.balance, month_second_res.balance);
+            assert_eq!(r.name, month_second_res.name);
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq, Dummy)]
-#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
-enum ResCat {
-    Asset,
-    Liability,
-}
-
-impl std::fmt::Display for ResCat {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            ResCat::Asset => write!(f, "asset"),
-            ResCat::Liability => write!(f, "liability"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, PartialEq, Eq, Dummy)]
-#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
-enum ResType {
-    Cash,
-    Investment,
-    LongTerm,
-}
-
-impl std::fmt::Display for ResType {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            ResType::Cash => write!(f, "cash"),
-            ResType::Investment => write!(f, "investment"),
-            ResType::LongTerm => write!(f, "longTerm"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Dummy)]
-struct FinancialResource {
-    pub id: Uuid,
-    pub name: String,
-    pub category: ResCat,
-    #[serde(rename = "type")]
-    pub resource_type: ResType,
-    pub balance: i64,
-    pub editable: bool,
+#[derive(Debug, Clone, Serialize)]
+struct Body {
+    resources: Vec<DummyFinancialResource>,
 }
 
 #[sqlx::test]
@@ -222,10 +195,6 @@ async fn put_month_returns_a_200_for_valid_data(pool: PgPool) {
     let month = date.month();
     let year_id = app.insert_year(year).await;
     app.insert_month(year_id, month as i16).await;
-    #[derive(Debug, Clone, Serialize)]
-    struct Body {
-        resources: Vec<FinancialResource>,
-    }
     let body = Body {
         resources: vec![Faker.fake(), Faker.fake()],
     };
@@ -242,10 +211,6 @@ async fn put_month_returns_a_404_for_non_existing_year(pool: PgPool) {
     // Arange
     let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
-    #[derive(Debug, Clone, Serialize)]
-    struct Body {
-        resources: Vec<FinancialResource>,
-    }
     let body = Body {
         resources: vec![Faker.fake()],
     };
@@ -265,10 +230,6 @@ async fn put_month_returns_a_404_for_non_existing_month(pool: PgPool) {
     let year = date.year();
     let month = date.month();
     app.insert_year(year).await;
-    #[derive(Debug, Clone, Serialize)]
-    struct Body {
-        resources: Vec<FinancialResource>,
-    }
     let body = Body {
         resources: vec![Faker.fake()],
     };
@@ -289,10 +250,6 @@ async fn put_month_persists_data(pool: PgPool) {
     let month = date.month();
     let year_id = app.insert_year(year).await;
     app.insert_month(year_id, month as i16).await;
-    #[derive(Debug, Clone, Serialize)]
-    struct Body {
-        resources: Vec<FinancialResource>,
-    }
     let body = Body {
         resources: vec![Faker.fake()],
     };
@@ -321,29 +278,25 @@ async fn put_month_recompute_net_totals_with_previous_month(pool: PgPool) {
     let year_id = app.insert_year(year).await;
     let month = (2..12).fake();
     let month1_id = app.insert_month(year_id, month).await;
-    let (_, total_month1_assets, _, _) = app
-        .insert_month_net_total(month1_id, NetTotalType::Asset)
+    let month1_net_total_assets = app
+        .insert_month_net_total(month1_id, DummyNetTotalType::Asset)
         .await;
-    let (_, total_month1_portfolio, _, _) = app
-        .insert_month_net_total(month1_id, NetTotalType::Portfolio)
+    let month1_net_total_portfolio = app
+        .insert_month_net_total(month1_id, DummyNetTotalType::Portfolio)
         .await;
     let prev_month = month - 1;
     let month2_id = app.insert_month(year_id, prev_month).await;
-    let (_, total_month2_assets, _, _) = app
-        .insert_month_net_total(month2_id, NetTotalType::Asset)
+    let month2_net_total_assets = app
+        .insert_month_net_total(month2_id, DummyNetTotalType::Asset)
         .await;
-    let (_, total_month2_portfolio, _, _) = app
-        .insert_month_net_total(month2_id, NetTotalType::Portfolio)
+    let month2_net_total_portfolio = app
+        .insert_month_net_total(month2_id, DummyNetTotalType::Portfolio)
         .await;
 
-    #[derive(Debug, Clone, Serialize)]
-    struct Body {
-        resources: Vec<FinancialResource>,
-    }
     let body = Body {
-        resources: vec![FinancialResource {
-            category: ResCat::Asset,
-            resource_type: ResType::Cash,
+        resources: vec![DummyFinancialResource {
+            category: DummyResourceCategory::Asset,
+            resource_type: DummyResourceType::Cash,
             ..Faker.fake()
         }],
     };
@@ -356,17 +309,17 @@ async fn put_month_recompute_net_totals_with_previous_month(pool: PgPool) {
     for net in &month.net_totals {
         if net.net_type == NetTotalType::Asset {
             assert_eq!(net.total, body.resources[0].balance);
-            assert_ne!(net.total, total_month1_assets);
+            assert_ne!(net.total, month1_net_total_assets.total as i64);
             assert_eq!(
                 net.balance_var,
-                body.resources[0].balance - total_month2_assets
+                body.resources[0].balance - month2_net_total_assets.total as i64
             );
         } else if net.net_type == NetTotalType::Portfolio {
             assert_eq!(net.total, body.resources[0].balance);
-            assert_ne!(net.total, total_month1_portfolio);
+            assert_ne!(net.total, month1_net_total_portfolio.total as i64);
             assert_eq!(
                 net.balance_var,
-                body.resources[0].balance - total_month2_portfolio
+                body.resources[0].balance - month2_net_total_portfolio.total as i64
             );
         }
     }
@@ -385,27 +338,23 @@ async fn put_month_recompute_net_totals_with_previous_month_in_prev_year(pool: P
     let prev_year_id = app.insert_year(prev_year).await;
     let prev_month = 12; // December of prev year
     let month2_id = app.insert_month(prev_year_id, prev_month).await;
-    let (_, total_month1_assets, _, _) = app
-        .insert_month_net_total(month1_id, NetTotalType::Asset)
+    let month1_net_total_assets = app
+        .insert_month_net_total(month1_id, DummyNetTotalType::Asset)
         .await;
-    let (_, total_month1_portfolio, _, _) = app
-        .insert_month_net_total(month1_id, NetTotalType::Portfolio)
+    let month1_net_total_portfolio = app
+        .insert_month_net_total(month1_id, DummyNetTotalType::Portfolio)
         .await;
-    let (_, total_month2_assets, _, _) = app
-        .insert_month_net_total(month2_id, NetTotalType::Asset)
+    let month2_net_total_assets = app
+        .insert_month_net_total(month2_id, DummyNetTotalType::Asset)
         .await;
-    let (_, total_month2_portfolio, _, _) = app
-        .insert_month_net_total(month2_id, NetTotalType::Portfolio)
+    let month2_net_total_portfolio = app
+        .insert_month_net_total(month2_id, DummyNetTotalType::Portfolio)
         .await;
 
-    #[derive(Debug, Clone, Serialize)]
-    struct Body {
-        resources: Vec<FinancialResource>,
-    }
     let body = Body {
-        resources: vec![FinancialResource {
-            category: ResCat::Asset,
-            resource_type: ResType::Cash,
+        resources: vec![DummyFinancialResource {
+            category: DummyResourceCategory::Asset,
+            resource_type: DummyResourceType::Cash,
             ..Faker.fake()
         }],
     };
@@ -418,17 +367,17 @@ async fn put_month_recompute_net_totals_with_previous_month_in_prev_year(pool: P
     for net in &month.net_totals {
         if net.net_type == NetTotalType::Asset {
             assert_eq!(net.total, body.resources[0].balance);
-            assert_ne!(net.total, total_month1_assets);
+            assert_ne!(net.total, month1_net_total_assets.total as i64);
             assert_eq!(
                 net.balance_var,
-                body.resources[0].balance - total_month2_assets
+                body.resources[0].balance - month2_net_total_assets.total as i64
             );
         } else if net.net_type == NetTotalType::Portfolio {
             assert_eq!(net.total, body.resources[0].balance);
-            assert_ne!(net.total, total_month1_portfolio);
+            assert_ne!(net.total, month1_net_total_portfolio.total as i64);
             assert_eq!(
                 net.balance_var,
-                body.resources[0].balance - total_month2_portfolio
+                body.resources[0].balance - month2_net_total_portfolio.total as i64
             );
         }
     }
@@ -445,7 +394,7 @@ async fn put_month_returns_a_422_for_wrong_root_body_attribute(pool: PgPool) {
     app.insert_month(year_id, month as i16).await;
     #[derive(Debug, Clone, Serialize)]
     struct Body {
-        res: Vec<FinancialResource>,
+        res: Vec<DummyFinancialResource>,
     }
     let body = Body {
         res: vec![Faker.fake()],
@@ -471,9 +420,9 @@ async fn put_month_returns_a_422_for_wrong_body_attributes(pool: PgPool) {
     struct FinancialResourceWrongName {
         pub id: Uuid,
         pub name: String,
-        pub category: ResCat,
+        pub category: DummyResourceCategory,
         #[serde(rename = "type")]
-        pub resource_type: ResType,
+        pub resource_type: DummyResourceType,
         pub balanceeeeeeeee: i64,
         pub editable: bool,
     }
@@ -505,9 +454,9 @@ async fn put_month_returns_a_422_for_missing_body_attributes(pool: PgPool) {
     struct FinancialResourceMissing {
         pub id: Uuid,
         pub name: String,
-        pub category: ResCat,
+        pub category: DummyResourceCategory,
         #[serde(rename = "type")]
-        pub resource_type: ResType,
+        pub resource_type: DummyResourceType,
         // pub balance: i64,
         pub editable: bool,
     }
@@ -539,9 +488,9 @@ async fn put_month_returns_a_422_for_wrong_body_attribute_type(pool: PgPool) {
     struct FinancialResourceWrongType {
         pub id: Uuid,
         pub name: i64,
-        pub category: ResCat,
+        pub category: DummyResourceCategory,
         #[serde(rename = "type")]
-        pub resource_type: ResType,
+        pub resource_type: DummyResourceType,
         pub balance: i64,
         pub editable: bool,
     }
@@ -623,10 +572,6 @@ async fn put_month_returns_a_400_for_invalid_year_in_path(pool: PgPool) {
     let month = date.month();
     let year_id = app.insert_year(year).await;
     app.insert_month(year_id, month as i16).await;
-    #[derive(Debug, Clone, Serialize)]
-    struct Body {
-        resources: Vec<FinancialResource>,
-    }
     let body = Body {
         resources: vec![Faker.fake()],
     };
@@ -650,10 +595,6 @@ async fn put_month_returns_a_400_for_invalid_month_in_path(pool: PgPool) {
     let month = date.month();
     let year_id = app.insert_year(year).await;
     app.insert_month(year_id, month as i16).await;
-    #[derive(Debug, Clone, Serialize)]
-    struct Body {
-        resources: Vec<FinancialResource>,
-    }
     let body = Body {
         resources: vec![Faker.fake()],
     };

@@ -1,11 +1,12 @@
 use chrono::{Datelike, NaiveDate};
-use datamize::domain::{Month, NetTotalType, ResourceCategory, ResourceType};
+use datamize::domain::{Month, NetTotalType, ResourceCategory};
 use fake::faker::chrono::en::Date;
 use fake::Fake;
 use reqwest::StatusCode;
 use serde::Serialize;
 use sqlx::PgPool;
 
+use crate::dummy_types::{DummyNetTotalType, DummyResourceCategory, DummyResourceType};
 use crate::helpers::spawn_app;
 
 #[sqlx::test]
@@ -67,30 +68,46 @@ async fn get_months_returns_net_totals_and_financial_resources_of_all_months(poo
     let year_id = app.insert_year(year).await;
     let month1 = app.insert_random_month(year_id).await;
     let month1_net_total_assets = app
-        .insert_month_net_total(month1.0, NetTotalType::Asset)
+        .insert_month_net_total(month1.0, DummyNetTotalType::Asset)
         .await;
     let month1_net_total_portfolio = app
-        .insert_month_net_total(month1.0, NetTotalType::Portfolio)
+        .insert_month_net_total(month1.0, DummyNetTotalType::Portfolio)
         .await;
     let month1_first_res = app
-        .insert_financial_resource(month1.0, ResourceCategory::Asset, ResourceType::Cash)
+        .insert_financial_resource(
+            month1.0,
+            DummyResourceCategory::Asset,
+            DummyResourceType::Cash,
+        )
         .await;
     let month1_second_res = app
-        .insert_financial_resource(month1.0, ResourceCategory::Liability, ResourceType::Cash)
+        .insert_financial_resource(
+            month1.0,
+            DummyResourceCategory::Liability,
+            DummyResourceType::Cash,
+        )
         .await;
 
     let month2 = app.insert_random_month(year_id).await;
     let month2_net_total_assets = app
-        .insert_month_net_total(month2.0, NetTotalType::Asset)
+        .insert_month_net_total(month2.0, DummyNetTotalType::Asset)
         .await;
     let month2_net_total_portfolio = app
-        .insert_month_net_total(month2.0, NetTotalType::Portfolio)
+        .insert_month_net_total(month2.0, DummyNetTotalType::Portfolio)
         .await;
     let month2_first_res = app
-        .insert_financial_resource(month2.0, ResourceCategory::Asset, ResourceType::Cash)
+        .insert_financial_resource(
+            month2.0,
+            DummyResourceCategory::Asset,
+            DummyResourceType::Cash,
+        )
         .await;
     let month2_second_res = app
-        .insert_financial_resource(month2.0, ResourceCategory::Liability, ResourceType::Cash)
+        .insert_financial_resource(
+            month2.0,
+            DummyResourceCategory::Liability,
+            DummyResourceType::Cash,
+        )
         .await;
 
     // Act
@@ -104,41 +121,41 @@ async fn get_months_returns_net_totals_and_financial_resources_of_all_months(poo
         if m.id == month1.0 {
             for nt in &m.net_totals {
                 if nt.net_type == NetTotalType::Asset {
-                    assert_eq!(nt.id, month1_net_total_assets.0);
-                    assert_eq!(nt.total, month1_net_total_assets.1);
+                    assert_eq!(nt.id, month1_net_total_assets.id);
+                    assert_eq!(nt.total, month1_net_total_assets.total as i64);
                 } else if nt.net_type == NetTotalType::Portfolio {
-                    assert_eq!(nt.id, month1_net_total_portfolio.0);
-                    assert_eq!(nt.total, month1_net_total_portfolio.1);
+                    assert_eq!(nt.id, month1_net_total_portfolio.id);
+                    assert_eq!(nt.total, month1_net_total_portfolio.total as i64);
                 }
             }
 
             for r in &m.resources {
                 if r.category == ResourceCategory::Asset {
-                    assert_eq!(r.id, month1_first_res.0);
-                    assert_eq!(r.balance, month1_first_res.2);
+                    assert_eq!(r.id, month1_first_res.id);
+                    assert_eq!(r.balance, month1_first_res.balance);
                 } else if r.category == ResourceCategory::Liability {
-                    assert_eq!(r.id, month1_second_res.0);
-                    assert_eq!(r.balance, month1_second_res.2);
+                    assert_eq!(r.id, month1_second_res.id);
+                    assert_eq!(r.balance, month1_second_res.balance);
                 }
             }
         } else if m.id == month2.0 {
             for nt in &m.net_totals {
                 if nt.net_type == NetTotalType::Asset {
-                    assert_eq!(nt.id, month2_net_total_assets.0);
-                    assert_eq!(nt.total, month2_net_total_assets.1);
+                    assert_eq!(nt.id, month2_net_total_assets.id);
+                    assert_eq!(nt.total, month2_net_total_assets.total as i64);
                 } else if nt.net_type == NetTotalType::Portfolio {
-                    assert_eq!(nt.id, month2_net_total_portfolio.0);
-                    assert_eq!(nt.total, month2_net_total_portfolio.1);
+                    assert_eq!(nt.id, month2_net_total_portfolio.id);
+                    assert_eq!(nt.total, month2_net_total_portfolio.total as i64);
                 }
             }
 
             for r in &m.resources {
                 if r.category == ResourceCategory::Asset {
-                    assert_eq!(r.id, month2_first_res.0);
-                    assert_eq!(r.balance, month2_first_res.2);
+                    assert_eq!(r.id, month2_first_res.id);
+                    assert_eq!(r.balance, month2_first_res.balance);
                 } else if r.category == ResourceCategory::Liability {
-                    assert_eq!(r.id, month2_second_res.0);
-                    assert_eq!(r.balance, month2_second_res.2);
+                    assert_eq!(r.id, month2_second_res.id);
+                    assert_eq!(r.balance, month2_second_res.balance);
                 }
             }
         }
@@ -328,11 +345,11 @@ async fn post_months_updates_net_totals_if_previous_month_exists(pool: PgPool) {
 
     let prev_month = month - 1;
     let month2_id = app.insert_month(year_id, prev_month).await;
-    let (_, total_assets, _, _) = app
-        .insert_month_net_total(month2_id, NetTotalType::Asset)
+    let month_net_total_assets = app
+        .insert_month_net_total(month2_id, DummyNetTotalType::Asset)
         .await;
-    let (_, total_portfolio, _, _) = app
-        .insert_month_net_total(month2_id, NetTotalType::Portfolio)
+    let month_net_total_portfolio = app
+        .insert_month_net_total(month2_id, DummyNetTotalType::Portfolio)
         .await;
 
     #[derive(Debug, Clone, Serialize)]
@@ -348,9 +365,9 @@ async fn post_months_updates_net_totals_if_previous_month_exists(pool: PgPool) {
     // Assert
     for net in &month.net_totals {
         if net.net_type == NetTotalType::Asset {
-            assert_eq!(net.balance_var, -total_assets);
+            assert_eq!(net.balance_var, -month_net_total_assets.total as i64);
         } else if net.net_type == NetTotalType::Portfolio {
-            assert_eq!(net.balance_var, -total_portfolio);
+            assert_eq!(net.balance_var, -month_net_total_portfolio.total as i64);
         }
         assert_eq!(net.percent_var, -1.0);
     }
@@ -368,11 +385,11 @@ async fn post_months_updates_net_totals_if_previous_month_exists_in_prev_year(po
     let prev_year_id = app.insert_year(prev_year).await;
     let prev_month = 12; // December of prev year
     let month2_id = app.insert_month(prev_year_id, prev_month).await;
-    let (_, total_assets, _, _) = app
-        .insert_month_net_total(month2_id, NetTotalType::Asset)
+    let month_net_total_assets = app
+        .insert_month_net_total(month2_id, DummyNetTotalType::Asset)
         .await;
-    let (_, total_portfolio, _, _) = app
-        .insert_month_net_total(month2_id, NetTotalType::Portfolio)
+    let month_net_total_portfolio = app
+        .insert_month_net_total(month2_id, DummyNetTotalType::Portfolio)
         .await;
 
     #[derive(Debug, Clone, Serialize)]
@@ -388,9 +405,9 @@ async fn post_months_updates_net_totals_if_previous_month_exists_in_prev_year(po
     // Assert
     for net in &month.net_totals {
         if net.net_type == NetTotalType::Asset {
-            assert_eq!(net.balance_var, -total_assets);
+            assert_eq!(net.balance_var, -month_net_total_assets.total as i64);
         } else if net.net_type == NetTotalType::Portfolio {
-            assert_eq!(net.balance_var, -total_portfolio);
+            assert_eq!(net.balance_var, -month_net_total_portfolio.total as i64);
         }
         assert_eq!(net.percent_var, -1.0);
     }

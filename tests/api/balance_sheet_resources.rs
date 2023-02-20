@@ -10,7 +10,7 @@ use wiremock::{
     Mock, ResponseTemplate,
 };
 
-use crate::helpers::spawn_app;
+use crate::{dummy_types::DummyNetTotalType, helpers::spawn_app};
 
 #[sqlx::test]
 async fn post_resources_returns_a_404_if_curent_year_does_not_exist(pool: PgPool) {
@@ -412,11 +412,11 @@ async fn post_resources_should_update_month_net_totals_with_prev_month(pool: PgP
         }
         _ => app.insert_month(year_id, month as i16 - 1).await,
     };
-    let (_, prev_total_assets, _, _) = app
-        .insert_month_net_total(prev_month_id, NetTotalType::Asset)
+    let prev_net_total_assets = app
+        .insert_month_net_total(prev_month_id, DummyNetTotalType::Asset)
         .await;
-    let (_, prev_total_portfolio, _, _) = app
-        .insert_month_net_total(prev_month_id, NetTotalType::Portfolio)
+    let prev_net_total_portfolio = app
+        .insert_month_net_total(prev_month_id, DummyNetTotalType::Portfolio)
         .await;
 
     let accounts: Vec<Account> = vec![Account {
@@ -446,12 +446,12 @@ async fn post_resources_should_update_month_net_totals_with_prev_month(pool: PgP
         if nt.net_type == NetTotalType::Asset {
             assert_ne!(
                 nt.balance_var,
-                accounts[0].balance as i64 - prev_total_assets
+                (accounts[0].balance - prev_net_total_assets.total) as i64
             );
         } else if nt.net_type == NetTotalType::Portfolio {
             assert_ne!(
                 nt.balance_var,
-                accounts[0].balance as i64 - prev_total_portfolio
+                (accounts[0].balance - prev_net_total_portfolio.total) as i64
             );
         }
     }

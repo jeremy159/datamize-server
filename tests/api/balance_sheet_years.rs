@@ -5,6 +5,7 @@ use fake::Fake;
 use serde::Serialize;
 use sqlx::PgPool;
 
+use crate::dummy_types::DummyNetTotalType;
 use crate::helpers::spawn_app;
 
 #[sqlx::test]
@@ -205,12 +206,12 @@ async fn post_years_updates_net_totals_if_previous_year_exists(pool: PgPool) {
         .insert_year(date.checked_sub_months(Months::new(12)).unwrap().year())
         .await;
 
-    let (_, total_assets, _, _) = app
-        .insert_year_net_total(year_id, NetTotalType::Asset)
+    let net_total_assets = app
+        .insert_year_net_total(year_id, DummyNetTotalType::Asset)
         .await;
 
-    let (_, total_portfolio, _, _) = app
-        .insert_year_net_total(year_id, NetTotalType::Portfolio)
+    let net_total_portfolio = app
+        .insert_year_net_total(year_id, DummyNetTotalType::Portfolio)
         .await;
 
     #[derive(Debug, Clone, Serialize)]
@@ -226,9 +227,9 @@ async fn post_years_updates_net_totals_if_previous_year_exists(pool: PgPool) {
     // Assert
     for net in &year.net_totals {
         if net.net_type == NetTotalType::Asset {
-            assert_eq!(net.balance_var, -total_assets);
+            assert_eq!(net.balance_var, -net_total_assets.total as i64);
         } else if net.net_type == NetTotalType::Portfolio {
-            assert_eq!(net.balance_var, -total_portfolio);
+            assert_eq!(net.balance_var, -net_total_portfolio.total as i64);
         }
         assert_eq!(net.percent_var, -1.0);
     }
