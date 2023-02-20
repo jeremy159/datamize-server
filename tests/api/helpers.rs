@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, time::Duration};
 
 use chrono::{Datelike, NaiveDate};
 use datamize::{
@@ -21,7 +21,7 @@ use crate::dummy_types::{
 
 // Ensure that the `tracing` stack is only initialised once using `once_cell`
 static TRACING: Lazy<()> = Lazy::new(|| {
-    let default_filter_level = "info".to_string();
+    let default_filter_level = "warn".to_string();
     let subscriber_name = "test".to_string();
     if std::env::var("TEST_LOG").is_ok() {
         let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::stdout);
@@ -360,6 +360,11 @@ pub async fn spawn_app(db_pool: PgPool) -> TestApp {
         .expect("Failed to build application.");
     let application_port = application.port();
     let _ = tokio::spawn(application.run());
+
+    // Just to make sure the server has started listening to the port, otherwise we will get 'Connection Refused' sometimes.
+    tokio::spawn(async { Duration::from_millis(100) })
+        .await
+        .expect("Failed to wait 1 second.");
 
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
