@@ -1,4 +1,4 @@
-use std::{fmt::Display, time::Duration};
+use std::fmt::Display;
 
 use chrono::{Datelike, NaiveDate};
 use datamize::{
