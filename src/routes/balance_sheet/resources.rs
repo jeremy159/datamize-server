@@ -6,7 +6,7 @@ use uuid::Uuid;
 use ynab::types::AccountType;
 
 use crate::{
-    common::get_month,
+    common::{create_month, get_month},
     db,
     domain::{FinancialResource, MonthNum},
     error::{AppError, HttpJsonAppResult},
@@ -15,6 +15,7 @@ use crate::{
 
 /// Endpoint to refresh non-editable financial resources.
 /// Only resources from the current month will be refreshed by this endpoint.
+/// If current month does not exists, it will create it.
 /// This endpoint basically calls the YNAB api for some resources and starts a web scrapper for others.
 /// Will return an array of ids for Financial Resources updated.
 #[tracing::instrument(skip_all)]
@@ -30,12 +31,15 @@ pub async fn refresh_balance_sheet_resources(
         return Err(AppError::ResourceNotFound);
     };
 
-    let mut month = get_month(
-        &db_conn_pool,
-        year_data.id,
-        current_date.month().try_into().unwrap(),
-    )
-    .await?;
+    let month_num: MonthNum = current_date.month().try_into().unwrap();
+
+    let mut month = match get_month(&db_conn_pool, year_data.id, month_num).await {
+        Ok(month) => month,
+        Err(AppError::ResourceNotFound) => {
+            create_month(&db_conn_pool, year_data, month_num).await?
+        }
+        Err(e) => return Err(e),
+    };
 
     let accounts = ynab_client.get_accounts().await?;
     // TODO: Add scrapping of other accounts.

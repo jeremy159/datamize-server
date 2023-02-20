@@ -7,9 +7,9 @@ use axum::{
 use axum_extra::extract::WithRejection;
 
 use crate::{
-    common::build_months,
+    common::{build_months, create_month},
     db,
-    domain::{Month, MonthNum, SaveMonth},
+    domain::{Month, SaveMonth},
     error::{AppError, HttpJsonAppResult, JsonError},
     startup::AppState,
 };
@@ -50,26 +50,7 @@ pub async fn create_balance_sheet_month(
         return Err(AppError::MonthAlreadyExist);
     };
 
-    let mut month = Month::new(body.month);
-
-    let year_data_opt = match body.month.pred() {
-        MonthNum::December => db::get_year_data(&db_conn_pool, year - 1).await,
-        _ => Ok(Some(year_data)),
-    };
-
-    if let Ok(Some(year_data)) = year_data_opt {
-        if let Ok(Some(prev_month)) =
-            db::get_month_data(&db_conn_pool, year_data.id, body.month.pred() as i16).await
-        {
-            if let Ok(prev_net_totals) =
-                db::get_month_net_totals_for(&db_conn_pool, prev_month.id).await
-            {
-                month.update_net_totals_with_previous(&prev_net_totals);
-            }
-        }
-    }
-
-    db::add_new_month(&db_conn_pool, &month, year_data.id).await?;
+    let month = create_month(&db_conn_pool, year_data, body.month).await?;
 
     Ok((StatusCode::CREATED, Json(month)))
 }

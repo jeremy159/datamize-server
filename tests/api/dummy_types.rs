@@ -102,3 +102,37 @@ pub struct DummyFinancialResource {
     pub balance: i64,
     pub editable: bool,
 }
+
+#[derive(Debug, Clone, Serialize, Dummy)]
+#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
+pub enum DummyAccountType {
+    Checking,
+    Savings,
+    Cash,
+    CreditCard,
+    LineOfCredit,
+    OtherAsset,
+    OtherLiability,
+    Mortgage,
+    AutoLoan,
+    StudentLoan,
+}
+
+#[derive(Debug, Clone, Serialize, Dummy)]
+pub struct DummyAccount {
+    pub id: Uuid,
+    pub name: String,
+    #[serde(rename = "type")]
+    pub account_type: DummyAccountType,
+    pub on_budget: bool,
+    pub closed: bool,
+    pub note: Option<String>,
+    // i32 to not overvlow when testing additions
+    pub balance: i32,
+    pub cleared_balance: i64,
+    pub uncleared_balance: i64,
+    pub transfer_payee_id: Uuid,
+    pub direct_import_linked: Option<bool>,
+    pub direct_import_in_error: Option<bool>,
+    pub deleted: bool,
+}

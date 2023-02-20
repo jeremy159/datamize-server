@@ -5,12 +5,12 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    db,
+    db::{self, YearData},
     domain::{Month, MonthNum},
     error::AppError,
 };
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(db_conn_pool))]
 pub async fn build_months(db_conn_pool: &PgPool, year_id: Uuid) -> Result<Vec<Month>, AppError> {
     let months_data = db::get_months_data(db_conn_pool, year_id).await?;
 
@@ -45,7 +45,7 @@ pub async fn build_months(db_conn_pool: &PgPool, year_id: Uuid) -> Result<Vec<Mo
     Ok(months)
 }
 
-#[tracing::instrument(skip_all)]
+#[tracing::instrument(skip(db_conn_pool))]
 pub async fn get_month(
     db_conn_pool: &PgPool,
     year_id: Uuid,
@@ -53,7 +53,7 @@ pub async fn get_month(
 ) -> Result<Month, AppError> {
     let Some(month_data) = db::get_month_data(db_conn_pool, year_id, month as i16)
     .await? else {
-        return Err(crate::error::AppError::ResourceNotFound);
+        return Err(AppError::ResourceNotFound);
     };
 
     let net_totals_query = db::get_month_net_totals_for(db_conn_pool, month_data.id);
@@ -68,4 +68,34 @@ pub async fn get_month(
         net_totals,
         resources,
     })
+}
+
+#[tracing::instrument(skip(db_conn_pool))]
+pub async fn create_month(
+    db_conn_pool: &PgPool,
+    year_data: YearData,
+    month_num: MonthNum,
+) -> Result<Month, AppError> {
+    let mut month = Month::new(month_num);
+
+    let year_data_opt = match month_num.pred() {
+        MonthNum::December => db::get_year_data(db_conn_pool, year_data.year - 1).await,
+        _ => Ok(Some(year_data)),
+    };
+
+    if let Ok(Some(year_data)) = year_data_opt {
+        if let Ok(Some(prev_month)) =
+            db::get_month_data(db_conn_pool, year_data.id, month_num.pred() as i16).await
+        {
+            if let Ok(prev_net_totals) =
+                db::get_month_net_totals_for(db_conn_pool, prev_month.id).await
+            {
+                month.update_net_totals_with_previous(&prev_net_totals);
+            }
+        }
+    }
+
+    db::add_new_month(db_conn_pool, &month, year_data.id).await?;
+
+    Ok(month)
 }
