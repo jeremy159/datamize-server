@@ -219,7 +219,7 @@ jobs:
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:
-          version: "0.25.0"
+          version: "0.22.0"
           args: -- --ignore-tests --release --avoid-cfg-tarpaulin
 
       - name: Upload to codecov.io
