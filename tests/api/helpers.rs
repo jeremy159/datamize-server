@@ -311,7 +311,19 @@ impl TestApp {
         category: DummyResourceCategory,
         res_type: DummyResourceType,
     ) -> DummyFinancialResource {
+        self.insert_financial_resource_with_name(month_id, Faker.fake(), category, res_type)
+            .await
+    }
+
+    pub async fn insert_financial_resource_with_name(
+        &self,
+        month_id: Uuid,
+        name: String,
+        category: DummyResourceCategory,
+        res_type: DummyResourceType,
+    ) -> DummyFinancialResource {
         let resource = DummyFinancialResource {
+            name: name.clone(),
             category,
             resource_type: res_type,
             ..Faker.fake()
@@ -326,7 +338,7 @@ impl TestApp {
             resource.name,
             resource.category.to_string(),
             resource.resource_type.to_string(),
-            resource.balance,
+            resource.balance as i64,
             resource.editable,
             month_id,
         )

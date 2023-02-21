@@ -172,10 +172,10 @@ async fn get_month_returns_net_totals_and_resources_of_the_month(pool: PgPool) {
 
     for r in &month.resources {
         if r.id == month_first_res.id {
-            assert_eq!(r.balance, month_first_res.balance);
+            assert_eq!(r.balance, month_first_res.balance as i64);
             assert_eq!(r.name, month_first_res.name);
         } else if r.id == month_second_res.id {
-            assert_eq!(r.balance, month_second_res.balance);
+            assert_eq!(r.balance, month_second_res.balance as i64);
             assert_eq!(r.name, month_second_res.name);
         }
     }
@@ -263,7 +263,7 @@ async fn put_month_persists_data(pool: PgPool) {
         .await
         .expect("Failed to fetch resources.");
     assert_eq!(saved.name, body.resources[0].name);
-    assert_eq!(saved.balance, body.resources[0].balance);
+    assert_eq!(saved.balance, body.resources[0].balance as i64);
     assert_eq!(saved.category, body.resources[0].category.to_string());
     assert_eq!(saved.r#type, body.resources[0].resource_type.to_string());
     assert_eq!(saved.editable, body.resources[0].editable);
@@ -308,18 +308,18 @@ async fn put_month_recompute_net_totals_with_previous_month(pool: PgPool) {
     // Assert
     for net in &month.net_totals {
         if net.net_type == NetTotalType::Asset {
-            assert_eq!(net.total, body.resources[0].balance);
+            assert_eq!(net.total, body.resources[0].balance as i64);
             assert_ne!(net.total, month1_net_total_assets.total as i64);
             assert_eq!(
                 net.balance_var,
-                body.resources[0].balance - month2_net_total_assets.total as i64
+                (body.resources[0].balance - month2_net_total_assets.total) as i64
             );
         } else if net.net_type == NetTotalType::Portfolio {
-            assert_eq!(net.total, body.resources[0].balance);
+            assert_eq!(net.total, body.resources[0].balance as i64);
             assert_ne!(net.total, month1_net_total_portfolio.total as i64);
             assert_eq!(
                 net.balance_var,
-                body.resources[0].balance - month2_net_total_portfolio.total as i64
+                (body.resources[0].balance - month2_net_total_portfolio.total) as i64
             );
         }
     }
@@ -366,18 +366,18 @@ async fn put_month_recompute_net_totals_with_previous_month_in_prev_year(pool: P
     // Assert
     for net in &month.net_totals {
         if net.net_type == NetTotalType::Asset {
-            assert_eq!(net.total, body.resources[0].balance);
+            assert_eq!(net.total, body.resources[0].balance as i64);
             assert_ne!(net.total, month1_net_total_assets.total as i64);
             assert_eq!(
                 net.balance_var,
-                body.resources[0].balance - month2_net_total_assets.total as i64
+                (body.resources[0].balance - month2_net_total_assets.total) as i64
             );
         } else if net.net_type == NetTotalType::Portfolio {
-            assert_eq!(net.total, body.resources[0].balance);
+            assert_eq!(net.total, body.resources[0].balance as i64);
             assert_ne!(net.total, month1_net_total_portfolio.total as i64);
             assert_eq!(
                 net.balance_var,
-                body.resources[0].balance - month2_net_total_portfolio.total as i64
+                (body.resources[0].balance - month2_net_total_portfolio.total) as i64
             );
         }
     }

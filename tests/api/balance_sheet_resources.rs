@@ -11,7 +11,9 @@ use wiremock::{
 };
 
 use crate::{
-    dummy_types::{DummyAccount, DummyAccountType, DummyNetTotalType},
+    dummy_types::{
+        DummyAccount, DummyAccountType, DummyNetTotalType, DummyResourceCategory, DummyResourceType,
+    },
     helpers::spawn_app,
 };
 
@@ -326,6 +328,66 @@ async fn post_resources_should_add_balance_from_same_ynab_accounts(pool: PgPool)
         accounts.iter().map(|a| a.balance as i64).sum::<i64>(),
         saved.balance
     )
+}
+
+#[sqlx::test]
+async fn post_resources_should_only_update_balance_if_existing_resource_has_different_balance(
+    pool: PgPool,
+) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let current_date = Local::now().date_naive();
+    let year = current_date.year();
+    let year_id = app.insert_year(year).await;
+    let month = current_date.month();
+    let month_id = app.insert_month(year_id, month as i16).await;
+    let car_loan_res = app
+        .insert_financial_resource_with_name(
+            month_id,
+            "Prêts Automobile".to_string(),
+            DummyResourceCategory::Liability,
+            DummyResourceType::LongTerm,
+        )
+        .await;
+    let bank_accounts_res = app
+        .insert_financial_resource_with_name(
+            month_id,
+            "Comptes Bancaires".to_string(),
+            DummyResourceCategory::Asset,
+            DummyResourceType::Cash,
+        )
+        .await;
+    let dummy_car_loan = DummyAccount {
+        account_type: DummyAccountType::AutoLoan,
+        closed: false,
+        deleted: false,
+        balance: car_loan_res.balance,
+        ..Faker.fake()
+    };
+    let dummy_checking = DummyAccount {
+        account_type: DummyAccountType::Checking,
+        closed: false,
+        deleted: false,
+        ..Faker.fake()
+    };
+    let accounts: Vec<DummyAccount> = vec![dummy_car_loan.clone(), dummy_checking.clone()];
+    Mock::given(path_regex("/accounts"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(BodyResp {
+            data: AccountsResp {
+                accounts,
+                server_knowledge: 0,
+            },
+        }))
+        .mount(&app.ynab_server)
+        .await;
+
+    // Act
+    let response = app.refresh_resources().await;
+    let ids: Vec<Uuid> = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+
+    // Assert
+    assert!(!ids.contains(&car_loan_res.id));
+    assert!(ids.contains(&bank_accounts_res.id));
 }
 
 #[sqlx::test]

@@ -99,7 +99,8 @@ pub struct DummyFinancialResource {
     pub category: DummyResourceCategory,
     #[serde(rename = "type")]
     pub resource_type: DummyResourceType,
-    pub balance: i64,
+    // i32 to not overvlow when testing additions
+    pub balance: i32,
     pub editable: bool,
 }
 

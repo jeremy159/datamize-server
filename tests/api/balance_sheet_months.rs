@@ -132,10 +132,10 @@ async fn get_months_returns_net_totals_and_financial_resources_of_all_months(poo
             for r in &m.resources {
                 if r.category == ResourceCategory::Asset {
                     assert_eq!(r.id, month1_first_res.id);
-                    assert_eq!(r.balance, month1_first_res.balance);
+                    assert_eq!(r.balance, month1_first_res.balance as i64);
                 } else if r.category == ResourceCategory::Liability {
                     assert_eq!(r.id, month1_second_res.id);
-                    assert_eq!(r.balance, month1_second_res.balance);
+                    assert_eq!(r.balance, month1_second_res.balance as i64);
                 }
             }
         } else if m.id == month2.0 {
@@ -152,10 +152,10 @@ async fn get_months_returns_net_totals_and_financial_resources_of_all_months(poo
             for r in &m.resources {
                 if r.category == ResourceCategory::Asset {
                     assert_eq!(r.id, month2_first_res.id);
-                    assert_eq!(r.balance, month2_first_res.balance);
+                    assert_eq!(r.balance, month2_first_res.balance as i64);
                 } else if r.category == ResourceCategory::Liability {
                     assert_eq!(r.id, month2_second_res.id);
-                    assert_eq!(r.balance, month2_second_res.balance);
+                    assert_eq!(r.balance, month2_second_res.balance as i64);
                 }
             }
         }
