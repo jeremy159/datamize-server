@@ -342,17 +342,19 @@ async fn post_resources_should_only_update_balance_if_existing_resource_has_diff
     let month = current_date.month();
     let month_id = app.insert_month(year_id, month as i16).await;
     let car_loan_res = app
-        .insert_financial_resource_with_name(
+        .insert_financial_resource_with_name_and_balance(
             month_id,
             "Prêts Automobile".to_string(),
+            Faker.fake::<i32>() as i64,
             DummyResourceCategory::Liability,
             DummyResourceType::LongTerm,
         )
         .await;
     let bank_accounts_res = app
-        .insert_financial_resource_with_name(
+        .insert_financial_resource_with_name_and_balance(
             month_id,
             "Comptes Bancaires".to_string(),
+            Faker.fake::<i32>() as i64,
             DummyResourceCategory::Asset,
             DummyResourceType::Cash,
         )
