@@ -361,7 +361,7 @@ async fn post_resources_should_only_update_balance_if_existing_resource_has_diff
         account_type: DummyAccountType::AutoLoan,
         closed: false,
         deleted: false,
-        balance: car_loan_res.balance,
+        balance: car_loan_res.balance.try_into().unwrap_or(i32::MAX),
         ..Faker.fake()
     };
     let dummy_checking = DummyAccount {

@@ -338,7 +338,7 @@ impl TestApp {
             resource.name,
             resource.category.to_string(),
             resource.resource_type.to_string(),
-            resource.balance as i64,
+            resource.balance,
             resource.editable,
             month_id,
         )
