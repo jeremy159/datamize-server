@@ -1,5 +1,6 @@
 [![codecov](https://codecov.io/gh/jeremy159/datamize-server/branch/main/graph/badge.svg?token=NZ84G7KHIM)](https://codecov.io/gh/jeremy159/datamize-server)
-![CI](https://github.com/jeremy159/datamize-server/actions/workflows/main.yml/badge.svg)
+![CI Build](https://github.com/jeremy159/datamize-server/actions/workflows/main.yml/badge.svg)
+![CI Tests](https://github.com/jeremy159/datamize-server/actions/workflows/tests.yml/badge.svg)
 
 # Datamize
 
