@@ -1,4 +1,4 @@
-use std::{fmt::Display, time::Duration};
+use std::fmt::Display;
 
 use chrono::{Datelike, NaiveDate};
 use datamize::{
@@ -399,10 +399,6 @@ pub async fn spawn_app(db_pool: PgPool) -> TestApp {
         .expect("Failed to build application.");
     let application_port = application.port();
     let _ = tokio::spawn(application.run());
-
-    tokio::spawn(async { Duration::from_millis(300) })
-        .await
-        .unwrap();
 
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
