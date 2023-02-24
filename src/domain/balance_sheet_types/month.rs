@@ -125,6 +125,8 @@ impl MonthNum {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Month {
     pub id: Uuid,
+    /// The year in which the month is
+    pub year: i32,
     /// The month in the year, starting with January at 1.
     pub month: MonthNum,
     /// Net Assets summary section. Includes the variation with the previous month.
@@ -136,10 +138,11 @@ pub struct Month {
 }
 
 impl Month {
-    pub fn new(month: MonthNum) -> Self {
+    pub fn new(month: MonthNum, year: i32) -> Self {
         Month {
             id: Uuid::new_v4(),
             month,
+            year,
             net_assets: NetTotal::new_asset(),
             net_portfolio: NetTotal::new_portfolio(),
             resources: vec![

@@ -25,7 +25,7 @@ pub async fn balance_sheet_month(
         return Err(crate::error::AppError::ResourceNotFound);
     };
 
-    Ok(Json(get_month(&db_conn_pool, year_data.id, month).await?))
+    Ok(Json(get_month(&db_conn_pool, year_data, month).await?))
 }
 
 /// Updates the month, i.e. all the financial resources included in the month
@@ -43,7 +43,7 @@ pub async fn update_balance_sheet_month(
         return Err(AppError::ResourceNotFound);
     };
 
-    let mut month = get_month(&db_conn_pool, year_data.id, month).await?;
+    let mut month = get_month(&db_conn_pool, year_data, month).await?;
     month.update_financial_resources(body.resources);
 
     db::update_financial_resources(&db_conn_pool, &month).await?;

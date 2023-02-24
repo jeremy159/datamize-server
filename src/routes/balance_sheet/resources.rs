@@ -33,7 +33,7 @@ pub async fn refresh_balance_sheet_resources(
 
     let month_num: MonthNum = current_date.month().try_into().unwrap();
 
-    let mut month = match get_month(&db_conn_pool, year_data.id, month_num).await {
+    let mut month = match get_month(&db_conn_pool, year_data, month_num).await {
         Ok(month) => month,
         Err(AppError::ResourceNotFound) => {
             create_month(&db_conn_pool, year_data, month_num).await?

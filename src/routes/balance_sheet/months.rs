@@ -27,7 +27,7 @@ pub async fn balance_sheet_months(
         return Err(AppError::ResourceNotFound);
     };
 
-    Ok(Json(build_months(&db_conn_pool, year_data.id).await?))
+    Ok(Json(build_months(&db_conn_pool, year_data).await?))
 }
 
 /// Creates a new month if it doesn't already exist and returns the newly created entity.

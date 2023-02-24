@@ -23,7 +23,7 @@ pub async fn get_year(db_conn_pool: &PgPool, year: i32) -> Result<YearDetail, Ap
     let (net_totals, saving_rates, months) = try_join!(
         net_totals_query.map_err(AppError::from),
         saving_rates_query.map_err(AppError::from),
-        build_months(db_conn_pool, year_data.id).map_err(AppError::from)
+        build_months(db_conn_pool, year_data).map_err(AppError::from)
     )?;
 
     let net_assets = match net_totals

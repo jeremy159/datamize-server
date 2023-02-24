@@ -11,8 +11,11 @@ use crate::{
 };
 
 #[tracing::instrument(skip(db_conn_pool))]
-pub async fn build_months(db_conn_pool: &PgPool, year_id: Uuid) -> Result<Vec<Month>, AppError> {
-    let months_data = db::get_months_data(db_conn_pool, year_id).await?;
+pub async fn build_months(
+    db_conn_pool: &PgPool,
+    year_data: YearData,
+) -> Result<Vec<Month>, AppError> {
+    let months_data = db::get_months_data(db_conn_pool, year_data.id).await?;
 
     let mut months = HashMap::<Uuid, Month>::with_capacity(months_data.len());
 
@@ -50,6 +53,7 @@ pub async fn build_months(db_conn_pool: &PgPool, year_id: Uuid) -> Result<Vec<Mo
             .or_insert_with(|| Month {
                 id: month_data.id,
                 month: MonthNum::try_from(month_data.month).unwrap(),
+                year: year_data.year,
                 net_assets,
                 net_portfolio,
                 resources,
@@ -66,10 +70,10 @@ pub async fn build_months(db_conn_pool: &PgPool, year_id: Uuid) -> Result<Vec<Mo
 #[tracing::instrument(skip(db_conn_pool))]
 pub async fn get_month(
     db_conn_pool: &PgPool,
-    year_id: Uuid,
+    year_data: YearData,
     month: MonthNum,
 ) -> Result<Month, AppError> {
-    let Some(month_data) = db::get_month_data(db_conn_pool, year_id, month as i16)
+    let Some(month_data) = db::get_month_data(db_conn_pool, year_data.id, month as i16)
     .await? else {
         return Err(AppError::ResourceNotFound);
     };
@@ -98,6 +102,7 @@ pub async fn get_month(
     Ok(Month {
         id: month_data.id,
         month: month_data.month.try_into().unwrap(),
+        year: year_data.year,
         net_assets,
         net_portfolio,
         resources,
@@ -110,7 +115,7 @@ pub async fn create_month(
     year_data: YearData,
     month_num: MonthNum,
 ) -> Result<Month, AppError> {
-    let mut month = Month::new(month_num);
+    let mut month = Month::new(month_num, year_data.year);
 
     let year_data_opt = match month_num.pred() {
         MonthNum::December => db::get_year_data(db_conn_pool, year_data.year - 1).await,
