@@ -1,22 +1,5 @@
 {
   "db": "PostgreSQL",
-  "1278ef0010ad4a4f7c5c75a87ed6af25da59a20f78066f831d79fa5d455709ce": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text",
-          "Int8",
-          "Float4",
-          "Int8",
-          "Uuid"
-        ]
-      }
-    },
-    "query": "\n            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, month_id)\n            VALUES ($1, $2, $3, $4, $5, $6)\n            "
-  },
   "250d9ae6cfd025651ccc19b6c6fb123096faf73b53213e5cf36b2546b1e709cd": {
     "describe": {
       "columns": [
@@ -576,66 +559,6 @@
     },
     "query": "\n        INSERT INTO balance_sheet_years (id, year)\n        VALUES ($1, $2);\n        "
   },
-  "933a8ccb3189d20be34bfd68e1b1be915a4a58569e5243fc5974f693f2df3956": {
-    "describe": {
-      "columns": [
-        {
-          "name": "year_id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "year",
-          "ordinal": 1,
-          "type_info": "Int4"
-        },
-        {
-          "name": "net_total_id",
-          "ordinal": 2,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "type",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "total",
-          "ordinal": 4,
-          "type_info": "Int8"
-        },
-        {
-          "name": "percent_var",
-          "ordinal": 5,
-          "type_info": "Float4"
-        },
-        {
-          "name": "balance_var",
-          "ordinal": 6,
-          "type_info": "Int8"
-        },
-        {
-          "name": "net_total_year_id",
-          "ordinal": 7,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "\n        SELECT\n            y.id as year_id,\n            y.year,\n            n.id as net_total_id,\n            n.type,\n            n.total,\n            n.percent_var,\n            n.balance_var,\n            n.year_id as net_total_year_id\n        FROM balance_sheet_years AS y\n        JOIN balance_sheet_net_totals_years AS n ON year_id = n.year_id;\n        "
-  },
   "9458056ab3b6560ccdd5d1ae0af81341dbb21886517ffafbff22f7dfc50676ec": {
     "describe": {
       "columns": [],
@@ -653,6 +576,54 @@
       }
     },
     "query": "\n            INSERT INTO balance_sheet_resources (id, name, category, type, balance, editable, month_id)\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            ON CONFLICT (id) DO UPDATE\n            SET name = EXCLUDED.name,\n            category = EXCLUDED.category,\n            type = EXCLUDED.type,\n            balance = EXCLUDED.balance,\n            editable = EXCLUDED.editable;\n            "
+  },
+  "96467e0d4c1b00489ba0d1bf0f24e9edd27b72e31729fc57ab932db771471a8d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "type",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "total",
+          "ordinal": 2,
+          "type_info": "Int8"
+        },
+        {
+          "name": "percent_var",
+          "ordinal": 3,
+          "type_info": "Float4"
+        },
+        {
+          "name": "balance_var",
+          "ordinal": 4,
+          "type_info": "Int8"
+        },
+        {
+          "name": "year_id",
+          "ordinal": 5,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n        SELECT *\n        FROM balance_sheet_net_totals_years;\n        "
   },
   "9b808421bf97b16f910fa575a648c2c36e418b358d56da24496755317b8c662b": {
     "describe": {
@@ -815,22 +786,29 @@
     },
     "query": "\n        SELECT\n            id,\n            month\n        FROM balance_sheet_months\n        WHERE year_id = $1 AND month = $2;\n        "
   },
-  "d0ba8bebcea04a5083f9c6dbff51b6d89368ffd8a37dec309c911c8767b7ed5c": {
+  "ccc084a89f0617a5e6a217f127119d7f17a095bcf472479680cf62ba046271db": {
     "describe": {
-      "columns": [],
-      "nullable": [],
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "year",
+          "ordinal": 1,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
       "parameters": {
-        "Left": [
-          "Uuid",
-          "Text",
-          "Int8",
-          "Float4",
-          "Int8",
-          "Uuid"
-        ]
+        "Left": []
       }
     },
-    "query": "\n            INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, year_id)\n            VALUES ($1, $2, $3, $4, $5, $6)\n            "
+    "query": "\n        SELECT\n            id,\n            year\n        FROM balance_sheet_years;\n        "
   },
   "d493ee29627f77dc3e74bdfffc0639b5238901f454eee02f24733e9b5708f7c0": {
     "describe": {
