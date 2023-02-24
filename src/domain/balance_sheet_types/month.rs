@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_repr::*;
 use uuid::Uuid;
 
-use super::{FinancialResource, NetTotal, NetTotalType, ResourceCategory, ResourceType};
+use super::{FinancialResource, NetTotal, ResourceCategory, ResourceType};
 
 #[derive(
     Serialize_repr, Deserialize_repr, PartialEq, Eq, Ord, PartialOrd, Debug, Clone, Copy, sqlx::Type,
@@ -127,8 +127,10 @@ pub struct Month {
     pub id: Uuid,
     /// The month in the year, starting with January at 1.
     pub month: MonthNum,
-    /// Net Assets or Net Portfolio summary section. Includes the variation with the previous month.
-    pub net_totals: Vec<NetTotal>,
+    /// Net Assets summary section. Includes the variation with the previous month.
+    pub net_assets: NetTotal,
+    /// Net Portfolio summary section. Includes the variation with the previous month.
+    pub net_portfolio: NetTotal,
     /// All of the Assets and Liabilities of the current month are regrouped here.
     pub resources: Vec<FinancialResource>,
 }
@@ -138,7 +140,8 @@ impl Month {
         Month {
             id: Uuid::new_v4(),
             month,
-            net_totals: vec![NetTotal::new_asset(), NetTotal::new_portfolio()],
+            net_assets: NetTotal::new_asset(),
+            net_portfolio: NetTotal::new_portfolio(),
             resources: vec![
                 FinancialResource::new_bank_accounts(),
                 FinancialResource::new_tfsa_jeremy(),
@@ -155,34 +158,29 @@ impl Month {
         }
     }
 
-    pub fn update_net_totals_with_previous(&mut self, prev_net_totals: &[NetTotal]) {
-        for nt in &mut self.net_totals {
-            if let Some(pnt) = prev_net_totals
-                .iter()
-                .find(|&pnt| pnt.net_type == nt.net_type)
-            {
-                nt.balance_var = nt.total - pnt.total;
-                nt.percent_var = nt.balance_var as f32 / pnt.total as f32;
-            }
-        }
+    pub fn update_net_assets_with_previous(&mut self, prev_net_assets: &NetTotal) {
+        self.net_assets.balance_var = self.net_assets.total - prev_net_assets.total;
+        self.net_assets.percent_var =
+            self.net_assets.balance_var as f32 / prev_net_assets.total as f32;
+    }
+
+    pub fn update_net_portfolio_with_previous(&mut self, prev_net_portfolio: &NetTotal) {
+        self.net_portfolio.balance_var = self.net_portfolio.total - prev_net_portfolio.total;
+        self.net_portfolio.percent_var =
+            self.net_portfolio.balance_var as f32 / prev_net_portfolio.total as f32;
     }
 
     pub fn compute_net_totals(&mut self) {
-        for nt in &mut self.net_totals {
-            if nt.net_type == NetTotalType::Asset {
-                nt.total = self.resources.iter().map(|r| r.balance).sum();
-            } else if nt.net_type == NetTotalType::Portfolio {
-                nt.total = self
-                    .resources
-                    .iter()
-                    .filter(|r| {
-                        r.category == ResourceCategory::Asset
-                            && r.resource_type != ResourceType::LongTerm
-                    })
-                    .map(|r| r.balance)
-                    .sum()
-            }
-        }
+        self.net_assets.total = self.resources.iter().map(|r| r.balance).sum();
+
+        self.net_portfolio.total = self
+            .resources
+            .iter()
+            .filter(|r| {
+                r.category == ResourceCategory::Asset && r.resource_type != ResourceType::LongTerm
+            })
+            .map(|r| r.balance)
+            .sum();
     }
 
     pub fn update_financial_resources(&mut self, resources: Vec<FinancialResource>) {

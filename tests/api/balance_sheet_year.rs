@@ -1,5 +1,5 @@
 use chrono::{Datelike, NaiveDate};
-use datamize::domain::{NetTotalType, YearDetail};
+use datamize::domain::YearDetail;
 use fake::{faker::chrono::en::Date, Dummy, Fake, Faker};
 use rand::Rng;
 use serde::Serialize;
@@ -105,15 +105,13 @@ async fn get_year_returns_net_totals_saving_rates_and_months_of_the_year(pool: P
     let year: YearDetail = serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
     // Assert
-    for nt in &year.net_totals {
-        if nt.net_type == NetTotalType::Asset {
-            assert_eq!(nt.id, year_net_total_assets.id);
-            assert_eq!(nt.total, month_net_total_assets.total as i64);
-        } else if nt.net_type == NetTotalType::Portfolio {
-            assert_eq!(nt.id, year_net_total_portfolio.id);
-            assert_eq!(nt.total, month_net_total_portfolio.total as i64);
-        }
-    }
+    assert_eq!(year.net_assets.id, year_net_total_assets.id);
+    assert_eq!(year.net_assets.total, month_net_total_assets.total as i64);
+    assert_eq!(year.net_portfolio.id, year_net_total_portfolio.id);
+    assert_eq!(
+        year.net_portfolio.total,
+        month_net_total_portfolio.total as i64
+    );
 
     // Make sure update on net_totals is persisted.
     let saved_net_total = sqlx::query!(
@@ -124,14 +122,7 @@ async fn get_year_returns_net_totals_saving_rates_and_months_of_the_year(pool: P
     .fetch_one(&app.db_pool)
     .await
     .expect("Failed to fetch net totals.");
-    assert_eq!(
-        saved_net_total.total,
-        year.net_totals
-            .iter()
-            .find(|nt| nt.net_type == NetTotalType::Asset)
-            .unwrap()
-            .total
-    );
+    assert_eq!(saved_net_total.total, year.net_assets.total);
 
     for sr in &year.saving_rates {
         assert_eq!(sr.id, saving_rate.id);
@@ -164,13 +155,8 @@ async fn get_year_returns_net_totals_saving_rates_without_months_of_the_year(poo
     let year: YearDetail = serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
     // Assert
-    for nt in &year.net_totals {
-        if nt.net_type == NetTotalType::Asset {
-            assert_eq!(nt.id, year_net_total_assets.id);
-        } else if nt.net_type == NetTotalType::Portfolio {
-            assert_eq!(nt.id, year_net_total_portfolio.id);
-        }
-    }
+    assert_eq!(year.net_assets.id, year_net_total_assets.id);
+    assert_eq!(year.net_portfolio.id, year_net_total_portfolio.id);
 
     for sr in &year.saving_rates {
         assert_eq!(sr.id, saving_rate.id);
@@ -213,14 +199,7 @@ async fn get_year_returns_has_net_totals_update_persisted(pool: PgPool) {
     .fetch_one(&app.db_pool)
     .await
     .expect("Failed to fetch net totals.");
-    assert_eq!(
-        saved_net_total_assets.total,
-        year.net_totals
-            .iter()
-            .find(|nt| nt.net_type == NetTotalType::Asset)
-            .unwrap()
-            .total
-    );
+    assert_eq!(saved_net_total_assets.total, year.net_assets.total);
 
     let saved_net_total_portfolio = sqlx::query!(
         "SELECT * FROM balance_sheet_net_totals_years WHERE id = $1 AND year_id = $2",
@@ -230,14 +209,7 @@ async fn get_year_returns_has_net_totals_update_persisted(pool: PgPool) {
     .fetch_one(&app.db_pool)
     .await
     .expect("Failed to fetch net totals.");
-    assert_eq!(
-        saved_net_total_portfolio.total,
-        year.net_totals
-            .iter()
-            .find(|nt| nt.net_type == NetTotalType::Portfolio)
-            .unwrap()
-            .total
-    );
+    assert_eq!(saved_net_total_portfolio.total, year.net_portfolio.total);
 }
 
 #[derive(Debug, Clone, Serialize)]

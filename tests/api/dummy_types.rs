@@ -127,8 +127,7 @@ pub struct DummyAccount {
     pub on_budget: bool,
     pub closed: bool,
     pub note: Option<String>,
-    // i32 to not overvlow when testing additions
-    pub balance: i32,
+    pub balance: i64,
     pub cleared_balance: i64,
     pub uncleared_balance: i64,
     pub transfer_payee_id: Uuid,

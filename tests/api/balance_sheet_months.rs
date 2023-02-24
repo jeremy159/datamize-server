@@ -1,5 +1,5 @@
 use chrono::{Datelike, NaiveDate};
-use datamize::domain::{Month, NetTotalType, ResourceCategory};
+use datamize::domain::{Month, ResourceCategory};
 use fake::faker::chrono::en::Date;
 use fake::Fake;
 use reqwest::StatusCode;
@@ -119,15 +119,13 @@ async fn get_months_returns_net_totals_and_financial_resources_of_all_months(poo
     // Assert
     for m in &months {
         if m.id == month1.0 {
-            for nt in &m.net_totals {
-                if nt.net_type == NetTotalType::Asset {
-                    assert_eq!(nt.id, month1_net_total_assets.id);
-                    assert_eq!(nt.total, month1_net_total_assets.total as i64);
-                } else if nt.net_type == NetTotalType::Portfolio {
-                    assert_eq!(nt.id, month1_net_total_portfolio.id);
-                    assert_eq!(nt.total, month1_net_total_portfolio.total as i64);
-                }
-            }
+            assert_eq!(m.net_assets.id, month1_net_total_assets.id);
+            assert_eq!(m.net_assets.total, month1_net_total_assets.total as i64);
+            assert_eq!(m.net_portfolio.id, month1_net_total_portfolio.id);
+            assert_eq!(
+                m.net_portfolio.total,
+                month1_net_total_portfolio.total as i64
+            );
 
             for r in &m.resources {
                 if r.category == ResourceCategory::Asset {
@@ -139,15 +137,13 @@ async fn get_months_returns_net_totals_and_financial_resources_of_all_months(poo
                 }
             }
         } else if m.id == month2.0 {
-            for nt in &m.net_totals {
-                if nt.net_type == NetTotalType::Asset {
-                    assert_eq!(nt.id, month2_net_total_assets.id);
-                    assert_eq!(nt.total, month2_net_total_assets.total as i64);
-                } else if nt.net_type == NetTotalType::Portfolio {
-                    assert_eq!(nt.id, month2_net_total_portfolio.id);
-                    assert_eq!(nt.total, month2_net_total_portfolio.total as i64);
-                }
-            }
+            assert_eq!(m.net_assets.id, month2_net_total_assets.id);
+            assert_eq!(m.net_assets.total, month2_net_total_assets.total as i64);
+            assert_eq!(m.net_portfolio.id, month2_net_total_portfolio.id);
+            assert_eq!(
+                m.net_portfolio.total,
+                month2_net_total_portfolio.total as i64
+            );
 
             for r in &m.resources {
                 if r.category == ResourceCategory::Asset {
@@ -363,14 +359,16 @@ async fn post_months_updates_net_totals_if_previous_month_exists(pool: PgPool) {
     let month: Month = serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
     // Assert
-    for net in &month.net_totals {
-        if net.net_type == NetTotalType::Asset {
-            assert_eq!(net.balance_var, -month_net_total_assets.total as i64);
-        } else if net.net_type == NetTotalType::Portfolio {
-            assert_eq!(net.balance_var, -month_net_total_portfolio.total as i64);
-        }
-        assert_eq!(net.percent_var, -1.0);
-    }
+    assert_eq!(
+        month.net_assets.balance_var,
+        -month_net_total_assets.total as i64
+    );
+    assert_eq!(month.net_assets.percent_var, -1.0);
+    assert_eq!(
+        month.net_portfolio.balance_var,
+        -month_net_total_portfolio.total as i64
+    );
+    assert_eq!(month.net_portfolio.percent_var, -1.0);
 }
 
 #[sqlx::test]
@@ -403,12 +401,14 @@ async fn post_months_updates_net_totals_if_previous_month_exists_in_prev_year(po
     let month: Month = serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
     // Assert
-    for net in &month.net_totals {
-        if net.net_type == NetTotalType::Asset {
-            assert_eq!(net.balance_var, -month_net_total_assets.total as i64);
-        } else if net.net_type == NetTotalType::Portfolio {
-            assert_eq!(net.balance_var, -month_net_total_portfolio.total as i64);
-        }
-        assert_eq!(net.percent_var, -1.0);
-    }
+    assert_eq!(
+        month.net_assets.balance_var,
+        -month_net_total_assets.total as i64
+    );
+    assert_eq!(month.net_assets.percent_var, -1.0);
+    assert_eq!(
+        month.net_portfolio.balance_var,
+        -month_net_total_portfolio.total as i64
+    );
+    assert_eq!(month.net_portfolio.percent_var, -1.0);
 }

@@ -1,5 +1,5 @@
 use chrono::{Datelike, Months, NaiveDate};
-use datamize::domain::{NetTotalType, YearDetail};
+use datamize::domain::YearDetail;
 use fake::faker::chrono::en::Date;
 use fake::Fake;
 use serde::Serialize;
@@ -225,12 +225,11 @@ async fn post_years_updates_net_totals_if_previous_year_exists(pool: PgPool) {
     let year: YearDetail = serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
     // Assert
-    for net in &year.net_totals {
-        if net.net_type == NetTotalType::Asset {
-            assert_eq!(net.balance_var, -net_total_assets.total as i64);
-        } else if net.net_type == NetTotalType::Portfolio {
-            assert_eq!(net.balance_var, -net_total_portfolio.total as i64);
-        }
-        assert_eq!(net.percent_var, -1.0);
-    }
+    assert_eq!(year.net_assets.balance_var, -net_total_assets.total as i64);
+    assert_eq!(year.net_assets.percent_var, -1.0);
+    assert_eq!(
+        year.net_portfolio.balance_var,
+        -net_total_portfolio.total as i64
+    );
+    assert_eq!(year.net_portfolio.percent_var, -1.0);
 }

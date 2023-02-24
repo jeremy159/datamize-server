@@ -7,7 +7,7 @@ use axum_extra::extract::WithRejection;
 use crate::{
     common::get_month,
     db,
-    domain::{Month, MonthNum, UpdateMonth},
+    domain::{Month, MonthNum, NetTotalType, UpdateMonth},
     error::{AppError, HttpJsonAppResult, JsonError},
     startup::AppState,
 };
@@ -62,12 +62,28 @@ pub async fn update_balance_sheet_month(
             if let Ok(prev_net_totals) =
                 db::get_month_net_totals_for(&db_conn_pool, prev_month.id).await
             {
-                month.update_net_totals_with_previous(&prev_net_totals);
+                if let Some(prev_net_assets) = prev_net_totals
+                    .iter()
+                    .find(|pnt| pnt.net_type == NetTotalType::Asset)
+                {
+                    month.update_net_assets_with_previous(prev_net_assets);
+                }
+                if let Some(prev_net_portfolio) = prev_net_totals
+                    .iter()
+                    .find(|pnt| pnt.net_type == NetTotalType::Portfolio)
+                {
+                    month.update_net_portfolio_with_previous(prev_net_portfolio);
+                }
             }
         }
     }
 
-    db::update_month_net_totals(&db_conn_pool, &month).await?;
+    db::insert_monthly_net_totals(
+        &db_conn_pool,
+        month.id,
+        [&month.net_assets, &month.net_portfolio],
+    )
+    .await?;
 
     Ok(Json(month))
 }

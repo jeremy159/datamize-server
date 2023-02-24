@@ -71,22 +71,12 @@ pub async fn add_new_month(
     .execute(db_conn_pool)
     .await?;
 
-    for nt in &month.net_totals {
-        sqlx::query!(
-            r#"
-            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, month_id)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            "#,
-            nt.id,
-            nt.net_type.to_string(),
-            nt.total,
-            nt.percent_var,
-            nt.balance_var,
-            month.id,
-        )
-        .execute(db_conn_pool)
-        .await?;
-    }
+    insert_monthly_net_totals(
+        db_conn_pool,
+        month.id,
+        [&month.net_assets, &month.net_portfolio],
+    )
+    .await?;
 
     for fr in &month.resources {
         sqlx::query!(
@@ -107,6 +97,36 @@ pub async fn add_new_month(
             fr.balance,
             fr.editable,
             month.id
+        )
+        .execute(db_conn_pool)
+        .await?;
+    }
+
+    Ok(())
+}
+
+pub async fn insert_monthly_net_totals(
+    db_conn_pool: &PgPool,
+    month_id: Uuid,
+    net_totals: [&NetTotal; 2],
+) -> Result<(), sqlx::Error> {
+    for nt in net_totals {
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, month_id)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (id) DO UPDATE
+            SET type = EXCLUDED.type,
+            total = EXCLUDED.total,
+            percent_var = EXCLUDED.percent_var,
+            balance_var = EXCLUDED.balance_var;
+            "#,
+            nt.id,
+            nt.net_type.to_string(),
+            nt.total,
+            nt.percent_var,
+            nt.balance_var,
+            month_id,
         )
         .execute(db_conn_pool)
         .await?;
@@ -136,36 +156,6 @@ pub async fn get_month_net_totals_for(
     )
     .fetch_all(db_conn_pool)
     .await
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn update_month_net_totals(
-    db_conn_pool: &PgPool,
-    month: &Month,
-) -> Result<(), sqlx::Error> {
-    for nt in &month.net_totals {
-        sqlx::query!(
-            r#"
-            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, month_id)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT (id) DO UPDATE
-            SET type = EXCLUDED.type,
-            total = EXCLUDED.total,
-            percent_var = EXCLUDED.percent_var,
-            balance_var = EXCLUDED.balance_var;
-            "#,
-            nt.id,
-            nt.net_type.to_string(),
-            nt.total,
-            nt.percent_var,
-            nt.balance_var,
-            month.id,
-        )
-        .execute(db_conn_pool)
-        .await?;
-    }
-
-    Ok(())
 }
 
 #[tracing::instrument(skip(db_conn_pool))]

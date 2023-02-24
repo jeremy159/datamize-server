@@ -1,5 +1,5 @@
 use chrono::{Datelike, Local};
-use datamize::domain::{Month, NetTotalType};
+use datamize::domain::Month;
 use fake::{Fake, Faker};
 use num_traits::FromPrimitive;
 use serde::Serialize;
@@ -181,18 +181,21 @@ async fn post_resources_should_return_as_many_ids_as_accounts_from_ynab_when_not
             account_type: DummyAccountType::Mortgage,
             closed: false,
             deleted: false,
+            balance: Faker.fake::<i32>() as i64,
             ..Faker.fake()
         },
         DummyAccount {
             account_type: DummyAccountType::AutoLoan,
             closed: false,
             deleted: false,
+            balance: Faker.fake::<i32>() as i64,
             ..Faker.fake()
         },
         DummyAccount {
             account_type: DummyAccountType::Checking,
             closed: false,
             deleted: false,
+            balance: Faker.fake::<i32>() as i64,
             ..Faker.fake()
         },
     ];
@@ -228,18 +231,21 @@ async fn post_resources_should_persit_refreshed_ids_in_db(pool: PgPool) {
             account_type: DummyAccountType::Mortgage,
             closed: false,
             deleted: false,
+            balance: Faker.fake::<i32>() as i64,
             ..Faker.fake()
         },
         DummyAccount {
             account_type: DummyAccountType::AutoLoan,
             closed: false,
             deleted: false,
+            balance: Faker.fake::<i32>() as i64,
             ..Faker.fake()
         },
         DummyAccount {
             account_type: DummyAccountType::Checking,
             closed: false,
             deleted: false,
+            balance: Faker.fake::<i32>() as i64,
             ..Faker.fake()
         },
     ];
@@ -290,12 +296,14 @@ async fn post_resources_should_add_balance_from_same_ynab_accounts(pool: PgPool)
             account_type: DummyAccountType::AutoLoan,
             closed: false,
             deleted: false,
+            balance: Faker.fake::<i32>() as i64,
             ..Faker.fake()
         },
         DummyAccount {
             account_type: DummyAccountType::AutoLoan,
             closed: false,
             deleted: false,
+            balance: Faker.fake::<i32>() as i64,
             ..Faker.fake()
         },
     ];
@@ -325,7 +333,7 @@ async fn post_resources_should_add_balance_from_same_ynab_accounts(pool: PgPool)
     .expect("Failed to select financial resource of a month.");
 
     assert_eq!(
-        accounts.iter().map(|a| a.balance as i64).sum::<i64>(),
+        accounts.iter().map(|a| a.balance).sum::<i64>(),
         saved.balance
     )
 }
@@ -363,7 +371,7 @@ async fn post_resources_should_only_update_balance_if_existing_resource_has_diff
         account_type: DummyAccountType::AutoLoan,
         closed: false,
         deleted: false,
-        balance: car_loan_res.balance.try_into().unwrap_or(i32::MAX),
+        balance: car_loan_res.balance,
         ..Faker.fake()
     };
     let dummy_checking = DummyAccount {
@@ -406,24 +414,28 @@ async fn post_resources_should_update_month_net_totals(pool: PgPool) {
             account_type: DummyAccountType::Mortgage,
             closed: false,
             deleted: false,
+            balance: Faker.fake::<i32>() as i64,
             ..Faker.fake()
         },
         DummyAccount {
             account_type: DummyAccountType::AutoLoan,
             closed: false,
             deleted: false,
+            balance: Faker.fake::<i32>() as i64,
             ..Faker.fake()
         },
         DummyAccount {
             account_type: DummyAccountType::Checking,
             closed: false,
             deleted: false,
+            balance: Faker.fake::<i32>() as i64,
             ..Faker.fake()
         },
         DummyAccount {
             account_type: DummyAccountType::CreditCard,
             closed: false,
             deleted: false,
+            balance: Faker.fake::<i32>() as i64,
             ..Faker.fake()
         },
     ];
@@ -444,9 +456,8 @@ async fn post_resources_should_update_month_net_totals(pool: PgPool) {
     // Assert
     let month: Month =
         serde_json::from_str(&app.get_month(year, month).await.text().await.unwrap()).unwrap();
-    for nt in &month.net_totals {
-        assert_ne!(nt.total, 0);
-    }
+    assert_ne!(month.net_assets.total, 0);
+    assert_ne!(month.net_portfolio.total, 0);
 }
 
 #[sqlx::test]
@@ -498,17 +509,12 @@ async fn post_resources_should_update_month_net_totals_with_prev_month(pool: PgP
     // Assert
     let month: Month =
         serde_json::from_str(&app.get_month(year, month).await.text().await.unwrap()).unwrap();
-    for nt in &month.net_totals {
-        if nt.net_type == NetTotalType::Asset {
-            assert_ne!(
-                nt.balance_var,
-                (accounts[0].balance - prev_net_total_assets.total) as i64
-            );
-        } else if nt.net_type == NetTotalType::Portfolio {
-            assert_ne!(
-                nt.balance_var,
-                (accounts[0].balance - prev_net_total_portfolio.total) as i64
-            );
-        }
-    }
+    assert_eq!(
+        month.net_assets.balance_var,
+        accounts[0].balance - prev_net_total_assets.total as i64
+    );
+    assert_eq!(
+        month.net_portfolio.balance_var,
+        accounts[0].balance - prev_net_total_portfolio.total as i64
+    );
 }

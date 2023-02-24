@@ -1,5 +1,5 @@
 use chrono::{Datelike, NaiveDate};
-use datamize::domain::{Month, NetTotalType};
+use datamize::domain::Month;
 use fake::{faker::chrono::en::Date, Dummy, Fake, Faker};
 use rand::Rng;
 use serde::Serialize;
@@ -160,15 +160,13 @@ async fn get_month_returns_net_totals_and_resources_of_the_month(pool: PgPool) {
     let month: Month = serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
     // Assert
-    for nt in &month.net_totals {
-        if nt.net_type == NetTotalType::Asset {
-            assert_eq!(nt.id, month_net_total_assets.id);
-            assert_eq!(nt.total, month_net_total_assets.total as i64);
-        } else if nt.net_type == NetTotalType::Portfolio {
-            assert_eq!(nt.id, month_net_total_portfolio.id);
-            assert_eq!(nt.total, month_net_total_portfolio.total as i64);
-        }
-    }
+    assert_eq!(month.net_assets.id, month_net_total_assets.id);
+    assert_eq!(month.net_assets.total, month_net_total_assets.total as i64);
+    assert_eq!(month.net_portfolio.id, month_net_total_portfolio.id);
+    assert_eq!(
+        month.net_portfolio.total,
+        month_net_total_portfolio.total as i64
+    );
 
     for r in &month.resources {
         if r.id == month_first_res.id {
@@ -306,23 +304,21 @@ async fn put_month_recompute_net_totals_with_previous_month(pool: PgPool) {
     let month: Month = serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
     // Assert
-    for net in &month.net_totals {
-        if net.net_type == NetTotalType::Asset {
-            assert_eq!(net.total, body.resources[0].balance as i64);
-            assert_ne!(net.total, month1_net_total_assets.total as i64);
-            assert_eq!(
-                net.balance_var,
-                body.resources[0].balance - month2_net_total_assets.total as i64
-            );
-        } else if net.net_type == NetTotalType::Portfolio {
-            assert_eq!(net.total, body.resources[0].balance as i64);
-            assert_ne!(net.total, month1_net_total_portfolio.total as i64);
-            assert_eq!(
-                net.balance_var,
-                body.resources[0].balance - month2_net_total_portfolio.total as i64
-            );
-        }
-    }
+    assert_eq!(month.net_assets.total, body.resources[0].balance as i64);
+    assert_ne!(month.net_assets.total, month1_net_total_assets.total as i64);
+    assert_eq!(
+        month.net_assets.balance_var,
+        body.resources[0].balance - month2_net_total_assets.total as i64
+    );
+    assert_eq!(month.net_portfolio.total, body.resources[0].balance as i64);
+    assert_ne!(
+        month.net_portfolio.total,
+        month1_net_total_portfolio.total as i64
+    );
+    assert_eq!(
+        month.net_portfolio.balance_var,
+        body.resources[0].balance - month2_net_total_portfolio.total as i64
+    );
 }
 
 #[sqlx::test]
@@ -364,23 +360,21 @@ async fn put_month_recompute_net_totals_with_previous_month_in_prev_year(pool: P
     let month: Month = serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
     // Assert
-    for net in &month.net_totals {
-        if net.net_type == NetTotalType::Asset {
-            assert_eq!(net.total, body.resources[0].balance as i64);
-            assert_ne!(net.total, month1_net_total_assets.total as i64);
-            assert_eq!(
-                net.balance_var,
-                body.resources[0].balance - month2_net_total_assets.total as i64
-            );
-        } else if net.net_type == NetTotalType::Portfolio {
-            assert_eq!(net.total, body.resources[0].balance as i64);
-            assert_ne!(net.total, month1_net_total_portfolio.total as i64);
-            assert_eq!(
-                net.balance_var,
-                body.resources[0].balance - month2_net_total_portfolio.total as i64
-            );
-        }
-    }
+    assert_eq!(month.net_assets.total, body.resources[0].balance as i64);
+    assert_ne!(month.net_assets.total, month1_net_total_assets.total as i64);
+    assert_eq!(
+        month.net_assets.balance_var,
+        body.resources[0].balance - month2_net_total_assets.total as i64
+    );
+    assert_eq!(month.net_portfolio.total, body.resources[0].balance as i64);
+    assert_ne!(
+        month.net_portfolio.total,
+        month1_net_total_portfolio.total as i64
+    );
+    assert_eq!(
+        month.net_portfolio.balance_var,
+        body.resources[0].balance - month2_net_total_portfolio.total as i64
+    );
 }
 
 #[sqlx::test]

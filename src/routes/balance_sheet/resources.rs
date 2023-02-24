@@ -8,7 +8,7 @@ use ynab::types::AccountType;
 use crate::{
     common::{create_month, get_month},
     db,
-    domain::{FinancialResource, MonthNum},
+    domain::{FinancialResource, MonthNum, NetTotalType},
     error::{AppError, HttpJsonAppResult},
     startup::AppState,
 };
@@ -128,12 +128,28 @@ pub async fn refresh_balance_sheet_resources(
                 if let Ok(prev_net_totals) =
                     db::get_month_net_totals_for(&db_conn_pool, prev_month.id).await
                 {
-                    month.update_net_totals_with_previous(&prev_net_totals);
+                    if let Some(prev_net_assets) = prev_net_totals
+                        .iter()
+                        .find(|pnt| pnt.net_type == NetTotalType::Asset)
+                    {
+                        month.update_net_assets_with_previous(prev_net_assets);
+                    }
+                    if let Some(prev_net_portfolio) = prev_net_totals
+                        .iter()
+                        .find(|pnt| pnt.net_type == NetTotalType::Portfolio)
+                    {
+                        month.update_net_portfolio_with_previous(prev_net_portfolio);
+                    }
                 }
             }
         }
 
-        db::update_month_net_totals(&db_conn_pool, &month).await?;
+        db::insert_monthly_net_totals(
+            &db_conn_pool,
+            month.id,
+            [&month.net_assets, &month.net_portfolio],
+        )
+        .await?;
     }
 
     Ok(Json(refreshed))

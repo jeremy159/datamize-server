@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use futures::try_join;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -7,51 +6,67 @@ use crate::domain::{NetTotal, NetTotalType, SavingRatesPerPerson, YearDetail, Ye
 
 #[tracing::instrument(skip_all)]
 pub async fn get_years_summary(db_conn_pool: &PgPool) -> Result<Vec<YearSummary>, sqlx::Error> {
-    let mut years = HashMap::<Uuid, YearSummary>::new();
+    let mut years: Vec<YearSummary> = vec![];
 
-    let db_rows = sqlx::query!(
+    let year_datas_query = sqlx::query_as!(
+        YearData,
         r#"
         SELECT
-            y.id as year_id,
-            y.year,
-            n.id as net_total_id,
-            n.type,
-            n.total,
-            n.percent_var,
-            n.balance_var,
-            n.year_id as net_total_year_id
-        FROM balance_sheet_years AS y
-        JOIN balance_sheet_net_totals_years AS n ON year_id = n.year_id;
+            id,
+            year
+        FROM balance_sheet_years;
         "#
     )
-    .fetch_all(db_conn_pool)
-    .await?;
+    .fetch_all(db_conn_pool);
 
-    for r in db_rows
-        .into_iter()
-        .filter(|v| v.year_id == v.net_total_year_id)
-    {
-        let net_total = NetTotal {
-            id: r.net_total_id,
-            net_type: r.r#type.parse().unwrap(),
-            total: r.total,
-            percent_var: r.percent_var,
-            balance_var: r.balance_var,
+    let net_totals_query = sqlx::query!(
+        r#"
+        SELECT *
+        FROM balance_sheet_net_totals_years;
+        "#
+    )
+    .fetch_all(db_conn_pool);
+
+    let (year_datas, net_totals) = try_join!(year_datas_query, net_totals_query)?;
+
+    for yd in year_datas {
+        let net_assets = match net_totals
+            .iter()
+            .find(|r| r.year_id == yd.id)
+            .filter(|r| r.r#type == NetTotalType::Asset.to_string())
+        {
+            Some(r) => NetTotal {
+                id: r.id,
+                net_type: r.r#type.parse().unwrap(),
+                total: r.total,
+                percent_var: r.percent_var,
+                balance_var: r.balance_var,
+            },
+            None => NetTotal::new_asset(),
         };
 
-        years
-            .entry(r.year_id)
-            .and_modify(|y| {
-                y.net_totals.push(net_total.clone());
-            })
-            .or_insert_with(|| YearSummary {
-                id: r.year_id,
-                year: r.year,
-                net_totals: vec![net_total],
-            });
-    }
+        let net_portfolio = match net_totals
+            .iter()
+            .find(|r| r.year_id == yd.id)
+            .filter(|r| r.r#type == NetTotalType::Portfolio.to_string())
+        {
+            Some(r) => NetTotal {
+                id: r.id,
+                net_type: r.r#type.parse().unwrap(),
+                total: r.total,
+                percent_var: r.percent_var,
+                balance_var: r.balance_var,
+            },
+            None => NetTotal::new_portfolio(),
+        };
 
-    let mut years = years.into_values().collect::<Vec<_>>();
+        years.push(YearSummary {
+            id: yd.id,
+            year: yd.year,
+            net_assets,
+            net_portfolio,
+        })
+    }
 
     years.sort_by(|a, b| a.year.cmp(&b.year));
 
@@ -95,22 +110,12 @@ pub async fn add_new_year(db_conn_pool: &PgPool, year: &YearDetail) -> Result<()
     .execute(db_conn_pool)
     .await?;
 
-    for nt in &year.net_totals {
-        sqlx::query!(
-            r#"
-            INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, year_id)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            "#,
-            nt.id,
-            nt.net_type.to_string(),
-            nt.total,
-            nt.percent_var,
-            nt.balance_var,
-            year.id,
-        )
-        .execute(db_conn_pool)
-        .await?;
-    }
+    insert_yearly_net_totals(
+        db_conn_pool,
+        year.id,
+        [&year.net_assets, &year.net_portfolio],
+    )
+    .await?;
 
     for sr in &year.saving_rates {
         sqlx::query!(
@@ -127,6 +132,36 @@ pub async fn add_new_year(db_conn_pool: &PgPool, year: &YearDetail) -> Result<()
             sr.incomes,
             sr.rate,
             year.id,
+        )
+        .execute(db_conn_pool)
+        .await?;
+    }
+
+    Ok(())
+}
+
+pub async fn insert_yearly_net_totals(
+    db_conn_pool: &PgPool,
+    year_id: Uuid,
+    net_totals: [&NetTotal; 2],
+) -> Result<(), sqlx::Error> {
+    for nt in net_totals {
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, year_id)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            ON CONFLICT (id) DO UPDATE
+            SET type = EXCLUDED.type,
+            total = EXCLUDED.total,
+            percent_var = EXCLUDED.percent_var,
+            balance_var = EXCLUDED.balance_var;
+            "#,
+            nt.id,
+            nt.net_type.to_string(),
+            nt.total,
+            nt.percent_var,
+            nt.balance_var,
+            year_id,
         )
         .execute(db_conn_pool)
         .await?;
@@ -156,36 +191,6 @@ pub async fn get_year_net_totals_for(
     )
     .fetch_all(db_conn_pool)
     .await
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn update_year_net_totals(
-    db_conn_pool: &PgPool,
-    year: &YearDetail,
-) -> Result<(), sqlx::Error> {
-    for nt in &year.net_totals {
-        sqlx::query!(
-            r#"
-            INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, year_id)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT (id) DO UPDATE
-            SET type = EXCLUDED.type,
-            total = EXCLUDED.total,
-            percent_var = EXCLUDED.percent_var,
-            balance_var = EXCLUDED.balance_var;
-            "#,
-            nt.id,
-            nt.net_type.to_string(),
-            nt.total,
-            nt.percent_var,
-            nt.balance_var,
-            year.id,
-        )
-        .execute(db_conn_pool)
-        .await?;
-    }
-
-    Ok(())
 }
 
 #[tracing::instrument(skip(db_conn_pool))]

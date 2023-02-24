@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::{
     db::{self, YearData},
-    domain::{Month, MonthNum},
+    domain::{Month, MonthNum, NetTotal, NetTotalType},
     error::AppError,
 };
 
@@ -24,16 +24,34 @@ pub async fn build_months(db_conn_pool: &PgPool, year_id: Uuid) -> Result<Vec<Mo
 
         let (net_totals, resources) = try_join!(net_totals_query, financial_resources_query)?;
 
+        let net_assets = match net_totals
+            .clone()
+            .into_iter()
+            .find(|nt| nt.net_type == NetTotalType::Asset)
+        {
+            Some(na) => na,
+            None => NetTotal::new_asset(),
+        };
+        let net_portfolio = match net_totals
+            .into_iter()
+            .find(|nt| nt.net_type == NetTotalType::Portfolio)
+        {
+            Some(np) => np,
+            None => NetTotal::new_portfolio(),
+        };
+
         months
             .entry(month_data.id)
             .and_modify(|m| {
-                m.net_totals.extend(net_totals.clone());
+                m.net_assets = net_assets.clone();
+                m.net_portfolio = net_portfolio.clone();
                 m.resources.extend(resources.clone())
             })
             .or_insert_with(|| Month {
                 id: month_data.id,
                 month: MonthNum::try_from(month_data.month).unwrap(),
-                net_totals,
+                net_assets,
+                net_portfolio,
                 resources,
             });
     }
@@ -61,11 +79,27 @@ pub async fn get_month(
     let financial_resources_query = db::get_financial_resources_for(db_conn_pool, month_data.id);
 
     let (net_totals, resources) = try_join!(net_totals_query, financial_resources_query)?;
+    let net_assets = match net_totals
+        .clone()
+        .into_iter()
+        .find(|nt| nt.net_type == NetTotalType::Asset)
+    {
+        Some(na) => na,
+        None => NetTotal::new_asset(),
+    };
+    let net_portfolio = match net_totals
+        .into_iter()
+        .find(|nt| nt.net_type == NetTotalType::Portfolio)
+    {
+        Some(np) => np,
+        None => NetTotal::new_portfolio(),
+    };
 
     Ok(Month {
         id: month_data.id,
         month: month_data.month.try_into().unwrap(),
-        net_totals,
+        net_assets,
+        net_portfolio,
         resources,
     })
 }
@@ -90,7 +124,18 @@ pub async fn create_month(
             if let Ok(prev_net_totals) =
                 db::get_month_net_totals_for(db_conn_pool, prev_month.id).await
             {
-                month.update_net_totals_with_previous(&prev_net_totals);
+                if let Some(prev_net_assets) = prev_net_totals
+                    .iter()
+                    .find(|pnt| pnt.net_type == NetTotalType::Asset)
+                {
+                    month.update_net_assets_with_previous(prev_net_assets);
+                }
+                if let Some(prev_net_portfolio) = prev_net_totals
+                    .iter()
+                    .find(|pnt| pnt.net_type == NetTotalType::Portfolio)
+                {
+                    month.update_net_portfolio_with_previous(prev_net_portfolio);
+                }
             }
         }
     }

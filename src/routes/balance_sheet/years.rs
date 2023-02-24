@@ -3,7 +3,7 @@ use axum_extra::extract::WithRejection;
 
 use crate::{
     db,
-    domain::{SaveYear, YearDetail, YearSummary},
+    domain::{NetTotalType, SaveYear, YearDetail, YearSummary},
     error::{AppError, HttpJsonAppResult, JsonError},
     startup::AppState,
 };
@@ -37,7 +37,18 @@ pub async fn create_balance_sheet_year(
     if let Ok(Some(prev_year)) = db::get_year_data(&db_conn_pool, year.year - 1).await {
         if let Ok(prev_net_totals) = db::get_year_net_totals_for(&db_conn_pool, prev_year.id).await
         {
-            year.update_net_totals_with_previous(&prev_net_totals);
+            if let Some(prev_net_assets) = prev_net_totals
+                .iter()
+                .find(|pnt| pnt.net_type == NetTotalType::Asset)
+            {
+                year.update_net_assets_with_previous(prev_net_assets);
+            }
+            if let Some(prev_net_portfolio) = prev_net_totals
+                .iter()
+                .find(|pnt| pnt.net_type == NetTotalType::Portfolio)
+            {
+                year.update_net_portfolio_with_previous(prev_net_portfolio);
+            }
         }
     }
 

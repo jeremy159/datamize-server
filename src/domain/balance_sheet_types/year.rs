@@ -8,10 +8,14 @@ pub struct YearSummary {
     pub id: Uuid,
     /// The year of the date, in format 2015.
     pub year: i32,
-    /// The final total net assets or portfolio of the year.
+    /// The final total net assets of the year.
     /// Basically equals to the total of the year's last month.
     /// The only difference is the variation is calculated with the previous year, not the previous month.
-    pub net_totals: Vec<NetTotal>,
+    pub net_assets: NetTotal,
+    /// The final total portfolio of the year.
+    /// Basically equals to the total of the year's last month.
+    /// The only difference is the variation is calculated with the previous year, not the previous month.
+    pub net_portfolio: NetTotal,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -90,10 +94,14 @@ pub struct YearDetail {
     pub id: Uuid,
     /// The year of the date, in format 2015.
     pub year: i32,
-    /// The final total net assets or portfolio of the year.
+    /// The final total net assets of the year.
     /// Basically equals to the total of the year's last month.
     /// The only difference is the variation is calculated with the previous year, not the previous month.
-    pub net_totals: Vec<NetTotal>,
+    pub net_assets: NetTotal,
+    /// The final total portfolio of the year.
+    /// Basically equals to the total of the year's last month.
+    /// The only difference is the variation is calculated with the previous year, not the previous month.
+    pub net_portfolio: NetTotal,
     /// All the months of the year.
     pub months: Vec<Month>,
     /// The common saving rates of the year.
@@ -105,7 +113,8 @@ impl YearDetail {
         Self {
             id: Uuid::new_v4(),
             year,
-            net_totals: vec![NetTotal::new_asset(), NetTotal::new_portfolio()],
+            net_assets: NetTotal::new_asset(),
+            net_portfolio: NetTotal::new_portfolio(),
             saving_rates: vec![
                 SavingRatesPerPerson::new_jeremy(),
                 SavingRatesPerPerson::new_sandryne(),
@@ -115,44 +124,37 @@ impl YearDetail {
         }
     }
 
-    pub fn update_net_totals_with_previous(&mut self, prev_net_totals: &[NetTotal]) {
-        for nt in &mut self.net_totals {
-            if let Some(pnt) = prev_net_totals
-                .iter()
-                .find(|&pnt| pnt.net_type == nt.net_type)
-            {
-                nt.balance_var = nt.total - pnt.total;
-                nt.percent_var = nt.balance_var as f32 / pnt.total as f32;
-            }
-        }
+    pub fn update_net_assets_with_previous(&mut self, prev_net_assets: &NetTotal) {
+        self.net_assets.balance_var = self.net_assets.total - prev_net_assets.total;
+        self.net_assets.percent_var =
+            self.net_assets.balance_var as f32 / prev_net_assets.total as f32;
+    }
+
+    pub fn update_net_portfolio_with_previous(&mut self, prev_net_portfolio: &NetTotal) {
+        self.net_portfolio.balance_var = self.net_portfolio.total - prev_net_portfolio.total;
+        self.net_portfolio.percent_var =
+            self.net_portfolio.balance_var as f32 / prev_net_portfolio.total as f32;
     }
 
     pub fn get_last_month(&self) -> Option<Month> {
         self.months.last().cloned()
     }
 
-    pub fn needs_net_totals_update(&self, month_net_totals: &[NetTotal]) -> bool {
-        self.net_totals.iter().any(|nt| {
-            if let Some(mnt) = month_net_totals
-                .iter()
-                .find(|&mnt| mnt.net_type == nt.net_type)
-            {
-                nt.total != mnt.total
-            } else {
-                true
-            }
-        })
+    pub fn needs_net_totals_update(
+        &self,
+        month_net_assets: &NetTotal,
+        month_net_portfolio: &NetTotal,
+    ) -> bool {
+        self.net_assets.total != month_net_assets.total
+            || self.net_portfolio.total != month_net_portfolio.total
     }
 
-    pub fn update_net_totals_with_last_month(&mut self, month_net_totals: &[NetTotal]) {
-        for nt in &mut self.net_totals {
-            if let Some(mnt) = month_net_totals
-                .iter()
-                .find(|&mnt| mnt.net_type == nt.net_type)
-            {
-                nt.total = mnt.total;
-            }
-        }
+    pub fn update_net_assets_with_last_month(&mut self, month_net_assets: &NetTotal) {
+        self.net_assets.total = month_net_assets.total;
+    }
+
+    pub fn update_net_portfolio_with_last_month(&mut self, month_net_portfolio: &NetTotal) {
+        self.net_portfolio.total = month_net_portfolio.total;
     }
 
     pub fn update_saving_rates(&mut self, saving_rates: Vec<SavingRatesPerPerson>) {
