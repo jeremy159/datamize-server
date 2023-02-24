@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -53,4 +55,25 @@ pub async fn create_balance_sheet_month(
     let month = create_month(&db_conn_pool, year_data, body.month).await?;
 
     Ok((StatusCode::CREATED, Json(month)))
+}
+
+/// Returns all months of all years.
+pub async fn all_balance_sheet_months(
+    State(app_state): State<AppState>,
+) -> HttpJsonAppResult<Vec<Month>> {
+    let db_conn_pool = app_state.db_conn_pool;
+
+    let years_data = db::get_all_years_data(&db_conn_pool).await?;
+    let mut months: Vec<Month> = vec![];
+
+    for yd in years_data {
+        months.extend(build_months(&db_conn_pool, yd).await?.into_iter());
+    }
+
+    months.sort_by(|a, b| match a.year.cmp(&b.year) {
+        Ordering::Equal => a.month.cmp(&b.month),
+        other => other,
+    });
+
+    Ok(Json(months))
 }

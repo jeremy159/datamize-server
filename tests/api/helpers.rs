@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, time::Duration};
 
 use chrono::{Datelike, NaiveDate};
 use datamize::{
@@ -161,6 +161,14 @@ impl TestApp {
                 "{}/api/balance_sheet/resources/refresh",
                 &self.address
             ))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
+    pub async fn get_all_months(&self) -> reqwest::Response {
+        self.api_client
+            .get(&format!("{}/api/balance_sheet/months", &self.address))
             .send()
             .await
             .expect("Failed to execute request.")
@@ -391,6 +399,10 @@ pub async fn spawn_app(db_pool: PgPool) -> TestApp {
         .expect("Failed to build application.");
     let application_port = application.port();
     let _ = tokio::spawn(application.run());
+
+    tokio::spawn(async { Duration::from_millis(300) })
+        .await
+        .unwrap();
 
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())

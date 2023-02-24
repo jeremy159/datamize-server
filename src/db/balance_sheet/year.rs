@@ -8,16 +8,7 @@ use crate::domain::{NetTotal, NetTotalType, SavingRatesPerPerson, YearDetail, Ye
 pub async fn get_years_summary(db_conn_pool: &PgPool) -> Result<Vec<YearSummary>, sqlx::Error> {
     let mut years: Vec<YearSummary> = vec![];
 
-    let year_datas_query = sqlx::query_as!(
-        YearData,
-        r#"
-        SELECT
-            id,
-            year
-        FROM balance_sheet_years;
-        "#
-    )
-    .fetch_all(db_conn_pool);
+    let year_datas_query = get_all_years_data(db_conn_pool);
 
     let net_totals_query = sqlx::query!(
         r#"
@@ -94,6 +85,21 @@ pub async fn get_year_data(
         year
     )
     .fetch_optional(db_conn_pool)
+    .await
+}
+
+#[tracing::instrument(skip(db_conn_pool))]
+pub async fn get_all_years_data(db_conn_pool: &PgPool) -> Result<Vec<YearData>, sqlx::Error> {
+    sqlx::query_as!(
+        YearData,
+        r#"
+        SELECT
+            id,
+            year
+        FROM balance_sheet_years;
+        "#,
+    )
+    .fetch_all(db_conn_pool)
     .await
 }
 

@@ -412,3 +412,328 @@ async fn post_months_updates_net_totals_if_previous_month_exists_in_prev_year(po
     );
     assert_eq!(month.net_portfolio.percent_var, -1.0);
 }
+
+#[sqlx::test]
+async fn get_all_months_returns_an_empty_list_when_nothing_in_database(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+
+    // Act
+    let response = app.get_all_months().await;
+
+    // Assert
+    assert!(response.status().is_success());
+    let value: serde_json::Value = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+    assert!(value.is_array());
+}
+
+#[sqlx::test]
+async fn get_all_months_fails_if_there_is_a_fatal_database_error(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let year = Date().fake::<NaiveDate>().year();
+    app.insert_year(year).await;
+    // Sabotage the database
+    sqlx::query!("ALTER TABLE balance_sheet_months DROP COLUMN month;",)
+        .execute(&app.db_pool)
+        .await
+        .unwrap();
+
+    // Act
+    let response = app.get_all_months().await;
+
+    // Assert
+    assert_eq!(
+        response.status(),
+        reqwest::StatusCode::INTERNAL_SERVER_ERROR
+    );
+}
+
+#[sqlx::test]
+async fn get_all_months_returns_an_empty_list_even_if_year_is_in_db(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let year = Date().fake::<NaiveDate>().year();
+    app.insert_year(year).await;
+
+    // Act
+    let response = app.get_all_months().await;
+
+    // Assert
+    assert!(response.status().is_success());
+    let value: serde_json::Value = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+    assert!(value.is_array());
+}
+
+#[sqlx::test]
+async fn get_all_months_returns_all_months_of_only_years_with_data(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let year = Date().fake::<NaiveDate>().year();
+    let year_id = app.insert_year(year).await;
+    let next_year = year + 1;
+    app.insert_year(next_year).await;
+    let month1 = app.insert_random_month(year_id).await;
+    let month1_net_total_assets = app
+        .insert_month_net_total(month1.0, DummyNetTotalType::Asset)
+        .await;
+    let month1_net_total_portfolio = app
+        .insert_month_net_total(month1.0, DummyNetTotalType::Portfolio)
+        .await;
+    let month1_first_res = app
+        .insert_financial_resource(
+            month1.0,
+            DummyResourceCategory::Asset,
+            DummyResourceType::Cash,
+        )
+        .await;
+    let month1_second_res = app
+        .insert_financial_resource(
+            month1.0,
+            DummyResourceCategory::Liability,
+            DummyResourceType::Cash,
+        )
+        .await;
+
+    let month2 = app.insert_random_month(year_id).await;
+    let month2_net_total_assets = app
+        .insert_month_net_total(month2.0, DummyNetTotalType::Asset)
+        .await;
+    let month2_net_total_portfolio = app
+        .insert_month_net_total(month2.0, DummyNetTotalType::Portfolio)
+        .await;
+    let month2_first_res = app
+        .insert_financial_resource(
+            month2.0,
+            DummyResourceCategory::Asset,
+            DummyResourceType::Cash,
+        )
+        .await;
+    let month2_second_res = app
+        .insert_financial_resource(
+            month2.0,
+            DummyResourceCategory::Liability,
+            DummyResourceType::Cash,
+        )
+        .await;
+
+    // Act
+    let response = app.get_all_months().await;
+    assert!(response.status().is_success());
+
+    let months: Vec<Month> = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+    assert_eq!(months.len(), 2);
+
+    // Assert
+    for m in &months {
+        assert_ne!(m.year, next_year);
+        if m.id == month1.0 {
+            assert_eq!(m.net_assets.id, month1_net_total_assets.id);
+            assert_eq!(m.net_assets.total, month1_net_total_assets.total as i64);
+            assert_eq!(m.net_portfolio.id, month1_net_total_portfolio.id);
+            assert_eq!(
+                m.net_portfolio.total,
+                month1_net_total_portfolio.total as i64
+            );
+
+            for r in &m.resources {
+                if r.category == ResourceCategory::Asset {
+                    assert_eq!(r.id, month1_first_res.id);
+                    assert_eq!(r.balance, month1_first_res.balance);
+                } else if r.category == ResourceCategory::Liability {
+                    assert_eq!(r.id, month1_second_res.id);
+                    assert_eq!(r.balance, month1_second_res.balance);
+                }
+            }
+        } else if m.id == month2.0 {
+            assert_eq!(m.net_assets.id, month2_net_total_assets.id);
+            assert_eq!(m.net_assets.total, month2_net_total_assets.total as i64);
+            assert_eq!(m.net_portfolio.id, month2_net_total_portfolio.id);
+            assert_eq!(
+                m.net_portfolio.total,
+                month2_net_total_portfolio.total as i64
+            );
+
+            for r in &m.resources {
+                if r.category == ResourceCategory::Asset {
+                    assert_eq!(r.id, month2_first_res.id);
+                    assert_eq!(r.balance, month2_first_res.balance);
+                } else if r.category == ResourceCategory::Liability {
+                    assert_eq!(r.id, month2_second_res.id);
+                    assert_eq!(r.balance, month2_second_res.balance);
+                }
+            }
+        }
+    }
+}
+
+#[sqlx::test]
+async fn get_all_months_returns_all_months_of_all_years_with_data(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let year = Date().fake::<NaiveDate>().year();
+    let year_id = app.insert_year(year).await;
+    let prev_year = year - 1;
+    let prev_year_id = app.insert_year(prev_year).await;
+    let month1 = app.insert_random_month(year_id).await;
+    let month1_net_total_assets = app
+        .insert_month_net_total(month1.0, DummyNetTotalType::Asset)
+        .await;
+    let month1_net_total_portfolio = app
+        .insert_month_net_total(month1.0, DummyNetTotalType::Portfolio)
+        .await;
+    let month1_first_res = app
+        .insert_financial_resource(
+            month1.0,
+            DummyResourceCategory::Asset,
+            DummyResourceType::Cash,
+        )
+        .await;
+    let month1_second_res = app
+        .insert_financial_resource(
+            month1.0,
+            DummyResourceCategory::Liability,
+            DummyResourceType::Cash,
+        )
+        .await;
+
+    let month2 = app.insert_random_month(year_id).await;
+    let month2_net_total_assets = app
+        .insert_month_net_total(month2.0, DummyNetTotalType::Asset)
+        .await;
+    let month2_net_total_portfolio = app
+        .insert_month_net_total(month2.0, DummyNetTotalType::Portfolio)
+        .await;
+    let month2_first_res = app
+        .insert_financial_resource(
+            month2.0,
+            DummyResourceCategory::Asset,
+            DummyResourceType::Cash,
+        )
+        .await;
+    let month2_second_res = app
+        .insert_financial_resource(
+            month2.0,
+            DummyResourceCategory::Liability,
+            DummyResourceType::Cash,
+        )
+        .await;
+
+    let month3 = app.insert_random_month(prev_year_id).await;
+    let month3_net_total_assets = app
+        .insert_month_net_total(month3.0, DummyNetTotalType::Asset)
+        .await;
+    let month3_net_total_portfolio = app
+        .insert_month_net_total(month3.0, DummyNetTotalType::Portfolio)
+        .await;
+    let month3_first_res = app
+        .insert_financial_resource(
+            month3.0,
+            DummyResourceCategory::Asset,
+            DummyResourceType::Cash,
+        )
+        .await;
+    let month3_second_res = app
+        .insert_financial_resource(
+            month3.0,
+            DummyResourceCategory::Liability,
+            DummyResourceType::Cash,
+        )
+        .await;
+
+    // Act
+    let response = app.get_all_months().await;
+    assert!(response.status().is_success());
+
+    let months: Vec<Month> = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+
+    // Assert
+    assert_eq!(months.len(), 3);
+
+    for m in &months {
+        if m.id == month1.0 {
+            assert_eq!(m.net_assets.id, month1_net_total_assets.id);
+            assert_eq!(m.net_assets.total, month1_net_total_assets.total as i64);
+            assert_eq!(m.net_portfolio.id, month1_net_total_portfolio.id);
+            assert_eq!(
+                m.net_portfolio.total,
+                month1_net_total_portfolio.total as i64
+            );
+
+            for r in &m.resources {
+                if r.category == ResourceCategory::Asset {
+                    assert_eq!(r.id, month1_first_res.id);
+                    assert_eq!(r.balance, month1_first_res.balance);
+                } else if r.category == ResourceCategory::Liability {
+                    assert_eq!(r.id, month1_second_res.id);
+                    assert_eq!(r.balance, month1_second_res.balance);
+                }
+            }
+        } else if m.id == month2.0 {
+            assert_eq!(m.net_assets.id, month2_net_total_assets.id);
+            assert_eq!(m.net_assets.total, month2_net_total_assets.total as i64);
+            assert_eq!(m.net_portfolio.id, month2_net_total_portfolio.id);
+            assert_eq!(
+                m.net_portfolio.total,
+                month2_net_total_portfolio.total as i64
+            );
+
+            for r in &m.resources {
+                if r.category == ResourceCategory::Asset {
+                    assert_eq!(r.id, month2_first_res.id);
+                    assert_eq!(r.balance, month2_first_res.balance);
+                } else if r.category == ResourceCategory::Liability {
+                    assert_eq!(r.id, month2_second_res.id);
+                    assert_eq!(r.balance, month2_second_res.balance);
+                }
+            }
+        } else if m.id == month3.0 {
+            assert_eq!(m.net_assets.id, month3_net_total_assets.id);
+            assert_eq!(m.net_assets.total, month3_net_total_assets.total as i64);
+            assert_eq!(m.net_portfolio.id, month3_net_total_portfolio.id);
+            assert_eq!(
+                m.net_portfolio.total,
+                month3_net_total_portfolio.total as i64
+            );
+
+            for r in &m.resources {
+                if r.category == ResourceCategory::Asset {
+                    assert_eq!(r.id, month3_first_res.id);
+                    assert_eq!(r.balance, month3_first_res.balance);
+                } else if r.category == ResourceCategory::Liability {
+                    assert_eq!(r.id, month3_second_res.id);
+                    assert_eq!(r.balance, month3_second_res.balance);
+                }
+            }
+        }
+    }
+}
+
+#[sqlx::test]
+async fn get_all_months_returns_all_months_of_all_years_ordered_by_year_then_month(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let year = Date().fake::<NaiveDate>().year();
+    let year_id = app.insert_year(year).await;
+    let prev_year = year - 1;
+    let prev_year_id = app.insert_year(prev_year).await;
+    let month = (2..12).fake();
+    let prev_month = month - 1;
+    let month1 = app.insert_month(year_id, month).await;
+    let month2 = app.insert_month(year_id, prev_month).await;
+    let month3 = app.insert_random_month(prev_year_id).await;
+
+    // Act
+    let response = app.get_all_months().await;
+    assert!(response.status().is_success());
+
+    let months: Vec<Month> = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+
+    // Assert
+    assert_eq!(months.len(), 3);
+    // Months of previous year should be first
+    assert_eq!(months[0].id, month3.0);
+    // Then previous month of same year
+    assert_eq!(months[1].id, month2);
+    assert_eq!(months[2].id, month1);
+}

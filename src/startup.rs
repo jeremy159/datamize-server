@@ -14,8 +14,8 @@ use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use crate::{
     config::{RedisSettings, Settings},
     routes::{
-        balance_sheet_month, balance_sheet_months, balance_sheet_year, balance_sheet_years,
-        create_balance_sheet_month, create_balance_sheet_year, health_check,
+        all_balance_sheet_months, balance_sheet_month, balance_sheet_months, balance_sheet_year,
+        balance_sheet_years, create_balance_sheet_month, create_balance_sheet_year, health_check,
         refresh_balance_sheet_resources, template_details, template_summary, template_transactions,
         update_balance_sheet_month, update_balance_sheet_year,
     },
@@ -73,6 +73,7 @@ impl Application {
                 "/api/balance_sheet/years/:year",
                 get(balance_sheet_year).put(update_balance_sheet_year),
             )
+            .route("/api/balance_sheet/months", get(all_balance_sheet_months))
             .route(
                 "/api/balance_sheet/years/:year/months",
                 get(balance_sheet_months).post(create_balance_sheet_month),
