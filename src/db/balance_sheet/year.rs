@@ -1,4 +1,6 @@
-use futures::try_join;
+use std::collections::HashMap;
+
+use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -6,68 +8,82 @@ use crate::domain::{NetTotal, NetTotalType, SavingRatesPerPerson, YearDetail, Ye
 
 #[tracing::instrument(skip_all)]
 pub async fn get_years_summary(db_conn_pool: &PgPool) -> Result<Vec<YearSummary>, sqlx::Error> {
-    let mut years: Vec<YearSummary> = vec![];
+    let mut years = HashMap::<Uuid, YearSummary>::new();
 
-    let year_datas_query = get_all_years_data(db_conn_pool);
-
-    let net_totals_query = sqlx::query!(
+    let db_rows = sqlx::query!(
         r#"
-        SELECT *
-        FROM balance_sheet_net_totals_years;
+        SELECT
+            y.id as year_id,
+            y.year,
+            n.id as net_total_id,
+            n.type,
+            n.total,
+            n.percent_var,
+            n.balance_var,
+            n.year_id as net_total_year_id
+        FROM balance_sheet_years AS y
+        JOIN balance_sheet_net_totals_years AS n ON year_id = n.year_id;
         "#
     )
-    .fetch_all(db_conn_pool);
+    .fetch_all(db_conn_pool)
+    .await?;
 
-    let (year_datas, net_totals) = try_join!(year_datas_query, net_totals_query)?;
-
-    for yd in year_datas {
-        let net_assets = match net_totals
-            .iter()
-            .find(|r| r.year_id == yd.id)
-            .filter(|r| r.r#type == NetTotalType::Asset.to_string())
-        {
-            Some(r) => NetTotal {
-                id: r.id,
+    for r in db_rows
+        .into_iter()
+        .filter(|v| v.year_id == v.net_total_year_id)
+    {
+        let is_net_assets_total = r.r#type == NetTotalType::Asset.to_string();
+        let net_assets = match is_net_assets_total {
+            true => NetTotal {
+                id: r.net_total_id,
                 net_type: r.r#type.parse().unwrap(),
                 total: r.total,
                 percent_var: r.percent_var,
                 balance_var: r.balance_var,
             },
-            None => NetTotal::new_asset(),
+            false => NetTotal::new_asset(),
         };
 
-        let net_portfolio = match net_totals
-            .iter()
-            .find(|r| r.year_id == yd.id)
-            .filter(|r| r.r#type == NetTotalType::Portfolio.to_string())
-        {
-            Some(r) => NetTotal {
-                id: r.id,
+        let net_portfolio = match r.r#type == NetTotalType::Portfolio.to_string() {
+            true => NetTotal {
+                id: r.net_total_id,
                 net_type: r.r#type.parse().unwrap(),
                 total: r.total,
                 percent_var: r.percent_var,
                 balance_var: r.balance_var,
             },
-            None => NetTotal::new_portfolio(),
+            false => NetTotal::new_portfolio(),
         };
 
-        years.push(YearSummary {
-            id: yd.id,
-            year: yd.year,
-            net_assets,
-            net_portfolio,
-        })
+        years
+            .entry(r.year_id)
+            .and_modify(|y| {
+                if is_net_assets_total {
+                    y.net_assets = net_assets.clone();
+                } else {
+                    y.net_portfolio = net_portfolio.clone();
+                }
+            })
+            .or_insert_with(|| YearSummary {
+                id: r.year_id,
+                year: r.year,
+                net_assets,
+                net_portfolio,
+            });
     }
+
+    let mut years = years.into_values().collect::<Vec<_>>();
 
     years.sort_by(|a, b| a.year.cmp(&b.year));
 
     Ok(years)
 }
 
-#[derive(sqlx::FromRow, Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, sqlx::FromRow)]
 pub struct YearData {
     pub id: Uuid,
     pub year: i32,
+    pub refreshed_at: DateTime<Utc>,
 }
 
 #[tracing::instrument(skip(db_conn_pool))]
@@ -78,7 +94,7 @@ pub async fn get_year_data(
     sqlx::query_as!(
         YearData,
         r#"
-        SELECT *
+        SELECT id, year, refreshed_at
         FROM balance_sheet_years
         WHERE year = $1;
         "#,
@@ -88,30 +104,16 @@ pub async fn get_year_data(
     .await
 }
 
-#[tracing::instrument(skip(db_conn_pool))]
-pub async fn get_all_years_data(db_conn_pool: &PgPool) -> Result<Vec<YearData>, sqlx::Error> {
-    sqlx::query_as!(
-        YearData,
-        r#"
-        SELECT
-            id,
-            year
-        FROM balance_sheet_years;
-        "#,
-    )
-    .fetch_all(db_conn_pool)
-    .await
-}
-
 #[tracing::instrument(skip_all)]
 pub async fn add_new_year(db_conn_pool: &PgPool, year: &YearDetail) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
-        INSERT INTO balance_sheet_years (id, year)
-        VALUES ($1, $2);
+        INSERT INTO balance_sheet_years (id, year, refreshed_at)
+        VALUES ($1, $2, $3);
         "#,
         year.id,
         year.year,
+        year.refreshed_at,
     )
     .execute(db_conn_pool)
     .await?;
@@ -257,6 +259,21 @@ pub async fn update_saving_rates(
         .execute(db_conn_pool)
         .await?;
     }
+
+    Ok(())
+}
+
+#[tracing::instrument(skip(db_conn_pool))]
+pub async fn delete_year(db_conn_pool: &PgPool, year: i32) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        r#"
+            DELETE FROM balance_sheet_years
+            WHERE year = $1
+        "#,
+        year,
+    )
+    .execute(db_conn_pool)
+    .await?;
 
     Ok(())
 }

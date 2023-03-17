@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -9,12 +7,22 @@ use axum::{
 use axum_extra::extract::WithRejection;
 
 use crate::{
-    common::{build_months, create_month},
+    common::update_month_net_totals,
     db,
     domain::{Month, SaveMonth},
     error::{AppError, HttpJsonAppResult, JsonError},
     startup::AppState,
 };
+
+/// Returns all months of all years.
+#[tracing::instrument(name = "Get all months from all years", skip_all)]
+pub async fn all_balance_sheet_months(
+    State(app_state): State<AppState>,
+) -> HttpJsonAppResult<Vec<Month>> {
+    let db_conn_pool = app_state.db_conn_pool;
+
+    Ok(Json(db::get_all_months(&db_conn_pool).await?))
+}
 
 /// Returns all the months within a year with balance sheets.
 #[tracing::instrument(name = "Get all months from a year", skip_all)]
@@ -24,12 +32,7 @@ pub async fn balance_sheet_months(
 ) -> HttpJsonAppResult<Vec<Month>> {
     let db_conn_pool = app_state.db_conn_pool;
 
-    let Some(year_data) = db::get_year_data(&db_conn_pool, year)
-    .await? else {
-        return Err(AppError::ResourceNotFound);
-    };
-
-    Ok(Json(build_months(&db_conn_pool, year_data).await?))
+    Ok(Json(db::get_months(&db_conn_pool, year).await?))
 }
 
 /// Creates a new month if it doesn't already exist and returns the newly created entity.
@@ -47,33 +50,15 @@ pub async fn create_balance_sheet_month(
         return Err(AppError::ResourceNotFound);
     };
 
-    let None = db::get_month_data(&db_conn_pool, year_data.id, body.month as i16)
+    let None = db::get_month_data(&db_conn_pool, body.month, year)
     .await? else {
         return Err(AppError::MonthAlreadyExist);
     };
 
-    let month = create_month(&db_conn_pool, year_data, body.month).await?;
+    let month = Month::new(body.month, year);
+    db::add_new_month(&db_conn_pool, &month, year_data.id).await?;
+
+    let month = update_month_net_totals(&db_conn_pool, body.month, year).await?;
 
     Ok((StatusCode::CREATED, Json(month)))
-}
-
-/// Returns all months of all years.
-pub async fn all_balance_sheet_months(
-    State(app_state): State<AppState>,
-) -> HttpJsonAppResult<Vec<Month>> {
-    let db_conn_pool = app_state.db_conn_pool;
-
-    let years_data = db::get_all_years_data(&db_conn_pool).await?;
-    let mut months: Vec<Month> = vec![];
-
-    for yd in years_data {
-        months.extend(build_months(&db_conn_pool, yd).await?.into_iter());
-    }
-
-    months.sort_by(|a, b| match a.year.cmp(&b.year) {
-        Ordering::Equal => a.month.cmp(&b.month),
-        other => other,
-    });
-
-    Ok(Json(months))
 }

@@ -1,10 +1,12 @@
+use std::{collections::BTreeMap, str::FromStr};
+
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, sqlx::Type)]
+use super::MonthNum;
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
-#[sqlx(type_name = "category")]
-#[sqlx(rename_all = "camelCase")]
 pub enum ResourceCategory {
     /// Things you own. These can be cash or something you can convert into cash such as property, vehicles, equipment and inventory.
     Asset,
@@ -21,10 +23,19 @@ impl std::fmt::Display for ResourceCategory {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, sqlx::Type)]
+impl FromStr for ResourceCategory {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "asset" => Ok(Self::Asset),
+            "liability" => Ok(Self::Liability),
+            _ => Err(format!("Failed to parse {:?} to ResourceCategory", s)),
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
-#[sqlx(type_name = "resource_type")]
-#[sqlx(rename_all = "camelCase")]
 pub enum ResourceType {
     /// Refers to current cash, owned or due, like bank accounts or credit cards.
     Cash,
@@ -44,10 +55,22 @@ impl std::fmt::Display for ResourceType {
     }
 }
 
+impl FromStr for ResourceType {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "cash" => Ok(Self::Cash),
+            "investment" => Ok(Self::Investment),
+            "longTerm" => Ok(Self::LongTerm),
+            _ => Err(format!("Failed to parse {:?} to ResourceType", s)),
+        }
+    }
+}
+
 /// A resource with economic value. It represents either an asset or a liability
 /// and adds more data to it.
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
-pub struct FinancialResource {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct BaseFinancialResource {
     /// ID of the resource to be used when an update is needed.
     pub id: Uuid,
     /// The name of the resource.
@@ -57,115 +80,169 @@ pub struct FinancialResource {
     pub category: ResourceCategory,
     /// Internal splitting beyond the category.
     #[serde(rename = "type")]
-    // #[sqlx(rename = "type")]
-    pub resource_type: ResourceType,
-    /// The balance of the resource in the month.
-    pub balance: i64,
+    pub r_type: ResourceType,
     /// Flag to indicate if the resource can be edited with the API.
     pub editable: bool,
 }
 
-// TODO: customize template instead of enforcing names here...
-impl FinancialResource {
-    pub fn new_bank_accounts() -> Self {
-        FinancialResource::new_asset("Comptes Bancaires".to_string())
-            .of_type(ResourceType::Cash)
-            .non_editable()
+impl BaseFinancialResource {
+    pub fn new(
+        name: String,
+        category: ResourceCategory,
+        r_type: ResourceType,
+        editable: bool,
+    ) -> Self {
+        BaseFinancialResource {
+            id: Uuid::new_v4(),
+            name,
+            category,
+            r_type,
+            editable,
+        }
     }
 
-    pub fn new_tfsa_jeremy() -> Self {
-        FinancialResource::new_asset("CELI Jeremy".to_string())
-            .of_type(ResourceType::Investment)
-            .non_editable()
-    }
-
-    pub fn new_tfsa_sandryne() -> Self {
-        FinancialResource::new_asset("CELI Sandryne".to_string())
-            .of_type(ResourceType::Investment)
-            .non_editable()
-    }
-
-    pub fn new_rrsp_jeremy() -> Self {
-        FinancialResource::new_asset("REER Jeremy".to_string()).of_type(ResourceType::Investment)
-    }
-
-    pub fn new_rpp_sandryne() -> Self {
-        FinancialResource::new_asset("RPA Sandryne".to_string()).of_type(ResourceType::Investment)
-    }
-
-    pub fn new_resp() -> Self {
-        FinancialResource::new_asset("REEE".to_string()).of_type(ResourceType::Investment)
-    }
-
-    pub fn new_house_value() -> Self {
-        FinancialResource::new_asset("Valeur Maison".to_string()).of_type(ResourceType::LongTerm)
-    }
-
-    pub fn new_car_value() -> Self {
-        FinancialResource::new_asset("Valeur Automobile".to_string())
-            .of_type(ResourceType::LongTerm)
-    }
-
-    pub fn new_credit_cards() -> Self {
-        FinancialResource::new_liability("Cartes de Crédit".to_string())
-            .of_type(ResourceType::Cash)
-            .non_editable()
-    }
-
-    pub fn new_mortgage() -> Self {
-        FinancialResource::new_liability("Prêt Hypothécaire".to_string())
-            .of_type(ResourceType::LongTerm)
-            .non_editable()
-    }
-
-    pub fn new_cars_loan() -> Self {
-        FinancialResource::new_liability("Prêts Automobile".to_string())
-            .of_type(ResourceType::LongTerm)
-            .non_editable()
-    }
-
-    pub fn new_asset(name: String) -> Self {
-        FinancialResource {
+    pub fn new_asset(name: String, r_type: ResourceType, editable: bool) -> Self {
+        BaseFinancialResource {
             id: Uuid::new_v4(),
             name,
             category: ResourceCategory::Asset,
-            resource_type: ResourceType::Cash,
-            balance: 0,
-            editable: true,
+            r_type,
+            editable,
         }
     }
 
-    pub fn new_liability(name: String) -> Self {
-        FinancialResource {
+    pub fn new_liability(name: String, r_type: ResourceType, editable: bool) -> Self {
+        BaseFinancialResource {
             id: Uuid::new_v4(),
             name,
             category: ResourceCategory::Liability,
-            resource_type: ResourceType::Cash,
-            balance: 0,
-            editable: true,
+            r_type,
+            editable,
+        }
+    }
+}
+
+/// A resource represented within a year. It has a BTreeMap of balance per months.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct FinancialResourceYearly {
+    #[serde(flatten)]
+    pub base: BaseFinancialResource,
+    /// The year in which the financial resource is
+    pub year: i32,
+    /// The balance of the resource in the month.
+    pub balance_per_month: BTreeMap<MonthNum, i64>,
+}
+
+impl FinancialResourceYearly {
+    pub fn new(
+        name: String,
+        category: ResourceCategory,
+        r_type: ResourceType,
+        editable: bool,
+        year: i32,
+    ) -> Self {
+        FinancialResourceYearly {
+            base: BaseFinancialResource::new(name, category, r_type, editable),
+            year,
+            balance_per_month: BTreeMap::new(),
         }
     }
 
-    pub fn of_type(mut self, resource_type: ResourceType) -> Self {
-        self.resource_type = resource_type;
-        self
+    pub fn new_asset(name: String, r_type: ResourceType, editable: bool, year: i32) -> Self {
+        FinancialResourceYearly {
+            base: BaseFinancialResource::new_asset(name, r_type, editable),
+            year,
+            balance_per_month: BTreeMap::new(),
+        }
     }
 
-    pub fn non_editable(mut self) -> Self {
-        self.editable = false;
-        self
+    pub fn new_liability(name: String, r_type: ResourceType, editable: bool, year: i32) -> Self {
+        FinancialResourceYearly {
+            base: BaseFinancialResource::new_liability(name, r_type, editable),
+            year,
+            balance_per_month: BTreeMap::new(),
+        }
+    }
+}
+
+/// A resource represented with a month of a particular year. It has a single balance field.
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct FinancialResourceMonthly {
+    #[serde(flatten)]
+    pub base: BaseFinancialResource,
+    /// The month in which the financial resource has the current balance.
+    pub month: MonthNum,
+    /// The year in which the financial resource is
+    pub year: i32,
+    /// The balance of the resource in the month.
+    pub balance: i64,
+}
+
+impl FinancialResourceMonthly {
+    pub fn new(
+        name: String,
+        category: ResourceCategory,
+        r_type: ResourceType,
+        editable: bool,
+        month: MonthNum,
+        year: i32,
+    ) -> Self {
+        FinancialResourceMonthly {
+            base: BaseFinancialResource::new(name, category, r_type, editable),
+            month,
+            year,
+            balance: 0,
+        }
     }
 
-    pub fn with_balance(mut self, new_balance: i64) -> Self {
-        self.balance = new_balance;
-        self
+    pub fn new_asset(
+        name: String,
+        r_type: ResourceType,
+        editable: bool,
+        month: MonthNum,
+        year: i32,
+    ) -> Self {
+        FinancialResourceMonthly {
+            base: BaseFinancialResource::new_asset(name, r_type, editable),
+            month,
+            year,
+            balance: 0,
+        }
     }
 
-    pub fn add_to_balance(&mut self, balance: i64) {
-        self.balance += balance;
+    pub fn new_liability(
+        name: String,
+        r_type: ResourceType,
+        editable: bool,
+        month: MonthNum,
+        year: i32,
+    ) -> Self {
+        FinancialResourceMonthly {
+            base: BaseFinancialResource::new_liability(name, r_type, editable),
+            month,
+            year,
+            balance: 0,
+        }
     }
+}
 
-    pub fn override_balance(&mut self, balance: i64) {
-        self.balance = balance;
+#[derive(Debug, Deserialize, Serialize)]
+pub struct SaveResource {
+    pub name: String,
+    pub category: ResourceCategory,
+    #[serde(rename = "type")]
+    pub r_type: ResourceType,
+    pub editable: bool,
+    pub balance_per_month: BTreeMap<MonthNum, i64>,
+    // TODO: Maybe also add possibility to save ynab accounts linked to it.
+}
+
+impl SaveResource {
+    pub fn to_financial_resource_yearly(self, year: i32) -> FinancialResourceYearly {
+        FinancialResourceYearly {
+            base: BaseFinancialResource::new(self.name, self.category, self.r_type, self.editable),
+            year,
+            balance_per_month: self.balance_per_month,
+        }
     }
 }

@@ -28,6 +28,15 @@ where
     }
 }
 
+impl AppError {
+    pub fn from_sqlx(value: sqlx::Error) -> Self {
+        match value {
+            sqlx::Error::RowNotFound => AppError::ResourceNotFound,
+            e => e.into(),
+        }
+    }
+}
+
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, error_message) = match self {

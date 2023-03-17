@@ -2,8 +2,9 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use axum_extra::extract::WithRejection;
 
 use crate::{
+    common::{get_year, update_year_net_totals},
     db,
-    domain::{NetTotalType, SaveYear, YearDetail, YearSummary},
+    domain::{SaveYear, YearDetail, YearSummary},
     error::{AppError, HttpJsonAppResult, JsonError},
     startup::AppState,
 };
@@ -32,27 +33,13 @@ pub async fn create_balance_sheet_year(
         return Err(AppError::YearAlreadyExist);
     };
 
-    let mut year = YearDetail::new(body.year);
-
-    if let Ok(Some(prev_year)) = db::get_year_data(&db_conn_pool, year.year - 1).await {
-        if let Ok(prev_net_totals) = db::get_year_net_totals_for(&db_conn_pool, prev_year.id).await
-        {
-            if let Some(prev_net_assets) = prev_net_totals
-                .iter()
-                .find(|pnt| pnt.net_type == NetTotalType::Asset)
-            {
-                year.update_net_assets_with_previous(prev_net_assets);
-            }
-            if let Some(prev_net_portfolio) = prev_net_totals
-                .iter()
-                .find(|pnt| pnt.net_type == NetTotalType::Portfolio)
-            {
-                year.update_net_portfolio_with_previous(prev_net_portfolio);
-            }
-        }
-    }
-
+    let year = YearDetail::new(body.year);
     db::add_new_year(&db_conn_pool, &year).await?;
 
-    Ok((StatusCode::CREATED, Json(year)))
+    update_year_net_totals(&db_conn_pool, body.year).await?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(get_year(&db_conn_pool, year.year).await?),
+    ))
 }

@@ -1,5 +1,5 @@
 use chrono::{Datelike, Months, NaiveDate};
-use datamize::domain::YearDetail;
+use datamize::domain::{NetTotalType, YearDetail};
 use fake::faker::chrono::en::Date;
 use fake::Fake;
 use serde::Serialize;
@@ -232,4 +232,75 @@ async fn post_years_updates_net_totals_if_previous_year_exists(pool: PgPool) {
         -net_total_portfolio.total as i64
     );
     assert_eq!(year.net_portfolio.percent_var, -1.0);
+}
+
+#[sqlx::test]
+async fn post_years_updates_net_totals_of_current_and_next_year_if_exist(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let date = Date().fake::<NaiveDate>();
+    let prev_year_id = app
+        .insert_year(date.checked_sub_months(Months::new(12)).unwrap().year())
+        .await;
+
+    let prev_net_total_assets = app
+        .insert_year_net_total(prev_year_id, DummyNetTotalType::Asset)
+        .await;
+
+    let prev_net_total_portfolio = app
+        .insert_year_net_total(prev_year_id, DummyNetTotalType::Portfolio)
+        .await;
+
+    let next_year_id = app
+        .insert_year(date.checked_add_months(Months::new(12)).unwrap().year())
+        .await;
+
+    let next_net_total_assets = app
+        .insert_year_net_total(next_year_id, DummyNetTotalType::Asset)
+        .await;
+
+    let next_net_total_portfolio = app
+        .insert_year_net_total(next_year_id, DummyNetTotalType::Portfolio)
+        .await;
+
+    #[derive(Debug, Clone, Serialize)]
+    struct Body {
+        year: i32,
+    }
+    let body = Body { year: date.year() };
+
+    // Act
+    let response = app.create_year(&body).await;
+    let year: YearDetail = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+
+    // Assert
+    assert_eq!(
+        year.net_assets.balance_var,
+        -prev_net_total_assets.total as i64
+    );
+    assert_eq!(year.net_assets.percent_var, -1.0);
+    assert_eq!(
+        year.net_portfolio.balance_var,
+        -prev_net_total_portfolio.total as i64
+    );
+    assert_eq!(year.net_portfolio.percent_var, -1.0);
+
+    // Get net totals of next year
+    let saved_next_net_totals = sqlx::query!(
+        "SELECT * FROM balance_sheet_net_totals_years WHERE year_id = $1",
+        next_year_id
+    )
+    .fetch_all(&app.db_pool)
+    .await
+    .expect("Failed to fetch net totals.");
+
+    for next_nt in saved_next_net_totals {
+        if next_nt.r#type == NetTotalType::Asset.to_string() {
+            assert_ne!(next_nt.balance_var, next_net_total_assets.balance_var);
+            assert_ne!(next_nt.percent_var, next_net_total_assets.percent_var);
+        } else {
+            assert_ne!(next_nt.balance_var, next_net_total_portfolio.balance_var);
+            assert_ne!(next_nt.percent_var, next_net_total_portfolio.percent_var);
+        }
+    }
 }

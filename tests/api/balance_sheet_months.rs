@@ -1,16 +1,15 @@
 use chrono::{Datelike, NaiveDate};
-use datamize::domain::{Month, ResourceCategory};
+use datamize::domain::Month;
 use fake::faker::chrono::en::Date;
 use fake::Fake;
-use reqwest::StatusCode;
 use serde::Serialize;
 use sqlx::PgPool;
 
-use crate::dummy_types::{DummyNetTotalType, DummyResourceCategory, DummyResourceType};
+use crate::dummy_types::DummyNetTotalType;
 use crate::helpers::spawn_app;
 
 #[sqlx::test]
-async fn get_months_returns_a_404_if_year_does_not_exist(pool: PgPool) {
+async fn get_months_returns_an_empty_list_even_if_year_does_not_exist(pool: PgPool) {
     // Arange
     let app = spawn_app(pool).await;
 
@@ -19,7 +18,9 @@ async fn get_months_returns_a_404_if_year_does_not_exist(pool: PgPool) {
     let response = app.get_months(year).await;
 
     // Assert
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    assert!(response.status().is_success());
+    let value: serde_json::Value = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+    assert!(value.is_array());
 }
 
 #[sqlx::test]
@@ -61,7 +62,7 @@ async fn get_months_fails_if_there_is_a_fatal_database_error(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn get_months_returns_net_totals_and_financial_resources_of_all_months(pool: PgPool) {
+async fn get_months_returns_net_totals_of_all_months_of_year(pool: PgPool) {
     // Arange
     let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
@@ -73,20 +74,6 @@ async fn get_months_returns_net_totals_and_financial_resources_of_all_months(poo
     let month1_net_total_portfolio = app
         .insert_month_net_total(month1.0, DummyNetTotalType::Portfolio)
         .await;
-    let month1_first_res = app
-        .insert_financial_resource(
-            month1.0,
-            DummyResourceCategory::Asset,
-            DummyResourceType::Cash,
-        )
-        .await;
-    let month1_second_res = app
-        .insert_financial_resource(
-            month1.0,
-            DummyResourceCategory::Liability,
-            DummyResourceType::Cash,
-        )
-        .await;
 
     let month2 = app.insert_random_month(year_id).await;
     let month2_net_total_assets = app
@@ -94,20 +81,6 @@ async fn get_months_returns_net_totals_and_financial_resources_of_all_months(poo
         .await;
     let month2_net_total_portfolio = app
         .insert_month_net_total(month2.0, DummyNetTotalType::Portfolio)
-        .await;
-    let month2_first_res = app
-        .insert_financial_resource(
-            month2.0,
-            DummyResourceCategory::Asset,
-            DummyResourceType::Cash,
-        )
-        .await;
-    let month2_second_res = app
-        .insert_financial_resource(
-            month2.0,
-            DummyResourceCategory::Liability,
-            DummyResourceType::Cash,
-        )
         .await;
 
     // Act
@@ -126,16 +99,6 @@ async fn get_months_returns_net_totals_and_financial_resources_of_all_months(poo
                 m.net_portfolio.total,
                 month1_net_total_portfolio.total as i64
             );
-
-            for r in &m.resources {
-                if r.category == ResourceCategory::Asset {
-                    assert_eq!(r.id, month1_first_res.id);
-                    assert_eq!(r.balance, month1_first_res.balance);
-                } else if r.category == ResourceCategory::Liability {
-                    assert_eq!(r.id, month1_second_res.id);
-                    assert_eq!(r.balance, month1_second_res.balance);
-                }
-            }
         } else if m.id == month2.0 {
             assert_eq!(m.net_assets.id, month2_net_total_assets.id);
             assert_eq!(m.net_assets.total, month2_net_total_assets.total as i64);
@@ -144,16 +107,6 @@ async fn get_months_returns_net_totals_and_financial_resources_of_all_months(poo
                 m.net_portfolio.total,
                 month2_net_total_portfolio.total as i64
             );
-
-            for r in &m.resources {
-                if r.category == ResourceCategory::Asset {
-                    assert_eq!(r.id, month2_first_res.id);
-                    assert_eq!(r.balance, month2_first_res.balance);
-                } else if r.category == ResourceCategory::Liability {
-                    assert_eq!(r.id, month2_second_res.id);
-                    assert_eq!(r.balance, month2_second_res.balance);
-                }
-            }
         }
     }
 }
@@ -294,7 +247,7 @@ async fn post_months_returns_a_409_if_month_already_exists(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn post_months_persits_net_totals_and_resources_for_new_month(pool: PgPool) {
+async fn post_months_persits_net_totals_for_new_month(pool: PgPool) {
     // Arange
     let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
@@ -320,15 +273,6 @@ async fn post_months_persits_net_totals_and_resources_for_new_month(pool: PgPool
     .await
     .expect("Failed to fetch net totals.");
     assert!(!saved_net_totals.is_empty());
-
-    let saved_resources = sqlx::query!(
-        "SELECT * FROM balance_sheet_resources WHERE month_id = $1",
-        month.id
-    )
-    .fetch_all(&app.db_pool)
-    .await
-    .expect("Failed to fetch resources.");
-    assert!(!saved_resources.is_empty());
 }
 
 #[sqlx::test]
@@ -480,20 +424,6 @@ async fn get_all_months_returns_all_months_of_only_years_with_data(pool: PgPool)
     let month1_net_total_portfolio = app
         .insert_month_net_total(month1.0, DummyNetTotalType::Portfolio)
         .await;
-    let month1_first_res = app
-        .insert_financial_resource(
-            month1.0,
-            DummyResourceCategory::Asset,
-            DummyResourceType::Cash,
-        )
-        .await;
-    let month1_second_res = app
-        .insert_financial_resource(
-            month1.0,
-            DummyResourceCategory::Liability,
-            DummyResourceType::Cash,
-        )
-        .await;
 
     let month2 = app.insert_random_month(year_id).await;
     let month2_net_total_assets = app
@@ -501,20 +431,6 @@ async fn get_all_months_returns_all_months_of_only_years_with_data(pool: PgPool)
         .await;
     let month2_net_total_portfolio = app
         .insert_month_net_total(month2.0, DummyNetTotalType::Portfolio)
-        .await;
-    let month2_first_res = app
-        .insert_financial_resource(
-            month2.0,
-            DummyResourceCategory::Asset,
-            DummyResourceType::Cash,
-        )
-        .await;
-    let month2_second_res = app
-        .insert_financial_resource(
-            month2.0,
-            DummyResourceCategory::Liability,
-            DummyResourceType::Cash,
-        )
         .await;
 
     // Act
@@ -535,16 +451,6 @@ async fn get_all_months_returns_all_months_of_only_years_with_data(pool: PgPool)
                 m.net_portfolio.total,
                 month1_net_total_portfolio.total as i64
             );
-
-            for r in &m.resources {
-                if r.category == ResourceCategory::Asset {
-                    assert_eq!(r.id, month1_first_res.id);
-                    assert_eq!(r.balance, month1_first_res.balance);
-                } else if r.category == ResourceCategory::Liability {
-                    assert_eq!(r.id, month1_second_res.id);
-                    assert_eq!(r.balance, month1_second_res.balance);
-                }
-            }
         } else if m.id == month2.0 {
             assert_eq!(m.net_assets.id, month2_net_total_assets.id);
             assert_eq!(m.net_assets.total, month2_net_total_assets.total as i64);
@@ -553,16 +459,6 @@ async fn get_all_months_returns_all_months_of_only_years_with_data(pool: PgPool)
                 m.net_portfolio.total,
                 month2_net_total_portfolio.total as i64
             );
-
-            for r in &m.resources {
-                if r.category == ResourceCategory::Asset {
-                    assert_eq!(r.id, month2_first_res.id);
-                    assert_eq!(r.balance, month2_first_res.balance);
-                } else if r.category == ResourceCategory::Liability {
-                    assert_eq!(r.id, month2_second_res.id);
-                    assert_eq!(r.balance, month2_second_res.balance);
-                }
-            }
         }
     }
 }
@@ -582,20 +478,6 @@ async fn get_all_months_returns_all_months_of_all_years_with_data(pool: PgPool) 
     let month1_net_total_portfolio = app
         .insert_month_net_total(month1.0, DummyNetTotalType::Portfolio)
         .await;
-    let month1_first_res = app
-        .insert_financial_resource(
-            month1.0,
-            DummyResourceCategory::Asset,
-            DummyResourceType::Cash,
-        )
-        .await;
-    let month1_second_res = app
-        .insert_financial_resource(
-            month1.0,
-            DummyResourceCategory::Liability,
-            DummyResourceType::Cash,
-        )
-        .await;
 
     let month2 = app.insert_random_month(year_id).await;
     let month2_net_total_assets = app
@@ -604,20 +486,6 @@ async fn get_all_months_returns_all_months_of_all_years_with_data(pool: PgPool) 
     let month2_net_total_portfolio = app
         .insert_month_net_total(month2.0, DummyNetTotalType::Portfolio)
         .await;
-    let month2_first_res = app
-        .insert_financial_resource(
-            month2.0,
-            DummyResourceCategory::Asset,
-            DummyResourceType::Cash,
-        )
-        .await;
-    let month2_second_res = app
-        .insert_financial_resource(
-            month2.0,
-            DummyResourceCategory::Liability,
-            DummyResourceType::Cash,
-        )
-        .await;
 
     let month3 = app.insert_random_month(prev_year_id).await;
     let month3_net_total_assets = app
@@ -625,20 +493,6 @@ async fn get_all_months_returns_all_months_of_all_years_with_data(pool: PgPool) 
         .await;
     let month3_net_total_portfolio = app
         .insert_month_net_total(month3.0, DummyNetTotalType::Portfolio)
-        .await;
-    let month3_first_res = app
-        .insert_financial_resource(
-            month3.0,
-            DummyResourceCategory::Asset,
-            DummyResourceType::Cash,
-        )
-        .await;
-    let month3_second_res = app
-        .insert_financial_resource(
-            month3.0,
-            DummyResourceCategory::Liability,
-            DummyResourceType::Cash,
-        )
         .await;
 
     // Act
@@ -659,16 +513,6 @@ async fn get_all_months_returns_all_months_of_all_years_with_data(pool: PgPool) 
                 m.net_portfolio.total,
                 month1_net_total_portfolio.total as i64
             );
-
-            for r in &m.resources {
-                if r.category == ResourceCategory::Asset {
-                    assert_eq!(r.id, month1_first_res.id);
-                    assert_eq!(r.balance, month1_first_res.balance);
-                } else if r.category == ResourceCategory::Liability {
-                    assert_eq!(r.id, month1_second_res.id);
-                    assert_eq!(r.balance, month1_second_res.balance);
-                }
-            }
         } else if m.id == month2.0 {
             assert_eq!(m.net_assets.id, month2_net_total_assets.id);
             assert_eq!(m.net_assets.total, month2_net_total_assets.total as i64);
@@ -677,16 +521,6 @@ async fn get_all_months_returns_all_months_of_all_years_with_data(pool: PgPool) 
                 m.net_portfolio.total,
                 month2_net_total_portfolio.total as i64
             );
-
-            for r in &m.resources {
-                if r.category == ResourceCategory::Asset {
-                    assert_eq!(r.id, month2_first_res.id);
-                    assert_eq!(r.balance, month2_first_res.balance);
-                } else if r.category == ResourceCategory::Liability {
-                    assert_eq!(r.id, month2_second_res.id);
-                    assert_eq!(r.balance, month2_second_res.balance);
-                }
-            }
         } else if m.id == month3.0 {
             assert_eq!(m.net_assets.id, month3_net_total_assets.id);
             assert_eq!(m.net_assets.total, month3_net_total_assets.total as i64);
@@ -695,16 +529,6 @@ async fn get_all_months_returns_all_months_of_all_years_with_data(pool: PgPool) 
                 m.net_portfolio.total,
                 month3_net_total_portfolio.total as i64
             );
-
-            for r in &m.resources {
-                if r.category == ResourceCategory::Asset {
-                    assert_eq!(r.id, month3_first_res.id);
-                    assert_eq!(r.balance, month3_first_res.balance);
-                } else if r.category == ResourceCategory::Liability {
-                    assert_eq!(r.id, month3_second_res.id);
-                    assert_eq!(r.balance, month3_second_res.balance);
-                }
-            }
         }
     }
 }
@@ -720,8 +544,20 @@ async fn get_all_months_returns_all_months_of_all_years_ordered_by_year_then_mon
     let month = (2..12).fake();
     let prev_month = month - 1;
     let month1 = app.insert_month(year_id, month).await;
+    app.insert_month_net_total(month1, DummyNetTotalType::Asset)
+        .await;
+    app.insert_month_net_total(month1, DummyNetTotalType::Portfolio)
+        .await;
     let month2 = app.insert_month(year_id, prev_month).await;
+    app.insert_month_net_total(month2, DummyNetTotalType::Asset)
+        .await;
+    app.insert_month_net_total(month2, DummyNetTotalType::Portfolio)
+        .await;
     let month3 = app.insert_random_month(prev_year_id).await;
+    app.insert_month_net_total(month3.0, DummyNetTotalType::Asset)
+        .await;
+    app.insert_month_net_total(month3.0, DummyNetTotalType::Portfolio)
+        .await;
 
     // Act
     let response = app.get_all_months().await;

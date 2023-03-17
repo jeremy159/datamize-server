@@ -2,10 +2,20 @@ use serde::{Deserialize, Serialize};
 use serde_repr::*;
 use uuid::Uuid;
 
-use super::{FinancialResource, NetTotal, ResourceCategory, ResourceType};
+use super::{FinancialResourceMonthly, NetTotal, ResourceCategory, ResourceType};
 
 #[derive(
-    Serialize_repr, Deserialize_repr, PartialEq, Eq, Ord, PartialOrd, Debug, Clone, Copy, sqlx::Type,
+    Serialize_repr,
+    Deserialize_repr,
+    PartialEq,
+    Eq,
+    Ord,
+    PartialOrd,
+    Debug,
+    Clone,
+    Copy,
+    Hash,
+    sqlx::Type,
 )]
 #[repr(i16)]
 pub enum MonthNum {
@@ -133,8 +143,6 @@ pub struct Month {
     pub net_assets: NetTotal,
     /// Net Portfolio summary section. Includes the variation with the previous month.
     pub net_portfolio: NetTotal,
-    /// All of the Assets and Liabilities of the current month are regrouped here.
-    pub resources: Vec<FinancialResource>,
 }
 
 impl Month {
@@ -145,19 +153,6 @@ impl Month {
             year,
             net_assets: NetTotal::new_asset(),
             net_portfolio: NetTotal::new_portfolio(),
-            resources: vec![
-                FinancialResource::new_bank_accounts(),
-                FinancialResource::new_tfsa_jeremy(),
-                FinancialResource::new_tfsa_sandryne(),
-                FinancialResource::new_rrsp_jeremy(),
-                FinancialResource::new_rpp_sandryne(),
-                FinancialResource::new_resp(),
-                FinancialResource::new_house_value(),
-                FinancialResource::new_car_value(),
-                FinancialResource::new_credit_cards(),
-                FinancialResource::new_mortgage(),
-                FinancialResource::new_cars_loan(),
-            ],
         }
     }
 
@@ -173,30 +168,21 @@ impl Month {
             self.net_portfolio.balance_var as f32 / prev_net_portfolio.total as f32;
     }
 
-    pub fn compute_net_totals(&mut self) {
-        self.net_assets.total = self.resources.iter().map(|r| r.balance).sum();
+    pub fn compute_net_totals(&mut self, resources: &[FinancialResourceMonthly]) {
+        self.net_assets.total = resources.iter().map(|r| r.balance).sum();
 
-        self.net_portfolio.total = self
-            .resources
+        self.net_portfolio.total = resources
             .iter()
             .filter(|r| {
-                r.category == ResourceCategory::Asset && r.resource_type != ResourceType::LongTerm
+                r.base.category == ResourceCategory::Asset
+                    && r.base.r_type != ResourceType::LongTerm
             })
             .map(|r| r.balance)
             .sum();
-    }
-
-    pub fn update_financial_resources(&mut self, resources: Vec<FinancialResource>) {
-        self.resources = resources;
     }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SaveMonth {
     pub month: MonthNum,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct UpdateMonth {
-    pub resources: Vec<FinancialResource>,
 }

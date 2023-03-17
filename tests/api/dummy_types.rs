@@ -4,6 +4,7 @@ use fake::{Dummy, Fake};
 use rand::distributions::OpenClosed01;
 use rand::prelude::*;
 use serde::Serialize;
+use serde_repr::{Deserialize_repr, Serialize_repr};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Dummy)]
@@ -134,4 +135,97 @@ pub struct DummyAccount {
     pub direct_import_linked: Option<bool>,
     pub direct_import_in_error: Option<bool>,
     pub deleted: bool,
+}
+
+#[derive(
+    Serialize_repr,
+    Deserialize_repr,
+    PartialEq,
+    Eq,
+    Ord,
+    PartialOrd,
+    Debug,
+    Clone,
+    Copy,
+    Hash,
+    sqlx::Type,
+    Dummy,
+)]
+#[repr(i16)]
+pub enum DummyMonthNum {
+    January = 1,
+    February,
+    March,
+    April,
+    May,
+    June,
+    July,
+    August,
+    September,
+    October,
+    November,
+    December,
+}
+
+impl TryFrom<i16> for DummyMonthNum {
+    type Error = String;
+
+    fn try_from(value: i16) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Self::January),
+            2 => Ok(Self::February),
+            3 => Ok(Self::March),
+            4 => Ok(Self::April),
+            5 => Ok(Self::May),
+            6 => Ok(Self::June),
+            7 => Ok(Self::July),
+            8 => Ok(Self::August),
+            9 => Ok(Self::September),
+            10 => Ok(Self::October),
+            11 => Ok(Self::November),
+            12 => Ok(Self::December),
+            _ => Err(format!("Failed to convert {:?} to MonthNum", value)),
+        }
+    }
+}
+
+impl TryFrom<u32> for DummyMonthNum {
+    type Error = String;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Self::January),
+            2 => Ok(Self::February),
+            3 => Ok(Self::March),
+            4 => Ok(Self::April),
+            5 => Ok(Self::May),
+            6 => Ok(Self::June),
+            7 => Ok(Self::July),
+            8 => Ok(Self::August),
+            9 => Ok(Self::September),
+            10 => Ok(Self::October),
+            11 => Ok(Self::November),
+            12 => Ok(Self::December),
+            _ => Err(format!("Failed to convert {:?} to MonthNum", value)),
+        }
+    }
+}
+
+impl DummyMonthNum {
+    pub fn pred(&self) -> DummyMonthNum {
+        match *self {
+            DummyMonthNum::January => DummyMonthNum::December,
+            DummyMonthNum::February => DummyMonthNum::January,
+            DummyMonthNum::March => DummyMonthNum::February,
+            DummyMonthNum::April => DummyMonthNum::March,
+            DummyMonthNum::May => DummyMonthNum::April,
+            DummyMonthNum::June => DummyMonthNum::May,
+            DummyMonthNum::July => DummyMonthNum::June,
+            DummyMonthNum::August => DummyMonthNum::July,
+            DummyMonthNum::September => DummyMonthNum::August,
+            DummyMonthNum::October => DummyMonthNum::September,
+            DummyMonthNum::November => DummyMonthNum::October,
+            DummyMonthNum::December => DummyMonthNum::November,
+        }
+    }
 }

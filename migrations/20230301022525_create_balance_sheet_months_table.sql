@@ -4,5 +4,5 @@ CREATE TABLE balance_sheet_months(
   month SMALLINT NOT NULL,
   year_id uuid NOT NULL,
   PRIMARY KEY (id),
-  FOREIGN KEY (year_id) REFERENCES balance_sheet_years(id)
+  FOREIGN KEY (year_id) REFERENCES balance_sheet_years(id) ON DELETE CASCADE
 );

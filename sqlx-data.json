@@ -1,6 +1,66 @@
 {
   "db": "PostgreSQL",
-  "250d9ae6cfd025651ccc19b6c6fb123096faf73b53213e5cf36b2546b1e709cd": {
+  "0442f9dc154159064a0acec3bf1d07f10036245748b9fe9cb9b299fda3ea0b1a": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "category",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "type",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "editable",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "balance",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "month",
+          "ordinal": 6,
+          "type_info": "Int2"
+        },
+        {
+          "name": "year",
+          "ordinal": 7,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n        SELECT\n            r.*,\n            rm.balance,\n            m.month,\n            y.year\n        FROM balance_sheet_resources AS r\n        JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id\n        JOIN balance_sheet_months AS m ON rm.month_id = m.id\n        JOIN balance_sheet_years AS y ON y.id = m.year_id\n        "
+  },
+  "066fcd7e8c23427f1ea4f5d380e49e869cff3e9df62d4b23fbb09ab7bfb3b4cd": {
     "describe": {
       "columns": [
         {
@@ -12,9 +72,15 @@
           "name": "year",
           "ordinal": 1,
           "type_info": "Int4"
+        },
+        {
+          "name": "refreshed_at",
+          "ordinal": 2,
+          "type_info": "Timestamptz"
         }
       ],
       "nullable": [
+        false,
         false,
         false
       ],
@@ -24,7 +90,83 @@
         ]
       }
     },
-    "query": "\n        SELECT *\n        FROM balance_sheet_years\n        WHERE year = $1;\n        "
+    "query": "\n        SELECT id, year, refreshed_at\n        FROM balance_sheet_years\n        WHERE year = $1;\n        "
+  },
+  "12c601d814f769f0163533504a146d53cc73029b9a7a398fd6fdbee0dd67c05a": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int2",
+          "Int4"
+        ]
+      }
+    },
+    "query": "\n            DELETE FROM balance_sheet_months\n            WHERE month = $1 AND year_id in (SELECT y.id\n            FROM balance_sheet_years AS y WHERE y.year = $2);\n        "
+  },
+  "1727fbbf7175874d0b69aefcb7207246024250383a3bd5fe8d816c47e368fb66": {
+    "describe": {
+      "columns": [
+        {
+          "name": "month_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "month",
+          "ordinal": 1,
+          "type_info": "Int2"
+        },
+        {
+          "name": "net_total_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "type",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "total",
+          "ordinal": 4,
+          "type_info": "Int8"
+        },
+        {
+          "name": "percent_var",
+          "ordinal": 5,
+          "type_info": "Float4"
+        },
+        {
+          "name": "balance_var",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "net_total_month_id",
+          "ordinal": 7,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int2"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            m.id as month_id,\n            m.month,\n            n.id as net_total_id,\n            n.type,\n            n.total,\n            n.percent_var,\n            n.balance_var,\n            n.month_id as net_total_month_id\n        FROM balance_sheet_months AS m\n        JOIN balance_sheet_net_totals_months AS n ON month_id = n.month_id\n        JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1\n        WHERE m.month = $2;\n        "
   },
   "2810ecb69af60d82997849ed3ed7bc98e356c761242733a0eb276153f6a07910": {
     "describe": {
@@ -159,7 +301,7 @@
       "parameters": {
         "Left": [
           "Uuid",
-          "Text",
+          "Varchar",
           "Int8",
           "Float4",
           "Int8",
@@ -168,6 +310,135 @@
       }
     },
     "query": "\n            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, month_id)\n            VALUES ($1, $2, $3, $4, $5, $6)\n            ON CONFLICT (id) DO UPDATE\n            SET type = EXCLUDED.type,\n            total = EXCLUDED.total,\n            percent_var = EXCLUDED.percent_var,\n            balance_var = EXCLUDED.balance_var;\n            "
+  },
+  "390571b3a85ac79889fb3c7663efb26a3161c9564bebb9d25f8036279a5f3919": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "category",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "type",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "editable",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "balance",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "month",
+          "ordinal": 6,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Int4"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            r.*,\n            rm.balance,\n            m.month\n        FROM balance_sheet_resources AS r\n        JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id AND r.id = $1\n        JOIN balance_sheet_months AS m ON rm.month_id = m.id\n        JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $2;\n        "
+  },
+  "394f29b284b5527f830adcb17a3b33620ddaf9e9d1b2c3e3d8f2ed92606b58ed": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Varchar",
+          "Varchar",
+          "Varchar",
+          "Bool"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO balance_sheet_resources (id, name, category, type, editable)\n        VALUES ($1, $2, $3, $4, $5)\n        ON CONFLICT (id) DO UPDATE SET\n        name = EXCLUDED.name,\n        category = EXCLUDED.category,\n        type = EXCLUDED.type,\n        editable = EXCLUDED.editable;\n        "
+  },
+  "43f2d8218f203f8357cf5fde3a3e794e042c1394eb46d823e514860206490803": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "category",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "type",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "editable",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "balance",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "month",
+          "ordinal": 6,
+          "type_info": "Int2"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            r.*,\n            rm.balance,\n            m.month\n        FROM balance_sheet_resources AS r\n        JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id\n        JOIN balance_sheet_months AS m ON rm.month_id = m.id\n        JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1;\n        "
   },
   "44a6356a7213c8e0b494d4ccae1c93625e743c28ab6e902fde10b04f77818828": {
     "describe": {
@@ -180,7 +451,7 @@
         {
           "name": "net_type: NetTotalType",
           "ordinal": 1,
-          "type_info": "Text"
+          "type_info": "Varchar"
         },
         {
           "name": "total",
@@ -213,7 +484,7 @@
     },
     "query": "\n        SELECT\n            id,\n            type AS \"net_type: NetTotalType\",\n            total,\n            percent_var,\n            balance_var\n        FROM balance_sheet_net_totals_months\n        WHERE month_id = $1;\n        "
   },
-  "536af4c9d0f00d58acc4924c116cbf6f83857297c0b6c46a220fbbcce030e29b": {
+  "4fbdc5e8476541303b9ee0e112e972adae88c80bc24fb4562f49394233cd0e23": {
     "describe": {
       "columns": [
         {
@@ -222,46 +493,23 @@
           "type_info": "Uuid"
         },
         {
-          "name": "name",
+          "name": "month",
           "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "category: ResourceCategory",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "resource_type: ResourceType",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "balance",
-          "ordinal": 4,
-          "type_info": "Int8"
-        },
-        {
-          "name": "editable",
-          "ordinal": 5,
-          "type_info": "Bool"
+          "type_info": "Int2"
         }
       ],
       "nullable": [
-        false,
-        false,
-        false,
-        false,
         false,
         false
       ],
       "parameters": {
         "Left": [
-          "Uuid"
+          "Int4",
+          "Int2"
         ]
       }
     },
-    "query": "\n            SELECT\n                id,\n                name,\n                category AS \"category: ResourceCategory\",\n                type AS \"resource_type: ResourceType\",\n                balance,\n                editable\n            FROM balance_sheet_resources\n            WHERE month_id = $1;\n            "
+    "query": "\n        SELECT\n            m.id,\n            month\n        FROM balance_sheet_months AS m\n        JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1\n        WHERE m.month = $2;\n        "
   },
   "5ec115656afff53681a14da2be5b93d2ddfe069690e458d0748f204bc706b7ef": {
     "describe": {
@@ -401,6 +649,69 @@
     },
     "query": "\n        SELECT \n            id,\n            date_first,\n            date_next,\n            frequency,\n            amount,\n            memo,\n            flag_color,\n            account_id,\n            payee_id,\n            category_id,\n            transfer_account_id,\n            deleted,\n            account_name,\n            payee_name,\n            category_name,\n            subtransactions\n        FROM scheduled_transactions\n        "
   },
+  "739d0396d8b4bdd884163e15928c4f60f9514f29ba91b5a41fe69d70ccfcbe4f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "category",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "type",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "editable",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "balance",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "month",
+          "ordinal": 6,
+          "type_info": "Int2"
+        },
+        {
+          "name": "year",
+          "ordinal": 7,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int2",
+          "Int4"
+        ]
+      }
+    },
+    "query": "\n            SELECT\n                r.*,\n                rm.balance,\n                m.month,\n                y.year\n            FROM balance_sheet_resources AS r\n            JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id\n            JOIN balance_sheet_months AS m ON rm.month_id = m.id AND m.month = $1\n            JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $2;\n            "
+  },
   "7f88d669c3e18ee34ab8d0d1e05d608f57fd96bd5b83a5af50887fce2b6bfc65": {
     "describe": {
       "columns": [],
@@ -408,7 +719,7 @@
       "parameters": {
         "Left": [
           "Uuid",
-          "Text",
+          "Varchar",
           "Int8",
           "Float4",
           "Int8",
@@ -546,72 +857,144 @@
     },
     "query": "\n        SELECT \n            id,\n            category_group_id,\n            name,\n            hidden,\n            original_category_group_id,\n            note,\n            budgeted,\n            activity,\n            balance,\n            goal_type AS \"goal_type?: GoalType\",\n            goal_creation_month,\n            goal_target,\n            goal_target_month,\n            goal_percentage_complete,\n            goal_months_to_budget,\n            goal_under_funded,\n            goal_overall_funded,\n            goal_overall_left,\n            deleted\n        FROM categories\n        WHERE id = $1\n        "
   },
-  "8c6294753d035cb3c04f995313c2cccddb361022e6b7fd4edfd01d9402ffd174": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Int4"
-        ]
-      }
-    },
-    "query": "\n        INSERT INTO balance_sheet_years (id, year)\n        VALUES ($1, $2);\n        "
-  },
-  "9458056ab3b6560ccdd5d1ae0af81341dbb21886517ffafbff22f7dfc50676ec": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Text",
-          "Text",
-          "Text",
-          "Int8",
-          "Bool",
-          "Uuid"
-        ]
-      }
-    },
-    "query": "\n            INSERT INTO balance_sheet_resources (id, name, category, type, balance, editable, month_id)\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            ON CONFLICT (id) DO UPDATE\n            SET name = EXCLUDED.name,\n            category = EXCLUDED.category,\n            type = EXCLUDED.type,\n            balance = EXCLUDED.balance,\n            editable = EXCLUDED.editable;\n            "
-  },
-  "96467e0d4c1b00489ba0d1bf0f24e9edd27b72e31729fc57ab932db771471a8d": {
+  "8523786540287de6d28016e036aefcaaa6570e250dda0c45ba0c9ede12b9c426": {
     "describe": {
       "columns": [
         {
-          "name": "id",
+          "name": "month_id",
           "ordinal": 0,
           "type_info": "Uuid"
         },
         {
-          "name": "type",
+          "name": "month",
           "ordinal": 1,
-          "type_info": "Text"
+          "type_info": "Int2"
+        },
+        {
+          "name": "net_total_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "type",
+          "ordinal": 3,
+          "type_info": "Varchar"
         },
         {
           "name": "total",
-          "ordinal": 2,
-          "type_info": "Int8"
-        },
-        {
-          "name": "percent_var",
-          "ordinal": 3,
-          "type_info": "Float4"
-        },
-        {
-          "name": "balance_var",
           "ordinal": 4,
           "type_info": "Int8"
         },
         {
-          "name": "year_id",
+          "name": "percent_var",
           "ordinal": 5,
+          "type_info": "Float4"
+        },
+        {
+          "name": "balance_var",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "net_total_month_id",
+          "ordinal": 7,
           "type_info": "Uuid"
         }
       ],
       "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            m.id as month_id,\n            m.month,\n            n.id as net_total_id,\n            n.type,\n            n.total,\n            n.percent_var,\n            n.balance_var,\n            n.month_id as net_total_month_id\n        FROM balance_sheet_months AS m\n        JOIN balance_sheet_net_totals_months AS n ON month_id = n.month_id\n        JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1;\n        "
+  },
+  "8e4595592337f1fdfb432c1e520151502544b62896499cf90c5c2b45b13ea630": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Int4",
+          "Timestamptz"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO balance_sheet_years (id, year, refreshed_at)\n        VALUES ($1, $2, $3);\n        "
+  },
+  "8f388c213ae0b0e17cdbff56175a681a7b4a45b4458cebfc5a191cbe90003a28": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Uuid",
+          "Int4",
+          "Int2"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)\n        SELECT r.id, m.id, balance\n        FROM (\n        VALUES\n            ($1::bigint)\n        ) x (balance)\n        JOIN balance_sheet_resources AS r ON r.id = $2\n        JOIN balance_sheet_years AS y ON y.year = $3\n        JOIN balance_sheet_months AS m ON m.month = $4 AND m.year_id = y.id\n        ON CONFLICT (resource_id, month_id) DO UPDATE SET\n        balance = EXCLUDED.balance;\n        "
+  },
+  "933a8ccb3189d20be34bfd68e1b1be915a4a58569e5243fc5974f693f2df3956": {
+    "describe": {
+      "columns": [
+        {
+          "name": "year_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "year",
+          "ordinal": 1,
+          "type_info": "Int4"
+        },
+        {
+          "name": "net_total_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "type",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "total",
+          "ordinal": 4,
+          "type_info": "Int8"
+        },
+        {
+          "name": "percent_var",
+          "ordinal": 5,
+          "type_info": "Float4"
+        },
+        {
+          "name": "balance_var",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "net_total_year_id",
+          "ordinal": 7,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
         false,
         false,
         false,
@@ -623,7 +1006,7 @@
         "Left": []
       }
     },
-    "query": "\n        SELECT *\n        FROM balance_sheet_net_totals_years;\n        "
+    "query": "\n        SELECT\n            y.id as year_id,\n            y.year,\n            n.id as net_total_id,\n            n.type,\n            n.total,\n            n.percent_var,\n            n.balance_var,\n            n.year_id as net_total_year_id\n        FROM balance_sheet_years AS y\n        JOIN balance_sheet_net_totals_years AS n ON year_id = n.year_id;\n        "
   },
   "9b808421bf97b16f910fa575a648c2c36e418b358d56da24496755317b8c662b": {
     "describe": {
@@ -639,11 +1022,26 @@
     },
     "query": "\n        INSERT INTO balance_sheet_months (id, month, year_id)\n        VALUES ($1, $2, $3);\n        "
   },
-  "a3ab9ce1f2b7654940b8025dbe72518d7a5aa7e47596eb8027345175dd32c1b1": {
+  "a72b6bb75eb7f6335ba11552ebdd65c8bc18a8f5292ac844c777a9bf18d4c50a": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Uuid",
+          "Int4",
+          "Int2"
+        ]
+      }
+    },
+    "query": "\n            INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)\n            SELECT r.id, m.id, balance\n            FROM (\n            VALUES\n                ($1::bigint)\n            ) x (balance)\n\t\t\tJOIN balance_sheet_resources AS r ON r.id = $2\n            JOIN balance_sheet_years AS y ON y.year = $3\n\t\t\tJOIN balance_sheet_months AS m ON m.month = $4 AND m.year_id = y.id\n\t\t\tON CONFLICT (resource_id, month_id) DO UPDATE SET\n            balance = EXCLUDED.balance;\n            "
+  },
+  "b77035e04d643f69ec4d475a89e290d0f9128f8be53fe170f5d769b010133c7b": {
     "describe": {
       "columns": [
         {
-          "name": "id",
+          "name": "month_id",
           "ordinal": 0,
           "type_info": "Uuid"
         },
@@ -651,19 +1049,75 @@
           "name": "month",
           "ordinal": 1,
           "type_info": "Int2"
+        },
+        {
+          "name": "net_total_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "type",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "total",
+          "ordinal": 4,
+          "type_info": "Int8"
+        },
+        {
+          "name": "percent_var",
+          "ordinal": 5,
+          "type_info": "Float4"
+        },
+        {
+          "name": "balance_var",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "net_total_month_id",
+          "ordinal": 7,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "year",
+          "ordinal": 8,
+          "type_info": "Int4"
         }
       ],
       "nullable": [
         false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
         false
       ],
       "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n        SELECT\n            m.id as month_id,\n            m.month,\n            n.id as net_total_id,\n            n.type,\n            n.total,\n            n.percent_var,\n            n.balance_var,\n            n.month_id as net_total_month_id,\n            y.year\n        FROM balance_sheet_months AS m\n        JOIN balance_sheet_net_totals_months AS n ON month_id = n.month_id\n        JOIN balance_sheet_years AS y ON y.id = m.year_id;\n        "
+  },
+  "b80c17e1292f7846673f697b53b6f5a77abfbf17cf3f6d2a02a490c3ea427c0d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
         "Left": [
-          "Uuid"
+          "Uuid",
+          "Varchar",
+          "Varchar",
+          "Varchar",
+          "Bool"
         ]
       }
     },
-    "query": "\n        SELECT\n            id,\n            month\n        FROM balance_sheet_months\n        WHERE year_id = $1;\n        "
+    "query": "\n        INSERT INTO balance_sheet_resources (id, name, category, type, editable)\n        VALUES ($1, $2, $3, $4, $5)\n        ON CONFLICT (id) DO UPDATE\n        SET name = EXCLUDED.name,\n        category = EXCLUDED.category,\n        type = EXCLUDED.type,\n        editable = EXCLUDED.editable;\n        "
   },
   "baea70b25828e05536e9494804481e1801c9d2eb6bfdd269b4bf79db0d86264f": {
     "describe": {
@@ -676,7 +1130,7 @@
         {
           "name": "name",
           "ordinal": 1,
-          "type_info": "Text"
+          "type_info": "Varchar"
         },
         {
           "name": "savings",
@@ -734,7 +1188,7 @@
       "parameters": {
         "Left": [
           "Uuid",
-          "Text",
+          "Varchar",
           "Int8",
           "Int8",
           "Int8",
@@ -759,56 +1213,17 @@
     },
     "query": "\n                DELETE FROM scheduled_transactions\n                WHERE id = $1\n                "
   },
-  "bd554331af1039febee12089b9cf504c9790a926d89fcc04e3a0adb02d068fc5": {
+  "c7cba48f62a616ad68598b9ada02fb55627ce56137acbd70277e754ef5cc4c07": {
     "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "month",
-          "ordinal": 1,
-          "type_info": "Int2"
-        }
-      ],
-      "nullable": [
-        false,
-        false
-      ],
+      "columns": [],
+      "nullable": [],
       "parameters": {
         "Left": [
-          "Uuid",
-          "Int2"
+          "Uuid"
         ]
       }
     },
-    "query": "\n        SELECT\n            id,\n            month\n        FROM balance_sheet_months\n        WHERE year_id = $1 AND month = $2;\n        "
-  },
-  "ccc084a89f0617a5e6a217f127119d7f17a095bcf472479680cf62ba046271db": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "year",
-          "ordinal": 1,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": []
-      }
-    },
-    "query": "\n        SELECT\n            id,\n            year\n        FROM balance_sheet_years;\n        "
+    "query": "\n            DELETE FROM balance_sheet_resources\n            WHERE id = $1\n        "
   },
   "d493ee29627f77dc3e74bdfffc0639b5238901f454eee02f24733e9b5708f7c0": {
     "describe": {
@@ -821,7 +1236,7 @@
         {
           "name": "net_type: NetTotalType",
           "ordinal": 1,
-          "type_info": "Text"
+          "type_info": "Varchar"
         },
         {
           "name": "total",
@@ -888,7 +1303,7 @@
       "parameters": {
         "Left": [
           "Uuid",
-          "Text",
+          "Varchar",
           "Int8",
           "Int8",
           "Int8",
@@ -900,5 +1315,49 @@
       }
     },
     "query": "\n            INSERT INTO balance_sheet_saving_rates (id, name, savings, employer_contribution, employee_contribution, mortgage_capital, incomes, rate, year_id)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n            ON CONFLICT (id) DO UPDATE\n            SET name = EXCLUDED.name,\n            savings = EXCLUDED.savings,\n            employer_contribution = EXCLUDED.employer_contribution,\n            employee_contribution = EXCLUDED.employee_contribution,\n            mortgage_capital = EXCLUDED.mortgage_capital,\n            incomes = EXCLUDED.incomes,\n            rate = EXCLUDED.rate;\n            "
+  },
+  "e8f2e689316f69430758f3c9a575996815e207f1d126b2e2ebd6018db78daffc": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "\n            DELETE FROM balance_sheet_years\n            WHERE year = $1\n        "
+  },
+  "fbab11ff869d413cee4460a80f4a600edc138c5d153f454a1cc465f17b49da47": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "month",
+          "ordinal": 1,
+          "type_info": "Int2"
+        },
+        {
+          "name": "year_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n            SELECT\n                m.*\n            FROM balance_sheet_months AS m\n            JOIN balance_sheet_resources_months AS rm ON m.id = rm.month_id AND rm.resource_id = $1\n            ORDER BY m.month ASC;\n            "
   }
 }

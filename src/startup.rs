@@ -14,10 +14,13 @@ use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use crate::{
     config::{RedisSettings, Settings},
     routes::{
-        all_balance_sheet_months, balance_sheet_month, balance_sheet_months, balance_sheet_year,
-        balance_sheet_years, create_balance_sheet_month, create_balance_sheet_year, health_check,
-        refresh_balance_sheet_resources, template_details, template_summary, template_transactions,
-        update_balance_sheet_month, update_balance_sheet_year,
+        all_balance_sheet_months, all_balance_sheet_resources, balance_sheet_month,
+        balance_sheet_months, balance_sheet_resource, balance_sheet_resources, balance_sheet_year,
+        balance_sheet_years, create_balance_sheet_month, create_balance_sheet_resource,
+        create_balance_sheet_year, delete_balance_sheet_month, delete_balance_sheet_resource,
+        delete_balance_sheet_year, health_check, refresh_balance_sheet_resources, template_details,
+        template_summary, template_transactions, update_balance_sheet_resource,
+        update_balance_sheet_year,
     },
 };
 
@@ -71,16 +74,32 @@ impl Application {
             )
             .route(
                 "/api/balance_sheet/years/:year",
-                get(balance_sheet_year).put(update_balance_sheet_year),
+                get(balance_sheet_year)
+                    .put(update_balance_sheet_year)
+                    .delete(delete_balance_sheet_year),
             )
             .route("/api/balance_sheet/months", get(all_balance_sheet_months))
+            .route(
+                "/api/balance_sheet/resources",
+                get(all_balance_sheet_resources),
+            )
+            .route(
+                "/api/balance_sheet/years/:year/resources",
+                get(balance_sheet_resources).post(create_balance_sheet_resource),
+            )
+            .route(
+                "/api/balance_sheet/years/:year/resources/:resource_id",
+                get(balance_sheet_resource)
+                    .put(update_balance_sheet_resource)
+                    .delete(delete_balance_sheet_resource),
+            )
             .route(
                 "/api/balance_sheet/years/:year/months",
                 get(balance_sheet_months).post(create_balance_sheet_month),
             )
             .route(
                 "/api/balance_sheet/years/:year/months/:month",
-                get(balance_sheet_month).put(update_balance_sheet_month),
+                get(balance_sheet_month).delete(delete_balance_sheet_month),
             )
             .route(
                 "/api/balance_sheet/resources/refresh",

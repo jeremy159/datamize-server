@@ -1,7 +1,7 @@
 -- Create Balance Sheet Saving Rates Table
 CREATE TABLE balance_sheet_saving_rates(
   id uuid NOT NULL,
-  name TEXT NOT NULL,
+  name VARCHAR(256) NOT NULL,
   savings BIGINT NOT NULL,
   employer_contribution BIGINT NOT NULL,
   employee_contribution BIGINT NOT NULL,
@@ -10,5 +10,5 @@ CREATE TABLE balance_sheet_saving_rates(
   rate REAL NOT NULL,
   year_id uuid NOT NULL,
   PRIMARY KEY (id),
-  FOREIGN KEY (year_id) REFERENCES balance_sheet_years(id)
+  FOREIGN KEY (year_id) REFERENCES balance_sheet_years(id) ON DELETE CASCADE
 );

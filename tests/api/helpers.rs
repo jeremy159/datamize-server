@@ -1,9 +1,8 @@
 use std::fmt::Display;
 
-use chrono::{Datelike, NaiveDate};
+use chrono::{Datelike, NaiveDate, Utc};
 use datamize::{
     config,
-    domain::MonthNum,
     startup::{get_redis_connection_pool, Application},
     telemetry::{get_subscriber, init_subscriber},
 };
@@ -15,7 +14,7 @@ use uuid::Uuid;
 use wiremock::MockServer;
 
 use crate::dummy_types::{
-    DummyFinancialResource, DummyNetTotal, DummyNetTotalType, DummyResourceCategory,
+    DummyFinancialResource, DummyMonthNum, DummyNetTotal, DummyNetTotalType, DummyResourceCategory,
     DummyResourceType, DummySavingRatesPerPerson,
 };
 
@@ -93,6 +92,20 @@ impl TestApp {
             .expect("Failed to execute request.")
     }
 
+    pub async fn delete_year<Y>(&self, year: Y) -> reqwest::Response
+    where
+        Y: Display,
+    {
+        self.api_client
+            .delete(&format!(
+                "{}/api/balance_sheet/years/{}",
+                &self.address, year
+            ))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
     pub async fn get_months<Y>(&self, year: Y) -> reqwest::Response
     where
         Y: Display,
@@ -138,18 +151,16 @@ impl TestApp {
             .expect("Failed to execute request.")
     }
 
-    pub async fn update_month<Y, M, B>(&self, year: Y, month: M, body: &B) -> reqwest::Response
+    pub async fn delete_month<Y, M>(&self, year: Y, month: M) -> reqwest::Response
     where
         Y: Display,
         M: Display,
-        B: Serialize,
     {
         self.api_client
-            .put(&format!(
+            .delete(&format!(
                 "{}/api/balance_sheet/years/{}/months/{}",
                 &self.address, year, month
             ))
-            .json(body)
             .send()
             .await
             .expect("Failed to execute request.")
@@ -174,15 +185,101 @@ impl TestApp {
             .expect("Failed to execute request.")
     }
 
+    pub async fn get_all_resources(&self) -> reqwest::Response {
+        self.api_client
+            .get(&format!("{}/api/balance_sheet/resources", &self.address))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
+    pub async fn get_resources<Y>(&self, year: Y) -> reqwest::Response
+    where
+        Y: Display,
+    {
+        self.api_client
+            .get(&format!(
+                "{}/api/balance_sheet/years/{}/resources",
+                &self.address, year
+            ))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
+    pub async fn create_resource<Y, B>(&self, year: Y, body: &B) -> reqwest::Response
+    where
+        Y: Display,
+        B: Serialize,
+    {
+        self.api_client
+            .post(&format!(
+                "{}/api/balance_sheet/years/{}/resources",
+                &self.address, year
+            ))
+            .json(body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
+    pub async fn get_resource<Y, R>(&self, year: Y, res_id: R) -> reqwest::Response
+    where
+        Y: Display,
+        R: Display,
+    {
+        self.api_client
+            .get(&format!(
+                "{}/api/balance_sheet/years/{}/resources/{}",
+                &self.address, year, res_id
+            ))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
+    pub async fn update_resource<Y, R, B>(&self, year: Y, res_id: R, body: &B) -> reqwest::Response
+    where
+        Y: Display,
+        R: Display,
+        B: Serialize,
+    {
+        self.api_client
+            .put(&format!(
+                "{}/api/balance_sheet/years/{}/resources/{}",
+                &self.address, year, res_id
+            ))
+            .json(body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
+    pub async fn delete_resource<Y, R>(&self, year: Y, res_id: R) -> reqwest::Response
+    where
+        Y: Display,
+        R: Display,
+    {
+        self.api_client
+            .delete(&format!(
+                "{}/api/balance_sheet/years/{}/resources/{}",
+                &self.address, year, res_id
+            ))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+
     pub async fn insert_year(&self, year: i32) -> Uuid {
         let year_id = uuid::Uuid::new_v4();
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_years (id, year)
-            VALUES ($1, $2);
+            INSERT INTO balance_sheet_years (id, year, refreshed_at)
+            VALUES ($1, $2, $3);
             "#,
             year_id,
             year,
+            Utc::now(),
         )
         .execute(&self.db_pool)
         .await
@@ -264,9 +361,9 @@ impl TestApp {
         month_id
     }
 
-    pub async fn insert_random_month(&self, year_id: Uuid) -> (Uuid, MonthNum) {
+    pub async fn insert_random_month(&self, year_id: Uuid) -> (Uuid, DummyMonthNum) {
         let month_id = uuid::Uuid::new_v4();
-        let month: MonthNum = Date().fake::<NaiveDate>().month().try_into().unwrap();
+        let month: DummyMonthNum = Date().fake::<NaiveDate>().month().try_into().unwrap();
 
         sqlx::query!(
             r#"
@@ -358,22 +455,60 @@ impl TestApp {
 
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_resources (id, name, category, type, balance, editable, month_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7);
+            INSERT INTO balance_sheet_resources (id, name, category, type, editable)
+            VALUES ($1, $2, $3, $4, $5);
             "#,
             resource.id,
             resource.name,
             resource.category.to_string(),
             resource.resource_type.to_string(),
-            resource.balance,
             resource.editable,
-            month_id,
         )
         .execute(&self.db_pool)
         .await
         .expect("Failed to insert financial resource of a month.");
 
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (resource_id, month_id) DO UPDATE SET
+            balance = EXCLUDED.balance;
+            "#,
+            resource.id,
+            month_id,
+            resource.balance,
+        )
+        .execute(&self.db_pool)
+        .await
+        .expect("Failed to insert balance of financial resource.");
+
         resource
+    }
+
+    pub async fn insert_financial_resource_with_id_in_month(
+        &self,
+        month_id: Uuid,
+        id: Uuid,
+    ) -> i64 {
+        let balance: i64 = Faker.fake();
+
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (resource_id, month_id) DO UPDATE SET
+            balance = EXCLUDED.balance;
+            "#,
+            id,
+            month_id,
+            balance,
+        )
+        .execute(&self.db_pool)
+        .await
+        .expect("Failed to insert balance of financial resource.");
+
+        balance
     }
 }
 

@@ -7,7 +7,9 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    dummy_types::{DummyNetTotalType, DummySavingRatesPerPerson},
+    dummy_types::{
+        DummyNetTotalType, DummyResourceCategory, DummyResourceType, DummySavingRatesPerPerson,
+    },
     helpers::spawn_app,
 };
 
@@ -77,7 +79,7 @@ async fn get_year_fails_if_there_is_a_fatal_database_error(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn get_year_returns_net_totals_saving_rates_and_months_of_the_year(pool: PgPool) {
+async fn get_year_returns_net_totals_saving_rates_months_and_resources_of_the_year(pool: PgPool) {
     // Arange
     let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
@@ -98,6 +100,14 @@ async fn get_year_returns_net_totals_saving_rates_and_months_of_the_year(pool: P
         .insert_month_net_total(month.0, DummyNetTotalType::Portfolio)
         .await;
 
+    let res = app
+        .insert_financial_resource(
+            month.0,
+            DummyResourceCategory::Asset,
+            DummyResourceType::Cash,
+        )
+        .await;
+
     // Act
     let response = app.get_year(year).await;
     assert!(response.status().is_success());
@@ -106,31 +116,35 @@ async fn get_year_returns_net_totals_saving_rates_and_months_of_the_year(pool: P
 
     // Assert
     assert_eq!(year.net_assets.id, year_net_total_assets.id);
-    assert_eq!(year.net_assets.total, month_net_total_assets.total as i64);
+    assert_eq!(year.net_assets.total, year_net_total_assets.total as i64);
     assert_eq!(year.net_portfolio.id, year_net_total_portfolio.id);
     assert_eq!(
         year.net_portfolio.total,
-        month_net_total_portfolio.total as i64
+        year_net_total_portfolio.total as i64
     );
-
-    // Make sure update on net_totals is persisted.
-    let saved_net_total = sqlx::query!(
-        "SELECT * FROM balance_sheet_net_totals_years WHERE id = $1 AND year_id = $2",
-        year_net_total_assets.id,
-        year.id
-    )
-    .fetch_one(&app.db_pool)
-    .await
-    .expect("Failed to fetch net totals.");
-    assert_eq!(saved_net_total.total, year.net_assets.total);
 
     for sr in &year.saving_rates {
         assert_eq!(sr.id, saving_rate.id);
     }
 
-    for m in &year.months {
-        assert_eq!(m.id, month.0);
-    }
+    assert_eq!(year.months.len(), 1);
+    assert_eq!(year.months[0].id, month.0);
+    assert_eq!(year.months[0].net_assets.id, month_net_total_assets.id);
+    assert_eq!(
+        year.months[0].net_assets.total,
+        month_net_total_assets.total as i64
+    );
+    assert_eq!(
+        year.months[0].net_portfolio.id,
+        month_net_total_portfolio.id
+    );
+    assert_eq!(
+        year.months[0].net_portfolio.total,
+        month_net_total_portfolio.total as i64
+    );
+
+    assert_eq!(year.resources.len(), 1);
+    assert_eq!(year.resources[0].base.id, res.id);
 }
 
 #[sqlx::test]
@@ -469,4 +483,190 @@ async fn put_year_returns_a_400_for_invalid_year_in_path(pool: PgPool) {
 
     // Assert
     assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
+}
+
+#[sqlx::test]
+async fn delete_year_returns_a_404_for_a_non_existing_year(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let date = Date().fake::<NaiveDate>();
+    let year = date.year();
+
+    // Act
+    let response = app.delete_year(year).await;
+
+    // Assert
+    assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
+}
+
+#[sqlx::test]
+async fn delete_year_returns_a_200_and_the_year_for_existing_year(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let date = Date().fake::<NaiveDate>();
+    let year = date.year();
+    let year_id = app.insert_year(year).await;
+    let year_net_total_assets = app
+        .insert_year_net_total(year_id, DummyNetTotalType::Asset)
+        .await;
+    let year_net_total_portfolio = app
+        .insert_year_net_total(year_id, DummyNetTotalType::Portfolio)
+        .await;
+
+    let month = date.month();
+    let month_id = app.insert_month(year_id, month as i16).await;
+
+    let month_net_total_assets = app
+        .insert_month_net_total(month_id, DummyNetTotalType::Asset)
+        .await;
+    let month_net_total_portfolio = app
+        .insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
+        .await;
+
+    let saving_rate = app.insert_saving_rate(year_id).await;
+
+    let res = app
+        .insert_financial_resource(
+            month_id,
+            DummyResourceCategory::Asset,
+            DummyResourceType::Cash,
+        )
+        .await;
+
+    // Act
+    let response = app.delete_year(year).await;
+
+    // Assert
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    let year: YearDetail = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+    assert_eq!(year.id, year_id);
+    assert_eq!(year.net_assets.id, year_net_total_assets.id);
+    assert_eq!(year.net_assets.total, year_net_total_assets.total as i64);
+    assert_eq!(year.net_portfolio.id, year_net_total_portfolio.id);
+    assert_eq!(
+        year.net_portfolio.total,
+        year_net_total_portfolio.total as i64
+    );
+    assert_eq!(year.months[0].id, month_id);
+    assert_eq!(year.months[0].net_assets.id, month_net_total_assets.id);
+    assert_eq!(
+        year.months[0].net_portfolio.id,
+        month_net_total_portfolio.id
+    );
+    assert_eq!(year.saving_rates[0].id, saving_rate.id);
+    assert_eq!(year.resources.len(), 1);
+    assert_eq!(year.resources[0].base.id, res.id);
+}
+
+#[sqlx::test]
+async fn delete_year_removes_year_month_saving_rates_and_net_totals_from_db_but_not_resource(
+    pool: PgPool,
+) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let date = Date().fake::<NaiveDate>();
+    let year = date.year();
+    let year_id = app.insert_year(year).await;
+    let year_net_total_assets = app
+        .insert_year_net_total(year_id, DummyNetTotalType::Asset)
+        .await;
+    let year_net_total_portfolio = app
+        .insert_year_net_total(year_id, DummyNetTotalType::Portfolio)
+        .await;
+
+    let month = date.month();
+    let month_id = app.insert_month(year_id, month as i16).await;
+
+    let month_net_total_assets = app
+        .insert_month_net_total(month_id, DummyNetTotalType::Asset)
+        .await;
+    let month_net_total_portfolio = app
+        .insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
+        .await;
+
+    let saving_rate = app.insert_saving_rate(year_id).await;
+
+    let res = app
+        .insert_financial_resource(
+            month_id,
+            DummyResourceCategory::Asset,
+            DummyResourceType::Cash,
+        )
+        .await;
+
+    // Act
+    app.delete_year(year).await;
+
+    // Assert
+    let saved_year = sqlx::query!(
+        "SELECT year FROM balance_sheet_years WHERE id = $1",
+        year_id
+    )
+    .fetch_optional(&app.db_pool)
+    .await
+    .expect("Failed to fetch saved year.");
+    assert!(saved_year.is_none());
+
+    let saved_year_net_assets = sqlx::query!(
+        "SELECT * FROM balance_sheet_net_totals_years WHERE id = $1",
+        year_net_total_assets.id
+    )
+    .fetch_optional(&app.db_pool)
+    .await
+    .expect("Failed to fetch saved net assets.");
+    assert!(saved_year_net_assets.is_none());
+
+    let saved_year_net_portfolio = sqlx::query!(
+        "SELECT * FROM balance_sheet_net_totals_years WHERE id = $1",
+        year_net_total_portfolio.id
+    )
+    .fetch_optional(&app.db_pool)
+    .await
+    .expect("Failed to fetch saved net portfolio.");
+    assert!(saved_year_net_portfolio.is_none());
+
+    let saved_saving_rate = sqlx::query!(
+        "SELECT * FROM balance_sheet_saving_rates WHERE id = $1",
+        saving_rate.id
+    )
+    .fetch_optional(&app.db_pool)
+    .await
+    .expect("Failed to fetch saved saving rate.");
+    assert!(saved_saving_rate.is_none());
+
+    let saved_month = sqlx::query!(
+        "SELECT month FROM balance_sheet_months WHERE id = $1",
+        month_id
+    )
+    .fetch_optional(&app.db_pool)
+    .await
+    .expect("Failed to fetch saved month.");
+    assert!(saved_month.is_none());
+
+    let saved_month_net_assets = sqlx::query!(
+        "SELECT * FROM balance_sheet_net_totals_months WHERE id = $1",
+        month_net_total_assets.id
+    )
+    .fetch_optional(&app.db_pool)
+    .await
+    .expect("Failed to fetch saved net assets.");
+    assert!(saved_month_net_assets.is_none());
+
+    let saved_month_net_portfolio = sqlx::query!(
+        "SELECT * FROM balance_sheet_net_totals_months WHERE id = $1",
+        month_net_total_portfolio.id
+    )
+    .fetch_optional(&app.db_pool)
+    .await
+    .expect("Failed to fetch saved net portfolio.");
+    assert!(saved_month_net_portfolio.is_none());
+
+    let saved_resource = sqlx::query!(
+        "SELECT * FROM balance_sheet_resources WHERE id = $1",
+        res.id
+    )
+    .fetch_optional(&app.db_pool)
+    .await
+    .expect("Failed to fetch saved resource.");
+    assert!(saved_resource.is_some());
 }

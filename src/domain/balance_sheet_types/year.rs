@@ -1,7 +1,8 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::{Month, NetTotal};
+use super::{FinancialResourceYearly, Month, NetTotal};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct YearSummary {
@@ -94,6 +95,8 @@ pub struct YearDetail {
     pub id: Uuid,
     /// The year of the date, in format 2015.
     pub year: i32,
+    /// The last time a refreshed occured.
+    pub refreshed_at: DateTime<Utc>,
     /// The final total net assets of the year.
     /// Basically equals to the total of the year's last month.
     /// The only difference is the variation is calculated with the previous year, not the previous month.
@@ -104,6 +107,8 @@ pub struct YearDetail {
     pub net_portfolio: NetTotal,
     /// All the months of the year.
     pub months: Vec<Month>,
+    /// All the financial resources with a balance in a month of this year.
+    pub resources: Vec<FinancialResourceYearly>,
     /// The common saving rates of the year.
     pub saving_rates: Vec<SavingRatesPerPerson>,
 }
@@ -113,6 +118,7 @@ impl YearDetail {
         Self {
             id: Uuid::new_v4(),
             year,
+            refreshed_at: Utc::now(),
             net_assets: NetTotal::new_asset(),
             net_portfolio: NetTotal::new_portfolio(),
             saving_rates: vec![
@@ -121,6 +127,7 @@ impl YearDetail {
                 SavingRatesPerPerson::new_common(),
             ],
             months: vec![],
+            resources: vec![],
         }
     }
 

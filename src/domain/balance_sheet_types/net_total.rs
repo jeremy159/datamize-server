@@ -40,7 +40,7 @@ pub struct NetTotal {
     pub id: Uuid,
     /// Internal splitting beyond the category.
     #[serde(rename = "type")]
-    // #[sqlx(rename = "type")]
+    #[sqlx(rename = "type")]
     pub net_type: NetTotalType,
     /// The total amount of the current section.
     pub total: i64,
