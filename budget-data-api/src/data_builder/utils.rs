@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{config::BudgetDataConfig, CommonExpenseEstimationPerPerson};
 use chrono::{Local, Months, NaiveDate, NaiveTime, TimeZone};
 use rrule::{RRuleSet, Tz};
@@ -65,7 +67,7 @@ pub fn find_repeatable_transactions(
 pub fn get_salary_per_person_per_month(
     scheduled_transactions: &[ScheduledTransactionDetail],
 ) -> Vec<CommonExpenseEstimationPerPerson> {
-    let mut output = vec![];
+    let mut output: HashMap<String, CommonExpenseEstimationPerPerson> = HashMap::new();
     let app_config = BudgetDataConfig::build();
     let salary_payee_ids: Vec<&Uuid> = app_config
         .person_salaries
@@ -73,33 +75,36 @@ pub fn get_salary_per_person_per_month(
         .map(|ps| &ps.payee_id)
         .collect();
 
-    output.extend(
-        scheduled_transactions
+    for st in scheduled_transactions
+        .iter()
+        .filter(|st| salary_payee_ids.contains(&&st.payee_id.unwrap()))
+    {
+        let name = app_config
+            .person_salaries
             .iter()
-            .filter(|st| salary_payee_ids.contains(&&st.payee_id.unwrap()))
-            .map(|st| {
-                let name = app_config
-                    .person_salaries
+            .find(|ps| ps.payee_id == st.payee_id.unwrap())
+            .unwrap()
+            .name
+            .clone();
+        let ps = CommonExpenseEstimationPerPerson {
+            name: name.clone(),
+            salary: st.amount,
+            salary_per_month: st.amount
+                + find_repeatable_transactions(st)
                     .iter()
-                    .find(|ps| ps.payee_id == st.payee_id.unwrap())
-                    .unwrap()
-                    .name
-                    .clone();
-                let ps = CommonExpenseEstimationPerPerson {
-                    name,
-                    salary: st.amount,
-                    salary_per_month: st.amount
-                        + find_repeatable_transactions(st)
-                            .iter()
-                            .map(|v| v.amount)
-                            .sum::<i64>(),
-                    ..Default::default()
-                };
-                ps
-            }),
-    );
+                    .map(|v| v.amount)
+                    .sum::<i64>(),
+            ..Default::default()
+        };
+        output
+            .entry(name)
+            .and_modify(|o| {
+                o.salary_per_month += ps.salary_per_month;
+            })
+            .or_insert_with(|| ps);
+    }
 
-    output
+    output.into_values().collect()
 }
 
 pub fn get_subtransactions_category_ids(
