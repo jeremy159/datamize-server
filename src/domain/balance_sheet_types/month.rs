@@ -143,6 +143,9 @@ pub struct Month {
     pub net_assets: NetTotal,
     /// Net Portfolio summary section. Includes the variation with the previous month.
     pub net_portfolio: NetTotal,
+    /// The financial resources associated with this month only. Each resource contains a single balance for the current month
+    /// even if it has occurences in other months
+    pub resources: Vec<FinancialResourceMonthly>,
 }
 
 impl Month {
@@ -153,6 +156,7 @@ impl Month {
             year,
             net_assets: NetTotal::new_asset(),
             net_portfolio: NetTotal::new_portfolio(),
+            resources: vec![],
         }
     }
 
@@ -168,10 +172,11 @@ impl Month {
             self.net_portfolio.balance_var as f32 / prev_net_portfolio.total as f32;
     }
 
-    pub fn compute_net_totals(&mut self, resources: &[FinancialResourceMonthly]) {
-        self.net_assets.total = resources.iter().map(|r| r.balance).sum();
+    pub fn compute_net_totals(&mut self) {
+        self.net_assets.total = self.resources.iter().map(|r| r.balance).sum();
 
-        self.net_portfolio.total = resources
+        self.net_portfolio.total = self
+            .resources
             .iter()
             .filter(|r| {
                 r.base.category == ResourceCategory::Asset

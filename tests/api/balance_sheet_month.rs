@@ -4,7 +4,10 @@ use fake::{faker::chrono::en::Date, Fake};
 use rand::Rng;
 use sqlx::PgPool;
 
-use crate::{dummy_types::DummyNetTotalType, helpers::spawn_app};
+use crate::{
+    dummy_types::{DummyNetTotalType, DummyResourceCategory, DummyResourceType},
+    helpers::spawn_app,
+};
 
 #[sqlx::test]
 async fn get_month_returns_a_404_for_a_non_existing_year(pool: PgPool) {
@@ -120,7 +123,7 @@ async fn get_month_fails_if_there_is_a_fatal_database_error(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn get_month_returns_net_totals_of_the_month(pool: PgPool) {
+async fn get_month_returns_net_totals_and_resources_of_the_month(pool: PgPool) {
     // Arange
     let app = spawn_app(pool).await;
     let date = Date().fake::<NaiveDate>();
@@ -134,6 +137,20 @@ async fn get_month_returns_net_totals_of_the_month(pool: PgPool) {
         .await;
     let month_net_total_portfolio = app
         .insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
+        .await;
+    let month_first_res = app
+        .insert_financial_resource(
+            month_id,
+            DummyResourceCategory::Asset,
+            DummyResourceType::Cash,
+        )
+        .await;
+    let month_second_res = app
+        .insert_financial_resource(
+            month_id,
+            DummyResourceCategory::Liability,
+            DummyResourceType::Cash,
+        )
         .await;
 
     // Act
@@ -150,6 +167,16 @@ async fn get_month_returns_net_totals_of_the_month(pool: PgPool) {
         month.net_portfolio.total,
         month_net_total_portfolio.total as i64
     );
+
+    for r in &month.resources {
+        if r.base.id == month_first_res.id {
+            assert_eq!(r.balance, month_first_res.balance);
+            assert_eq!(r.base.name, month_first_res.name);
+        } else if r.base.id == month_second_res.id {
+            assert_eq!(r.balance, month_second_res.balance);
+            assert_eq!(r.base.name, month_second_res.name);
+        }
+    }
 }
 
 #[sqlx::test]

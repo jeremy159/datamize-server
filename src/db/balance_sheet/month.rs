@@ -100,12 +100,18 @@ pub async fn get_months(db_conn_pool: &PgPool, year: i32) -> Result<Vec<Month>, 
                 year,
                 net_assets,
                 net_portfolio,
+                resources: vec![],
             });
     }
 
     let mut months = months.into_values().collect::<Vec<_>>();
 
     months.sort_by(|a, b| a.month.cmp(&b.month));
+
+    for m in &mut months {
+        m.resources =
+            super::get_financial_resources_of_month(db_conn_pool, m.month, m.year).await?;
+    }
 
     Ok(months)
 }
@@ -176,6 +182,7 @@ pub async fn get_all_months(db_conn_pool: &PgPool) -> Result<Vec<Month>, sqlx::E
                 year: r.year,
                 net_assets,
                 net_portfolio,
+                resources: vec![],
             });
     }
 
@@ -185,6 +192,11 @@ pub async fn get_all_months(db_conn_pool: &PgPool) -> Result<Vec<Month>, sqlx::E
         Ordering::Equal => a.month.cmp(&b.month),
         other => other,
     });
+
+    for m in &mut months {
+        m.resources =
+            super::get_financial_resources_of_month(db_conn_pool, m.month, m.year).await?;
+    }
 
     Ok(months)
 }
@@ -216,6 +228,8 @@ pub async fn get_month(
     )
     .fetch_all(db_conn_pool)
     .await?;
+
+    let resources = super::get_financial_resources_of_month(db_conn_pool, month_num, year).await?;
 
     let mut month: Option<Month> = None;
 
@@ -271,6 +285,7 @@ pub async fn get_month(
                     year,
                     net_assets,
                     net_portfolio,
+                    resources: resources.clone(),
                 });
             }
         }

@@ -25,10 +25,10 @@ pub async fn update_month_net_totals(
         month: month_num,
         net_assets: NetTotal::new_asset(),
         net_portfolio: NetTotal::new_portfolio(),
+        resources: db::get_financial_resources_of_month(db_conn_pool, month_num, year).await?,
     };
 
-    let resources = db::get_financial_resources_of_month(db_conn_pool, month_num, year).await?;
-    month.compute_net_totals(&resources);
+    month.compute_net_totals();
 
     let prev_year = match month_num.pred() {
         MonthNum::December => year - 1,
