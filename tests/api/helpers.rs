@@ -207,47 +207,41 @@ impl TestApp {
             .expect("Failed to execute request.")
     }
 
-    pub async fn create_resource<Y, B>(&self, year: Y, body: &B) -> reqwest::Response
+    pub async fn create_resource<B>(&self, body: &B) -> reqwest::Response
     where
-        Y: Display,
         B: Serialize,
     {
         self.api_client
-            .post(&format!(
-                "{}/api/balance_sheet/years/{}/resources",
-                &self.address, year
-            ))
+            .post(&format!("{}/api/balance_sheet/resources", &self.address))
             .json(body)
             .send()
             .await
             .expect("Failed to execute request.")
     }
 
-    pub async fn get_resource<Y, R>(&self, year: Y, res_id: R) -> reqwest::Response
+    pub async fn get_resource<R>(&self, res_id: R) -> reqwest::Response
     where
-        Y: Display,
         R: Display,
     {
         self.api_client
             .get(&format!(
-                "{}/api/balance_sheet/years/{}/resources/{}",
-                &self.address, year, res_id
+                "{}/api/balance_sheet/resources/{}",
+                &self.address, res_id
             ))
             .send()
             .await
             .expect("Failed to execute request.")
     }
 
-    pub async fn update_resource<Y, R, B>(&self, year: Y, res_id: R, body: &B) -> reqwest::Response
+    pub async fn update_resource<R, B>(&self, res_id: R, body: &B) -> reqwest::Response
     where
-        Y: Display,
         R: Display,
         B: Serialize,
     {
         self.api_client
             .put(&format!(
-                "{}/api/balance_sheet/years/{}/resources/{}",
-                &self.address, year, res_id
+                "{}/api/balance_sheet/resources/{}",
+                &self.address, res_id
             ))
             .json(body)
             .send()
@@ -255,15 +249,14 @@ impl TestApp {
             .expect("Failed to execute request.")
     }
 
-    pub async fn delete_resource<Y, R>(&self, year: Y, res_id: R) -> reqwest::Response
+    pub async fn delete_resource<R>(&self, res_id: R) -> reqwest::Response
     where
-        Y: Display,
         R: Display,
     {
         self.api_client
             .delete(&format!(
-                "{}/api/balance_sheet/years/{}/resources/{}",
-                &self.address, year, res_id
+                "{}/api/balance_sheet/resources/{}",
+                &self.address, res_id
             ))
             .send()
             .await

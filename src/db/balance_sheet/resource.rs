@@ -163,7 +163,6 @@ pub async fn get_financial_resources_of_month(
 #[tracing::instrument(skip(db_conn_pool))]
 pub async fn get_financial_resource(
     db_conn_pool: &PgPool,
-    year: i32,
     resource_id: Uuid,
 ) -> Result<FinancialResourceYearly, sqlx::Error> {
     let db_rows = sqlx::query!(
@@ -171,14 +170,14 @@ pub async fn get_financial_resource(
         SELECT
             r.*,
             rm.balance,
-            m.month
+            m.month,
+            y.year
         FROM balance_sheet_resources AS r
         JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id AND r.id = $1
         JOIN balance_sheet_months AS m ON rm.month_id = m.id
-        JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $2;
+        JOIN balance_sheet_years AS y ON y.id = m.year_id;
         "#,
         resource_id,
-        year,
     )
     .fetch_all(db_conn_pool)
     .await?;
@@ -205,7 +204,7 @@ pub async fn get_financial_resource(
                         r_type: r.r#type.parse().unwrap(),
                         editable: r.editable,
                     },
-                    year,
+                    year: r.year,
                     balance_per_month,
                 })
             }

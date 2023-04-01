@@ -81,17 +81,21 @@ impl Application {
             .route("/api/balance_sheet/months", get(all_balance_sheet_months))
             .route(
                 "/api/balance_sheet/resources",
-                get(all_balance_sheet_resources),
+                get(all_balance_sheet_resources).post(create_balance_sheet_resource),
             )
             .route(
-                "/api/balance_sheet/years/:year/resources",
-                get(balance_sheet_resources).post(create_balance_sheet_resource),
-            )
-            .route(
-                "/api/balance_sheet/years/:year/resources/:resource_id",
+                "/api/balance_sheet/resources/:resource_id",
                 get(balance_sheet_resource)
                     .put(update_balance_sheet_resource)
                     .delete(delete_balance_sheet_resource),
+            )
+            .route(
+                "/api/balance_sheet/resources/refresh",
+                post(refresh_balance_sheet_resources),
+            )
+            .route(
+                "/api/balance_sheet/years/:year/resources",
+                get(balance_sheet_resources),
             )
             .route(
                 "/api/balance_sheet/years/:year/months",
@@ -100,10 +104,6 @@ impl Application {
             .route(
                 "/api/balance_sheet/years/:year/months/:month",
                 get(balance_sheet_month).delete(delete_balance_sheet_month),
-            )
-            .route(
-                "/api/balance_sheet/resources/refresh",
-                post(refresh_balance_sheet_resources),
             )
             .layer(CorsLayer::permissive()) // TODO: To be more restrictive...
             .layer(TraceLayer::new_for_http())

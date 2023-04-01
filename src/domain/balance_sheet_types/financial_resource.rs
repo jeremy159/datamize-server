@@ -233,16 +233,22 @@ pub struct SaveResource {
     #[serde(rename = "type")]
     pub r_type: ResourceType,
     pub editable: bool,
+    pub year: i32,
     pub balance_per_month: BTreeMap<MonthNum, i64>,
     // TODO: Maybe also add possibility to save ynab accounts linked to it.
 }
 
-impl SaveResource {
-    pub fn to_financial_resource_yearly(self, year: i32) -> FinancialResourceYearly {
+impl From<SaveResource> for FinancialResourceYearly {
+    fn from(value: SaveResource) -> Self {
         FinancialResourceYearly {
-            base: BaseFinancialResource::new(self.name, self.category, self.r_type, self.editable),
-            year,
-            balance_per_month: self.balance_per_month,
+            base: BaseFinancialResource::new(
+                value.name,
+                value.category,
+                value.r_type,
+                value.editable,
+            ),
+            year: value.year,
+            balance_per_month: value.balance_per_month,
         }
     }
 }

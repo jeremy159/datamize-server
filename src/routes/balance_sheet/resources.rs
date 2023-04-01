@@ -26,6 +26,28 @@ pub async fn all_balance_sheet_resources(
     ))
 }
 
+#[tracing::instrument(skip_all)]
+pub async fn create_balance_sheet_resource(
+    State(app_state): State<AppState>,
+    WithRejection(Json(body), _): WithRejection<Json<SaveResource>, JsonError>,
+) -> Result<impl IntoResponse, AppError> {
+    let db_conn_pool = app_state.db_conn_pool;
+    let resource: FinancialResourceYearly = body.into();
+
+    db::update_financial_resource(&db_conn_pool, &resource).await?;
+
+    if !resource.balance_per_month.is_empty() {
+        // If balance data was received, update month and year net totals
+        for month in resource.balance_per_month.keys() {
+            update_month_net_totals(&db_conn_pool, *month, resource.year).await?;
+        }
+
+        update_year_net_totals(&db_conn_pool, resource.year).await?;
+    }
+
+    Ok((StatusCode::CREATED, Json(resource)))
+}
+
 /// Endpoint to get all financial resources of a particular year.
 #[tracing::instrument(name = "Get all resources from a year", skip_all)]
 pub async fn balance_sheet_resources(
@@ -37,27 +59,4 @@ pub async fn balance_sheet_resources(
     Ok(Json(
         db::get_financial_resources_of_year(&db_conn_pool, year).await?,
     ))
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn create_balance_sheet_resource(
-    Path(year): Path<i32>,
-    State(app_state): State<AppState>,
-    WithRejection(Json(body), _): WithRejection<Json<SaveResource>, JsonError>,
-) -> Result<impl IntoResponse, AppError> {
-    let db_conn_pool = app_state.db_conn_pool;
-    let resource = body.to_financial_resource_yearly(year);
-
-    db::update_financial_resource(&db_conn_pool, &resource).await?;
-
-    if !resource.balance_per_month.is_empty() {
-        // If balance data was received, update month and year net totals
-        for month in resource.balance_per_month.keys() {
-            update_month_net_totals(&db_conn_pool, *month, year).await?;
-        }
-
-        update_year_net_totals(&db_conn_pool, year).await?;
-    }
-
-    Ok((StatusCode::CREATED, Json(resource)))
 }

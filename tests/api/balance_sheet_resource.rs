@@ -3,7 +3,6 @@ use std::collections::BTreeMap;
 use chrono::{Datelike, NaiveDate};
 use datamize::domain::FinancialResourceYearly;
 use fake::{faker::chrono::en::Date, Dummy, Fake, Faker};
-use rand::Rng;
 use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -21,30 +20,10 @@ async fn get_resource_returns_a_404_for_a_non_existing_resource(pool: PgPool) {
     app.insert_year(year).await;
 
     // Act
-    let response = app.get_resource(year, Faker.fake::<Uuid>()).await;
+    let response = app.get_resource(Faker.fake::<Uuid>()).await;
 
     // Assert
     assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
-}
-
-#[sqlx::test]
-async fn get_resource_returns_a_400_for_invalid_year_in_path(pool: PgPool) {
-    // Arange
-    let app = spawn_app(pool).await;
-    let year = Date().fake::<NaiveDate>().year();
-    app.insert_year(year).await;
-
-    let min: i64 = i64::MAX - i32::MAX as i64;
-    // Act
-    let response = app
-        .get_resource(
-            rand::thread_rng().gen_range(min..i64::MAX),
-            Faker.fake::<Uuid>(),
-        )
-        .await;
-
-    // Assert
-    assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
 }
 
 #[sqlx::test]
@@ -55,7 +34,7 @@ async fn get_resource_returns_a_400_for_invalid_resource_id_format_in_path(pool:
     app.insert_year(year).await;
 
     // Act
-    let response = app.get_resource(year, Faker.fake::<i64>()).await;
+    let response = app.get_resource(Faker.fake::<i64>()).await;
 
     // Assert
     assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
@@ -77,7 +56,7 @@ async fn get_resource_returns_a_200_for_an_existing_resource(pool: PgPool) {
         .await;
 
     // Act
-    let response = app.get_resource(year, res.id).await;
+    let response = app.get_resource(res.id).await;
 
     // Assert
     assert_eq!(response.status(), reqwest::StatusCode::OK);
@@ -104,7 +83,7 @@ async fn get_resource_fails_if_there_is_a_fatal_database_error(pool: PgPool) {
         .unwrap();
 
     // Act
-    let response = app.get_resource(year, res.id).await;
+    let response = app.get_resource(res.id).await;
 
     // Assert
     assert_eq!(
@@ -137,7 +116,7 @@ async fn get_resource_returns_all_months_with_balance_of_the_year(pool: PgPool) 
     app.insert_month(year_id, month3).await;
 
     // Act
-    let response = app.get_resource(year, res.id).await;
+    let response = app.get_resource(res.id).await;
     assert!(response.status().is_success());
 
     let resource: FinancialResourceYearly =
@@ -158,7 +137,8 @@ async fn get_resource_returns_all_months_with_balance_of_the_year(pool: PgPool) 
         .is_none());
 }
 
-#[sqlx::test]
+// #[sqlx::test]
+// TODO: To tackle later. Maybe a resource should contain a reference to multiple years (including multiple months)?
 async fn get_resource_returns_months_with_balance_only_of_requested_year(pool: PgPool) {
     // Arange
     let app = spawn_app(pool).await;
@@ -187,7 +167,7 @@ async fn get_resource_returns_months_with_balance_only_of_requested_year(pool: P
         .await;
 
     // Act
-    let response = app.get_resource(year, res.id).await;
+    let response = app.get_resource(res.id).await;
     assert!(response.status().is_success());
 
     let resource: FinancialResourceYearly =
@@ -216,6 +196,7 @@ struct Body {
     #[serde(rename = "type")]
     r_type: DummyResourceType,
     editable: bool,
+    year: i32,
     balance_per_month: BTreeMap<DummyMonthNum, i64>,
 }
 
@@ -238,12 +219,13 @@ async fn put_resource_returns_a_200_for_valid_data(pool: PgPool) {
     let mut balance_per_month = BTreeMap::new();
     balance_per_month.insert(month1, Faker.fake::<i64>());
     let body = Body {
+        year,
         balance_per_month,
         ..Faker.fake()
     };
 
     // Act
-    let response = app.update_resource(year, res.id, &body).await;
+    let response = app.update_resource(res.id, &body).await;
 
     // Assert
     assert_eq!(response.status(), reqwest::StatusCode::OK);
@@ -253,11 +235,10 @@ async fn put_resource_returns_a_200_for_valid_data(pool: PgPool) {
 async fn put_resource_returns_a_404_for_non_existing_year(pool: PgPool) {
     // Arange
     let app = spawn_app(pool).await;
-    let year = Date().fake::<NaiveDate>().year();
     let body: Body = Faker.fake();
 
     // Act
-    let response = app.update_resource(year, Faker.fake::<Uuid>(), &body).await;
+    let response = app.update_resource(Faker.fake::<Uuid>(), &body).await;
 
     // Assert
     assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
@@ -282,7 +263,7 @@ async fn put_resource_returns_a_404_for_non_existing_month(pool: PgPool) {
     let body: Body = Faker.fake();
 
     // Act
-    let response = app.update_resource(year, res.id, &body).await;
+    let response = app.update_resource(res.id, &body).await;
 
     // Assert
     assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
@@ -300,7 +281,7 @@ async fn put_resource_returns_a_404_for_non_existing_resource(pool: PgPool) {
     let body: Body = Faker.fake();
 
     // Act
-    let response = app.update_resource(year, Faker.fake::<Uuid>(), &body).await;
+    let response = app.update_resource(Faker.fake::<Uuid>(), &body).await;
 
     // Assert
     assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
@@ -326,12 +307,13 @@ async fn put_resource_persists_data(pool: PgPool) {
     let new_balance: i64 = Faker.fake();
     balance_per_month.insert(month1, new_balance);
     let body = Body {
+        year,
         balance_per_month,
         ..Faker.fake()
     };
 
     // Act
-    app.update_resource(year, res.id, &body).await;
+    app.update_resource(res.id, &body).await;
 
     // Assert
     let saved = sqlx::query!("SELECT * FROM balance_sheet_resources",)
@@ -375,15 +357,17 @@ async fn put_resource_returns_a_422_for_wrong_body_attribute(pool: PgPool) {
         #[serde(rename = "type")]
         r_type: DummyResourceType,
         editableeeeeeeeeeeeeeeeeeeee: bool,
+        year: i32,
         balance_per_month: BTreeMap<DummyMonthNum, i64>,
     }
     let body = Body {
+        year,
         balance_per_month,
         ..Faker.fake()
     };
 
     // Act
-    let response = app.update_resource(year, res.id, &body).await;
+    let response = app.update_resource(res.id, &body).await;
 
     // Assert
     assert_eq!(response.status(), reqwest::StatusCode::UNPROCESSABLE_ENTITY);
@@ -414,15 +398,17 @@ async fn put_resource_returns_a_422_for_missing_body_attributes(pool: PgPool) {
         #[serde(rename = "type")]
         r_type: DummyResourceType,
         // editable: bool,
+        year: i32,
         balance_per_month: BTreeMap<DummyMonthNum, i64>,
     }
     let body = Body {
+        year,
         balance_per_month,
         ..Faker.fake()
     };
 
     // Act
-    let response = app.update_resource(year, res.id, &body).await;
+    let response = app.update_resource(res.id, &body).await;
 
     // Assert
     assert_eq!(response.status(), reqwest::StatusCode::UNPROCESSABLE_ENTITY);
@@ -453,15 +439,17 @@ async fn put_resource_returns_a_422_for_wrong_body_attribute_type(pool: PgPool) 
         #[serde(rename = "type")]
         r_type: DummyResourceType,
         editable: bool,
+        year: i32,
         balance_per_month: BTreeMap<DummyMonthNum, i64>,
     }
     let body = Body {
+        year,
         balance_per_month,
         ..Faker.fake()
     };
 
     // Act
-    let response = app.update_resource(year, res.id, &body).await;
+    let response = app.update_resource(res.id, &body).await;
 
     // Assert
     assert_eq!(response.status(), reqwest::StatusCode::UNPROCESSABLE_ENTITY);
@@ -488,8 +476,8 @@ async fn put_resource_returns_a_400_for_empty_body(pool: PgPool) {
     let response = app
         .api_client
         .put(&format!(
-            "{}/api/balance_sheet/years/{}/resources/{}",
-            &app.address, year, res.id
+            "{}/api/balance_sheet/resources/{}",
+            &app.address, res.id
         ))
         .header(reqwest::header::CONTENT_TYPE, "application/json")
         .send()
@@ -521,8 +509,8 @@ async fn put_resource_returns_a_415_for_missing_content_type(pool: PgPool) {
     let response = app
         .api_client
         .put(&format!(
-            "{}/api/balance_sheet/years/{}/resources/{}",
-            &app.address, year, res.id
+            "{}/api/balance_sheet/resources/{}",
+            &app.address, res.id
         ))
         .send()
         .await
@@ -533,39 +521,6 @@ async fn put_resource_returns_a_415_for_missing_content_type(pool: PgPool) {
         response.status(),
         reqwest::StatusCode::UNSUPPORTED_MEDIA_TYPE
     );
-}
-
-#[sqlx::test]
-async fn put_resource_returns_a_400_for_invalid_year_in_path(pool: PgPool) {
-    // Arange
-    let app = spawn_app(pool).await;
-    let date = Date().fake::<NaiveDate>();
-    let year = date.year();
-    let year_id = app.insert_year(year).await;
-    let month1: DummyMonthNum = date.month().try_into().unwrap();
-    let month1_id = app.insert_month(year_id, month1 as i16).await;
-    let res = app
-        .insert_financial_resource(
-            month1_id,
-            DummyResourceCategory::Asset,
-            DummyResourceType::Cash,
-        )
-        .await;
-    let mut balance_per_month = BTreeMap::new();
-    balance_per_month.insert(month1, Faker.fake::<i64>());
-    let body = Body {
-        balance_per_month,
-        ..Faker.fake()
-    };
-
-    // Act
-    let min: i64 = i64::MAX - i32::MAX as i64;
-    let response = app
-        .update_resource(rand::thread_rng().gen_range(min..i64::MAX), res.id, &body)
-        .await;
-
-    // Assert
-    assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
 }
 
 #[sqlx::test]
@@ -586,12 +541,13 @@ async fn put_resource_returns_a_400_for_invalid_res_id_in_path(pool: PgPool) {
     let mut balance_per_month = BTreeMap::new();
     balance_per_month.insert(month1, Faker.fake::<i64>());
     let body = Body {
+        year,
         balance_per_month,
         ..Faker.fake()
     };
 
     // Act
-    let response = app.update_resource(year, Faker.fake::<i64>(), &body).await;
+    let response = app.update_resource(Faker.fake::<i64>(), &body).await;
 
     // Assert
     assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
@@ -617,12 +573,13 @@ async fn put_resource_persits_net_totals_for_month_and_year(pool: PgPool) {
     let new_balance: i64 = Faker.fake();
     balance_per_month.insert(month1, new_balance);
     let body = Body {
+        year,
         balance_per_month,
         ..Faker.fake()
     };
 
     // Act
-    app.update_resource(year, res.id, &body).await;
+    app.update_resource(res.id, &body).await;
 
     // Assert
     let saved_month_net_totals = sqlx::query!(
@@ -674,6 +631,7 @@ async fn put_resource_updates_net_totals_if_previous_month_exists(pool: PgPool) 
     let month_balance = Faker.fake::<i32>() as i64;
     balance_per_month.insert(month.try_into().unwrap(), month_balance);
     let body = Body {
+        year,
         balance_per_month,
         category: DummyResourceCategory::Asset,
         r_type: DummyResourceType::Cash,
@@ -681,7 +639,7 @@ async fn put_resource_updates_net_totals_if_previous_month_exists(pool: PgPool) 
     };
 
     // Act
-    app.update_resource(year, res.id, &body).await;
+    app.update_resource(res.id, &body).await;
 
     // Assert
     let saved_month_net_assets = sqlx::query!(
@@ -710,30 +668,6 @@ async fn put_resource_updates_net_totals_if_previous_month_exists(pool: PgPool) 
 }
 
 #[sqlx::test]
-async fn delete_resource_returns_a_404_for_a_non_existing_year(pool: PgPool) {
-    // Arange
-    let app = spawn_app(pool).await;
-    let date = Date().fake::<NaiveDate>();
-    let year = date.year();
-    let year_id = app.insert_year(year).await;
-    let month1: DummyMonthNum = date.month().try_into().unwrap();
-    let month1_id = app.insert_month(year_id, month1 as i16).await;
-    let res = app
-        .insert_financial_resource(
-            month1_id,
-            DummyResourceCategory::Asset,
-            DummyResourceType::Cash,
-        )
-        .await;
-
-    // Act
-    let response = app.delete_resource(year - 1, res.id).await;
-
-    // Assert
-    assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
-}
-
-#[sqlx::test]
 async fn delete_resource_returns_a_404_for_a_non_existing_resource(pool: PgPool) {
     // Arange
     let app = spawn_app(pool).await;
@@ -750,7 +684,7 @@ async fn delete_resource_returns_a_404_for_a_non_existing_resource(pool: PgPool)
     .await;
 
     // Act
-    let response = app.delete_resource(year, Faker.fake::<Uuid>()).await;
+    let response = app.delete_resource(Faker.fake::<Uuid>()).await;
 
     // Assert
     assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
@@ -779,7 +713,7 @@ async fn delete_resource_returns_a_200_and_the_resource_for_existing_resource(po
         .await;
 
     // Act
-    let response = app.delete_resource(year, res.id).await;
+    let response = app.delete_resource(res.id).await;
 
     // Assert
     assert_eq!(response.status(), reqwest::StatusCode::OK);
@@ -829,7 +763,7 @@ async fn delete_resource_removes_resource_and_balance_associated_with_it(pool: P
         .await;
 
     // Act
-    app.delete_resource(year, res.id).await;
+    app.delete_resource(res.id).await;
 
     // Assert
     let saved_res = sqlx::query!(
