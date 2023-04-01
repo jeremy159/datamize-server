@@ -16,7 +16,7 @@ pub async fn get_month_data(
     db_conn_pool: &PgPool,
     month: MonthNum,
     year: i32,
-) -> Result<Option<MonthData>, sqlx::Error> {
+) -> Result<MonthData, sqlx::Error> {
     sqlx::query_as!(
         MonthData,
         r#"
@@ -30,7 +30,7 @@ pub async fn get_month_data(
         year,
         month as i16,
     )
-    .fetch_optional(db_conn_pool)
+    .fetch_one(db_conn_pool)
     .await
 }
 
@@ -298,8 +298,10 @@ pub async fn get_month(
 pub async fn add_new_month(
     db_conn_pool: &PgPool,
     month: &Month,
-    year_id: Uuid,
+    year: i32,
 ) -> Result<(), sqlx::Error> {
+    let year_data = super::get_year_data(db_conn_pool, year).await?;
+
     sqlx::query!(
         r#"
         INSERT INTO balance_sheet_months (id, month, year_id)
@@ -307,7 +309,7 @@ pub async fn add_new_month(
         "#,
         month.id,
         month.month as i16,
-        year_id,
+        year_data.id,
     )
     .execute(db_conn_pool)
     .await?;

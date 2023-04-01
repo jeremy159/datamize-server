@@ -10,10 +10,9 @@ use crate::{
 
 #[tracing::instrument(skip_all)]
 pub async fn get_year(db_conn_pool: &PgPool, year: i32) -> Result<YearDetail, AppError> {
-    let Some(year_data) = db::get_year_data(db_conn_pool, year)
-    .await? else {
-        return Err(AppError::ResourceNotFound);
-    };
+    let year_data = db::get_year_data(db_conn_pool, year)
+        .await
+        .map_err(AppError::from_sqlx)?;
 
     let (net_totals, saving_rates, months, resources) = try_join!(
         db::get_year_net_totals_for(db_conn_pool, year_data.id),
@@ -57,10 +56,9 @@ pub async fn update_year_net_totals(
     db_conn_pool: &PgPool,
     year: i32,
 ) -> Result<YearDetail, AppError> {
-    let Some(year_data) = db::get_year_data(db_conn_pool, year)
-    .await? else {
-        return Err(AppError::ResourceNotFound);
-    };
+    let year_data = db::get_year_data(db_conn_pool, year)
+        .await
+        .map_err(AppError::from_sqlx)?;
 
     let (net_totals, saving_rates, months) = try_join!(
         db::get_year_net_totals_for(db_conn_pool, year_data.id),
@@ -103,7 +101,7 @@ pub async fn update_year_net_totals(
     }
 
     // Also update with previous year since we might just have updated the total balance of current year.
-    if let Ok(Some(prev_year)) = db::get_year_data(db_conn_pool, year.year - 1).await {
+    if let Ok(prev_year) = db::get_year_data(db_conn_pool, year.year - 1).await {
         if let Ok(prev_net_totals) = db::get_year_net_totals_for(db_conn_pool, prev_year.id).await {
             if let Some(prev_net_assets) = prev_net_totals
                 .iter()
@@ -121,7 +119,7 @@ pub async fn update_year_net_totals(
     }
 
     // Should also try to update next year if it exists
-    if let Ok(Some(next_year)) = db::get_year_data(db_conn_pool, year.year + 1).await {
+    if let Ok(next_year) = db::get_year_data(db_conn_pool, year.year + 1).await {
         update_year_net_totals(db_conn_pool, next_year.year).await?;
     }
 

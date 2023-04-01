@@ -9,7 +9,7 @@ use axum_extra::extract::WithRejection;
 use crate::{
     common::{update_month_net_totals, update_year_net_totals},
     db,
-    domain::{FinancialResourceYearly, SaveResource},
+    domain::{FinancialResourceYearly, Month, SaveResource},
     error::{AppError, HttpJsonAppResult, JsonError},
     startup::AppState,
 };
@@ -34,16 +34,27 @@ pub async fn create_balance_sheet_resource(
     let db_conn_pool = app_state.db_conn_pool;
     let resource: FinancialResourceYearly = body.into();
 
+    // TODO: Add test to cover that month gets created when sending resource with non-existing month.
+    if !resource.balance_per_month.is_empty() {
+        for month in resource.balance_per_month.keys() {
+            if let Err(sqlx::Error::RowNotFound) =
+                db::get_month_data(&db_conn_pool, *month, resource.year).await
+            {
+                // If month doesn't exist, create it
+                let month = Month::new(*month, resource.year);
+                db::add_new_month(&db_conn_pool, &month, resource.year).await?;
+            }
+        }
+    }
+
     db::update_financial_resource(&db_conn_pool, &resource).await?;
 
-    if !resource.balance_per_month.is_empty() {
-        // If balance data was received, update month and year net totals
-        for month in resource.balance_per_month.keys() {
-            update_month_net_totals(&db_conn_pool, *month, resource.year).await?;
-        }
-
-        update_year_net_totals(&db_conn_pool, resource.year).await?;
+    // If balance data was received, update month and year net totals
+    for month in resource.balance_per_month.keys() {
+        update_month_net_totals(&db_conn_pool, *month, resource.year).await?;
     }
+
+    update_year_net_totals(&db_conn_pool, resource.year).await?;
 
     Ok((StatusCode::CREATED, Json(resource)))
 }

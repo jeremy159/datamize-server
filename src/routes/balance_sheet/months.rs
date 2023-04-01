@@ -45,18 +45,18 @@ pub async fn create_balance_sheet_month(
 ) -> impl IntoResponse {
     let db_conn_pool = app_state.db_conn_pool;
 
-    let Some(year_data) = db::get_year_data(&db_conn_pool, year)
-    .await? else {
-        return Err(AppError::ResourceNotFound);
-    };
+    db::get_year_data(&db_conn_pool, year)
+        .await
+        .map_err(AppError::from_sqlx)?;
 
-    let None = db::get_month_data(&db_conn_pool, body.month, year)
-    .await? else {
+    let Err(sqlx::Error::RowNotFound) =
+        db::get_month_data(&db_conn_pool, body.month, year).await else
+    {
         return Err(AppError::MonthAlreadyExist);
     };
 
     let month = Month::new(body.month, year);
-    db::add_new_month(&db_conn_pool, &month, year_data.id).await?;
+    db::add_new_month(&db_conn_pool, &month, year).await?;
 
     let month = update_month_net_totals(&db_conn_pool, body.month, year).await?;
 

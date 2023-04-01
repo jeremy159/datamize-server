@@ -28,9 +28,10 @@ pub async fn create_balance_sheet_year(
 ) -> impl IntoResponse {
     let db_conn_pool = app_state.db_conn_pool;
 
-    let None = db::get_year_data(&db_conn_pool, body.year)
-    .await? else {
-        return Err(AppError::YearAlreadyExist);
+    let Err(sqlx::Error::RowNotFound) =
+        db::get_year_data(&db_conn_pool, body.year).await else
+    {
+        return Err(AppError::MonthAlreadyExist);
     };
 
     let year = YearDetail::new(body.year);

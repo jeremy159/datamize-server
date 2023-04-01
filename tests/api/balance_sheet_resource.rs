@@ -245,7 +245,7 @@ async fn put_resource_returns_a_404_for_non_existing_year(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn put_resource_returns_a_404_for_non_existing_month(pool: PgPool) {
+async fn put_resource_returns_a_200_for_non_existing_month_and_creates_it(pool: PgPool) {
     // Arange
     let app = spawn_app(pool).await;
     let date = Date().fake::<NaiveDate>();
@@ -260,13 +260,30 @@ async fn put_resource_returns_a_404_for_non_existing_month(pool: PgPool) {
             DummyResourceType::Cash,
         )
         .await;
-    let body: Body = Faker.fake();
+    let mut balance_per_month = BTreeMap::new();
+    let pred_month = month1.pred();
+    balance_per_month.insert(pred_month, Faker.fake::<i64>());
+    let body = Body {
+        year,
+        balance_per_month,
+        ..Faker.fake()
+    };
 
     // Act
     let response = app.update_resource(res.id, &body).await;
 
     // Assert
-    assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+
+    let saved_month = sqlx::query!(
+        "SELECT * FROM balance_sheet_months WHERE month = $1",
+        pred_month as i16
+    )
+    .fetch_one(&app.db_pool)
+    .await
+    .expect("Failed to fetch saved month.");
+    assert_eq!(saved_month.month, pred_month as i16);
+    assert_eq!(saved_month.year_id, year_id);
 }
 
 #[sqlx::test]

@@ -14,10 +14,9 @@ pub async fn update_month_net_totals(
     month_num: MonthNum,
     year: i32,
 ) -> Result<Month, AppError> {
-    let Some(month_data) = db::get_month_data(db_conn_pool, month_num, year)
-    .await? else {
-        return Err(AppError::ResourceNotFound);
-    };
+    let month_data = db::get_month_data(db_conn_pool, month_num, year)
+        .await
+        .map_err(AppError::from_sqlx)?;
 
     let mut month = Month {
         id: month_data.id,
@@ -35,9 +34,7 @@ pub async fn update_month_net_totals(
         _ => year,
     };
 
-    if let Ok(Some(prev_month)) =
-        db::get_month_data(db_conn_pool, month_num.pred(), prev_year).await
-    {
+    if let Ok(prev_month) = db::get_month_data(db_conn_pool, month_num.pred(), prev_year).await {
         if let Ok(prev_net_totals) = db::get_month_net_totals_for(db_conn_pool, prev_month.id).await
         {
             if let Some(prev_net_assets) = prev_net_totals
@@ -68,8 +65,8 @@ pub async fn update_month_net_totals(
     };
 
     // Should also try to update next month if it exists
-    if let Ok(Some(_)) = db::get_year_data(db_conn_pool, next_year_num).await {
-        if let Ok(Some(next_month)) =
+    if (db::get_year_data(db_conn_pool, next_year_num).await).is_ok() {
+        if let Ok(next_month) =
             db::get_month_data(db_conn_pool, month_num.succ(), next_year_num).await
         {
             update_month_net_totals(

@@ -8,7 +8,7 @@ use uuid::Uuid;
 use crate::{
     common::{update_month_net_totals, update_year_net_totals},
     db,
-    domain::{FinancialResourceYearly, SaveResource},
+    domain::{FinancialResourceYearly, Month, SaveResource},
     error::{AppError, HttpJsonAppResult, JsonError},
     startup::AppState,
 };
@@ -45,16 +45,26 @@ pub async fn update_balance_sheet_resource(
         .await
         .map_err(AppError::from_sqlx)?;
 
+    if !resource.balance_per_month.is_empty() {
+        for month in resource.balance_per_month.keys() {
+            if let Err(sqlx::Error::RowNotFound) =
+                db::get_month_data(&db_conn_pool, *month, resource.year).await
+            {
+                // If month doesn't exist, create it
+                let month = Month::new(*month, resource.year);
+                db::add_new_month(&db_conn_pool, &month, resource.year).await?;
+            }
+        }
+    }
+
     db::update_financial_resource(&db_conn_pool, &resource).await?;
 
-    if !resource.balance_per_month.is_empty() {
-        // If balance data was received, update month and year net totals
-        for month in resource.balance_per_month.keys() {
-            update_month_net_totals(&db_conn_pool, *month, resource.year).await?;
-        }
-
-        update_year_net_totals(&db_conn_pool, resource.year).await?;
+    // If balance data was received, update month and year net totals
+    for month in resource.balance_per_month.keys() {
+        update_month_net_totals(&db_conn_pool, *month, resource.year).await?;
     }
+
+    update_year_net_totals(&db_conn_pool, resource.year).await?;
 
     Ok(Json(resource))
 }

@@ -27,19 +27,17 @@ pub async fn refresh_balance_sheet_resources(
     let current_date = Local::now().date_naive();
     let current_year = current_date.year();
     // The only condition is that the year exists...
-    let Some(year_data) = db::get_year_data(&db_conn_pool, current_year)
-    .await? else {
-        return Err(AppError::ResourceNotFound);
-    };
+    db::get_year_data(&db_conn_pool, current_year)
+        .await
+        .map_err(AppError::from_sqlx)?;
 
     let current_month: MonthNum = current_date.month().try_into().unwrap();
-    if db::get_month_data(&db_conn_pool, current_month, current_year)
-        .await?
-        .is_none()
+    if let Err(sqlx::Error::RowNotFound) =
+        db::get_month_data(&db_conn_pool, current_month, current_year).await
     {
         // If month doesn't exist, create it
         let month = Month::new(current_month, current_year);
-        db::add_new_month(&db_conn_pool, &month, year_data.id).await?;
+        db::add_new_month(&db_conn_pool, &month, current_year).await?;
     }
 
     let mut resources =
@@ -159,6 +157,7 @@ pub async fn refresh_balance_sheet_resources(
 
     if !refreshed.is_empty() {
         resources.retain(|r| refreshed.contains(&r.base.id));
+        // TODO: Make sure month exists before updating financial resource.
         for r in resources {
             db::update_monthly_financial_resource(&db_conn_pool, &r).await?;
         }

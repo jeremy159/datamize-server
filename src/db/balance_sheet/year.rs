@@ -87,10 +87,7 @@ pub struct YearData {
 }
 
 #[tracing::instrument(skip(db_conn_pool))]
-pub async fn get_year_data(
-    db_conn_pool: &PgPool,
-    year: i32,
-) -> Result<Option<YearData>, sqlx::Error> {
+pub async fn get_year_data(db_conn_pool: &PgPool, year: i32) -> Result<YearData, sqlx::Error> {
     sqlx::query_as!(
         YearData,
         r#"
@@ -100,7 +97,7 @@ pub async fn get_year_data(
         "#,
         year
     )
-    .fetch_optional(db_conn_pool)
+    .fetch_one(db_conn_pool)
     .await
 }
 
