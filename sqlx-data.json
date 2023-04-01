@@ -311,63 +311,6 @@
     },
     "query": "\n            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, month_id)\n            VALUES ($1, $2, $3, $4, $5, $6)\n            ON CONFLICT (id) DO UPDATE\n            SET type = EXCLUDED.type,\n            total = EXCLUDED.total,\n            percent_var = EXCLUDED.percent_var,\n            balance_var = EXCLUDED.balance_var;\n            "
   },
-  "390571b3a85ac79889fb3c7663efb26a3161c9564bebb9d25f8036279a5f3919": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "category",
-          "ordinal": 2,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "type",
-          "ordinal": 3,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "editable",
-          "ordinal": 4,
-          "type_info": "Bool"
-        },
-        {
-          "name": "balance",
-          "ordinal": 5,
-          "type_info": "Int8"
-        },
-        {
-          "name": "month",
-          "ordinal": 6,
-          "type_info": "Int2"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Int4"
-        ]
-      }
-    },
-    "query": "\n        SELECT\n            r.*,\n            rm.balance,\n            m.month\n        FROM balance_sheet_resources AS r\n        JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id AND r.id = $1\n        JOIN balance_sheet_months AS m ON rm.month_id = m.id\n        JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $2;\n        "
-  },
   "394f29b284b5527f830adcb17a3b33620ddaf9e9d1b2c3e3d8f2ed92606b58ed": {
     "describe": {
       "columns": [],
@@ -1118,6 +1061,68 @@
       }
     },
     "query": "\n        INSERT INTO balance_sheet_resources (id, name, category, type, editable)\n        VALUES ($1, $2, $3, $4, $5)\n        ON CONFLICT (id) DO UPDATE\n        SET name = EXCLUDED.name,\n        category = EXCLUDED.category,\n        type = EXCLUDED.type,\n        editable = EXCLUDED.editable;\n        "
+  },
+  "b980045b191710d6db8fc55eff29dfce6ed3b4293e7efc20a16253a3aa26a1af": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "category",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "type",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "editable",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "balance",
+          "ordinal": 5,
+          "type_info": "Int8"
+        },
+        {
+          "name": "month",
+          "ordinal": 6,
+          "type_info": "Int2"
+        },
+        {
+          "name": "year",
+          "ordinal": 7,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Uuid"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            r.*,\n            rm.balance,\n            m.month,\n            y.year\n        FROM balance_sheet_resources AS r\n        JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id AND r.id = $1\n        JOIN balance_sheet_months AS m ON rm.month_id = m.id\n        JOIN balance_sheet_years AS y ON y.id = m.year_id;\n        "
   },
   "baea70b25828e05536e9494804481e1801c9d2eb6bfdd269b4bf79db0d86264f": {
     "describe": {
