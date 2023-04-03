@@ -177,7 +177,11 @@ async fn refresh_resources_should_return_as_many_ids_as_accounts_from_ynab_when_
     let year = current_date.year();
     let year_id = app.insert_year(year).await;
     let month = current_date.month();
-    app.insert_month(year_id, month as i16).await;
+    let month_id = app.insert_month(year_id, month as i16).await;
+    app.insert_month_net_total(month_id, DummyNetTotalType::Asset)
+        .await;
+    app.insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
+        .await;
     let accounts: Vec<DummyAccount> = vec![
         DummyAccount {
             account_type: DummyAccountType::Mortgage,
@@ -227,7 +231,11 @@ async fn refresh_resources_should_persit_refreshed_ids_in_db(pool: PgPool) {
     let year = current_date.year();
     let year_id = app.insert_year(year).await;
     let month = current_date.month();
-    app.insert_month(year_id, month as i16).await;
+    let month_id = app.insert_month(year_id, month as i16).await;
+    app.insert_month_net_total(month_id, DummyNetTotalType::Asset)
+        .await;
+    app.insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
+        .await;
     let accounts: Vec<DummyAccount> = vec![
         DummyAccount {
             account_type: DummyAccountType::Mortgage,
@@ -300,7 +308,11 @@ async fn refresh_resources_should_add_balance_from_same_ynab_accounts(pool: PgPo
     let year = current_date.year();
     let year_id = app.insert_year(year).await;
     let month = current_date.month();
-    app.insert_month(year_id, month as i16).await;
+    let month_id = app.insert_month(year_id, month as i16).await;
+    app.insert_month_net_total(month_id, DummyNetTotalType::Asset)
+        .await;
+    app.insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
+        .await;
     let accounts: Vec<DummyAccount> = vec![
         DummyAccount {
             account_type: DummyAccountType::AutoLoan,
@@ -367,6 +379,10 @@ async fn refresh_resources_should_only_update_balance_if_existing_resource_has_d
     let year_id = app.insert_year(year).await;
     let month = current_date.month();
     let month_id = app.insert_month(year_id, month as i16).await;
+    app.insert_month_net_total(month_id, DummyNetTotalType::Asset)
+        .await;
+    app.insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
+        .await;
     let car_loan_res = app
         .insert_financial_resource_with_name_and_balance(
             month_id,
@@ -428,7 +444,11 @@ async fn refresh_resources_should_update_month_net_totals(pool: PgPool) {
     let year = current_date.year();
     let year_id = app.insert_year(year).await;
     let month = current_date.month();
-    app.insert_month(year_id, month as i16).await;
+    let month_id = app.insert_month(year_id, month as i16).await;
+    app.insert_month_net_total(month_id, DummyNetTotalType::Asset)
+        .await;
+    app.insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
+        .await;
     let accounts: Vec<DummyAccount> = vec![
         DummyAccount {
             account_type: DummyAccountType::Mortgage,
@@ -488,7 +508,11 @@ async fn refresh_resources_should_update_month_net_totals_with_prev_month(pool: 
     let year = current_date.year();
     let year_id = app.insert_year(year).await;
     let month = current_date.month();
-    app.insert_month(year_id, month as i16).await;
+    let month1_id = app.insert_month(year_id, month as i16).await;
+    app.insert_month_net_total(month1_id, DummyNetTotalType::Asset)
+        .await;
+    app.insert_month_net_total(month1_id, DummyNetTotalType::Portfolio)
+        .await;
 
     let chrono_prev_month = chrono::Month::from_u32(month).unwrap().pred();
     let prev_month_id = match chrono_prev_month {

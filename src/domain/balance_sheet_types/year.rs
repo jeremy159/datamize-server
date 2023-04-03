@@ -133,14 +133,18 @@ impl YearDetail {
 
     pub fn update_net_assets_with_previous(&mut self, prev_net_assets: &NetTotal) {
         self.net_assets.balance_var = self.net_assets.total - prev_net_assets.total;
-        self.net_assets.percent_var =
-            self.net_assets.balance_var as f32 / prev_net_assets.total as f32;
+        self.net_assets.percent_var = match prev_net_assets.total {
+            0 => 0.0,
+            _ => self.net_assets.balance_var as f32 / prev_net_assets.total as f32,
+        };
     }
 
     pub fn update_net_portfolio_with_previous(&mut self, prev_net_portfolio: &NetTotal) {
         self.net_portfolio.balance_var = self.net_portfolio.total - prev_net_portfolio.total;
-        self.net_portfolio.percent_var =
-            self.net_portfolio.balance_var as f32 / prev_net_portfolio.total as f32;
+        self.net_portfolio.percent_var = match prev_net_portfolio.total {
+            0 => 0.0,
+            _ => self.net_portfolio.balance_var as f32 / prev_net_portfolio.total as f32,
+        };
     }
 
     pub fn get_last_month(&self) -> Option<Month> {

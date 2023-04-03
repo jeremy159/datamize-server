@@ -216,10 +216,9 @@ pub async fn get_month(
             n.type,
             n.total,
             n.percent_var,
-            n.balance_var,
-            n.month_id as net_total_month_id
+            n.balance_var
         FROM balance_sheet_months AS m
-        JOIN balance_sheet_net_totals_months AS n ON month_id = n.month_id
+        JOIN balance_sheet_net_totals_months AS n ON m.id = n.month_id
         JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1
         WHERE m.month = $2;
         "#,
@@ -229,69 +228,44 @@ pub async fn get_month(
     .fetch_all(db_conn_pool)
     .await?;
 
-    let resources = super::get_financial_resources_of_month(db_conn_pool, month_num, year).await?;
-
-    let mut month: Option<Month> = None;
-
-    for r in db_rows {
-        let is_net_assets_total = r.r#type == NetTotalType::Asset.to_string();
-
-        match month {
-            Some(ref mut m) => {
-                if is_net_assets_total && m.net_assets.total != r.total {
-                    m.net_assets = NetTotal {
-                        id: r.net_total_id,
-                        net_type: r.r#type.parse().unwrap(),
-                        total: r.total,
-                        percent_var: r.percent_var,
-                        balance_var: r.balance_var,
-                    };
-                } else if !is_net_assets_total && m.net_portfolio.total != r.total {
-                    m.net_portfolio = NetTotal {
-                        id: r.net_total_id,
-                        net_type: r.r#type.parse().unwrap(),
-                        total: r.total,
-                        percent_var: r.percent_var,
-                        balance_var: r.balance_var,
-                    };
-                }
-            }
-            None => {
-                let net_assets = match is_net_assets_total {
-                    true => NetTotal {
-                        id: r.net_total_id,
-                        net_type: r.r#type.parse().unwrap(),
-                        total: r.total,
-                        percent_var: r.percent_var,
-                        balance_var: r.balance_var,
-                    },
-                    false => NetTotal::new_asset(),
-                };
-
-                let net_portfolio = match r.r#type == NetTotalType::Portfolio.to_string() {
-                    true => NetTotal {
-                        id: r.net_total_id,
-                        net_type: r.r#type.parse().unwrap(),
-                        total: r.total,
-                        percent_var: r.percent_var,
-                        balance_var: r.balance_var,
-                    },
-                    false => NetTotal::new_portfolio(),
-                };
-
-                month = Some(Month {
-                    id: r.month_id,
-                    month: r.month.try_into().unwrap(),
-                    year,
-                    net_assets,
-                    net_portfolio,
-                    resources: resources.clone(),
-                });
-            }
-        }
+    if db_rows.is_empty() || db_rows.len() != 2 {
+        return Err(sqlx::Error::RowNotFound);
     }
 
-    month.ok_or(sqlx::Error::RowNotFound)
+    let resources = super::get_financial_resources_of_month(db_conn_pool, month_num, year).await?;
+
+    let month: Month = Month {
+        id: db_rows[0].month_id,
+        month: db_rows[0].month.try_into().unwrap(),
+        year,
+        net_assets: db_rows
+            .iter()
+            .filter(|r| r.r#type == NetTotalType::Asset.to_string())
+            .map(|r| NetTotal {
+                id: r.net_total_id,
+                net_type: r.r#type.parse().unwrap(),
+                total: r.total,
+                percent_var: r.percent_var,
+                balance_var: r.balance_var,
+            })
+            .next()
+            .unwrap_or_else(NetTotal::new_asset),
+        net_portfolio: db_rows
+            .iter()
+            .filter(|r| r.r#type == NetTotalType::Portfolio.to_string())
+            .map(|r| NetTotal {
+                id: r.net_total_id,
+                net_type: r.r#type.parse().unwrap(),
+                total: r.total,
+                percent_var: r.percent_var,
+                balance_var: r.balance_var,
+            })
+            .next()
+            .unwrap_or_else(NetTotal::new_portfolio),
+        resources,
+    };
+
+    Ok(month)
 }
 
 #[tracing::instrument(skip_all)]

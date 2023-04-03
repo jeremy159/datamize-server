@@ -60,6 +60,63 @@
     },
     "query": "\n        SELECT\n            r.*,\n            rm.balance,\n            m.month,\n            y.year\n        FROM balance_sheet_resources AS r\n        JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id\n        JOIN balance_sheet_months AS m ON rm.month_id = m.id\n        JOIN balance_sheet_years AS y ON y.id = m.year_id\n        "
   },
+  "06354a2a1b6b50b7f0eee2864345c08de743d932fdb01be25575e031759ac661": {
+    "describe": {
+      "columns": [
+        {
+          "name": "month_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "month",
+          "ordinal": 1,
+          "type_info": "Int2"
+        },
+        {
+          "name": "net_total_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "type",
+          "ordinal": 3,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "total",
+          "ordinal": 4,
+          "type_info": "Int8"
+        },
+        {
+          "name": "percent_var",
+          "ordinal": 5,
+          "type_info": "Float4"
+        },
+        {
+          "name": "balance_var",
+          "ordinal": 6,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4",
+          "Int2"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            m.id as month_id,\n            m.month,\n            n.id as net_total_id,\n            n.type,\n            n.total,\n            n.percent_var,\n            n.balance_var\n        FROM balance_sheet_months AS m\n        JOIN balance_sheet_net_totals_months AS n ON m.id = n.month_id\n        JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1\n        WHERE m.month = $2;\n        "
+  },
   "066fcd7e8c23427f1ea4f5d380e49e869cff3e9df62d4b23fbb09ab7bfb3b4cd": {
     "describe": {
       "columns": [
@@ -104,69 +161,6 @@
       }
     },
     "query": "\n            DELETE FROM balance_sheet_months\n            WHERE month = $1 AND year_id in (SELECT y.id\n            FROM balance_sheet_years AS y WHERE y.year = $2);\n        "
-  },
-  "1727fbbf7175874d0b69aefcb7207246024250383a3bd5fe8d816c47e368fb66": {
-    "describe": {
-      "columns": [
-        {
-          "name": "month_id",
-          "ordinal": 0,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "month",
-          "ordinal": 1,
-          "type_info": "Int2"
-        },
-        {
-          "name": "net_total_id",
-          "ordinal": 2,
-          "type_info": "Uuid"
-        },
-        {
-          "name": "type",
-          "ordinal": 3,
-          "type_info": "Varchar"
-        },
-        {
-          "name": "total",
-          "ordinal": 4,
-          "type_info": "Int8"
-        },
-        {
-          "name": "percent_var",
-          "ordinal": 5,
-          "type_info": "Float4"
-        },
-        {
-          "name": "balance_var",
-          "ordinal": 6,
-          "type_info": "Int8"
-        },
-        {
-          "name": "net_total_month_id",
-          "ordinal": 7,
-          "type_info": "Uuid"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int4",
-          "Int2"
-        ]
-      }
-    },
-    "query": "\n        SELECT\n            m.id as month_id,\n            m.month,\n            n.id as net_total_id,\n            n.type,\n            n.total,\n            n.percent_var,\n            n.balance_var,\n            n.month_id as net_total_month_id\n        FROM balance_sheet_months AS m\n        JOIN balance_sheet_net_totals_months AS n ON month_id = n.month_id\n        JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1\n        WHERE m.month = $2;\n        "
   },
   "2810ecb69af60d82997849ed3ed7bc98e356c761242733a0eb276153f6a07910": {
     "describe": {

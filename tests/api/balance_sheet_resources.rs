@@ -464,6 +464,10 @@ async fn post_resources_returns_a_201_for_valid_body_data(pool: PgPool) {
     let year = Date().fake::<NaiveDate>().year();
     let year_id = app.insert_year(year).await;
     let month = app.insert_random_month(year_id).await;
+    app.insert_month_net_total(month.0, DummyNetTotalType::Asset)
+        .await;
+    app.insert_month_net_total(month.0, DummyNetTotalType::Portfolio)
+        .await;
 
     #[derive(Debug, Clone, Serialize, Dummy)]
     struct Body {
@@ -645,12 +649,11 @@ async fn post_resources_returns_a_415_for_missing_json_content_type(pool: PgPool
 }
 
 #[sqlx::test]
-async fn post_resources_persists_the_new_resource(pool: PgPool) {
+async fn post_resources_persists_the_new_resource_and_creates_month(pool: PgPool) {
     // Arange
     let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
-    let year_id = app.insert_year(year).await;
-    let month = app.insert_random_month(year_id).await;
+    app.insert_year(year).await;
 
     #[derive(Debug, Clone, Serialize, Dummy)]
     struct Body {
@@ -663,7 +666,8 @@ async fn post_resources_persists_the_new_resource(pool: PgPool) {
         balance_per_month: BTreeMap<DummyMonthNum, i64>,
     }
     let mut balance_per_month = BTreeMap::new();
-    balance_per_month.insert(month.1, Faker.fake::<i64>());
+    let month = Date().fake::<NaiveDate>().month().try_into().unwrap();
+    balance_per_month.insert(month, Faker.fake::<i64>());
     let body = Body {
         year,
         balance_per_month,
@@ -679,6 +683,11 @@ async fn post_resources_persists_the_new_resource(pool: PgPool) {
         .await
         .expect("Failed to fetch saved resource.");
     assert_eq!(saved.name, body.name);
+    let saved_month = sqlx::query!("SELECT * FROM balance_sheet_months",)
+        .fetch_one(&app.db_pool)
+        .await
+        .expect("Failed to fetch saved month.");
+    assert_eq!(saved_month.month, month as i16);
 }
 
 // TODO: What should we do?
@@ -711,6 +720,10 @@ async fn post_resources_persits_net_totals_for_month_and_year(pool: PgPool) {
     let year = Date().fake::<NaiveDate>().year();
     let year_id = app.insert_year(year).await;
     let month = app.insert_random_month(year_id).await;
+    app.insert_month_net_total(month.0, DummyNetTotalType::Asset)
+        .await;
+    app.insert_month_net_total(month.0, DummyNetTotalType::Portfolio)
+        .await;
     #[derive(Debug, Clone, Serialize, Dummy)]
     struct Body {
         name: String,
@@ -760,6 +773,10 @@ async fn post_resources_updates_net_totals_if_previous_month_exists(pool: PgPool
     let year_id = app.insert_year(year).await;
     let month = (2..12).fake();
     let month_id = app.insert_month(year_id, month).await;
+    app.insert_month_net_total(month_id, DummyNetTotalType::Asset)
+        .await;
+    app.insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
+        .await;
 
     let prev_month = month - 1;
     let month2_id = app.insert_month(year_id, prev_month).await;

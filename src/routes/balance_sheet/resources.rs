@@ -50,8 +50,13 @@ pub async fn create_balance_sheet_resource(
     db::update_financial_resource(&db_conn_pool, &resource).await?;
 
     // If balance data was received, update month and year net totals
-    for month in resource.balance_per_month.keys() {
-        update_month_net_totals(&db_conn_pool, *month, resource.year).await?;
+    if !resource.balance_per_month.is_empty() {
+        update_month_net_totals(
+            &db_conn_pool,
+            *resource.balance_per_month.first_key_value().unwrap().0,
+            resource.year,
+        )
+        .await?;
     }
 
     update_year_net_totals(&db_conn_pool, resource.year).await?;

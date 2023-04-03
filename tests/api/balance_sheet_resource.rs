@@ -209,6 +209,10 @@ async fn put_resource_returns_a_200_for_valid_data(pool: PgPool) {
     let year_id = app.insert_year(year).await;
     let month1: DummyMonthNum = date.month().try_into().unwrap();
     let month1_id = app.insert_month(year_id, month1 as i16).await;
+    app.insert_month_net_total(month1_id, DummyNetTotalType::Asset)
+        .await;
+    app.insert_month_net_total(month1_id, DummyNetTotalType::Portfolio)
+        .await;
     let res = app
         .insert_financial_resource(
             month1_id,
@@ -253,6 +257,10 @@ async fn put_resource_returns_a_200_for_non_existing_month_and_creates_it(pool: 
     let year_id = app.insert_year(year).await;
     let month1: DummyMonthNum = date.month().try_into().unwrap();
     let month1_id = app.insert_month(year_id, month1 as i16).await;
+    app.insert_month_net_total(month1_id, DummyNetTotalType::Asset)
+        .await;
+    app.insert_month_net_total(month1_id, DummyNetTotalType::Portfolio)
+        .await;
     let res = app
         .insert_financial_resource(
             month1_id,
@@ -262,7 +270,7 @@ async fn put_resource_returns_a_200_for_non_existing_month_and_creates_it(pool: 
         .await;
     let mut balance_per_month = BTreeMap::new();
     let pred_month = month1.pred();
-    balance_per_month.insert(pred_month, Faker.fake::<i64>());
+    balance_per_month.insert(pred_month, Faker.fake::<i32>() as i64);
     let body = Body {
         year,
         balance_per_month,
@@ -579,6 +587,10 @@ async fn put_resource_persits_net_totals_for_month_and_year(pool: PgPool) {
     let year_id = app.insert_year(year).await;
     let month1: DummyMonthNum = date.month().try_into().unwrap();
     let month1_id = app.insert_month(year_id, month1 as i16).await;
+    app.insert_month_net_total(month1_id, DummyNetTotalType::Asset)
+        .await;
+    app.insert_month_net_total(month1_id, DummyNetTotalType::Portfolio)
+        .await;
     let res = app
         .insert_financial_resource(
             month1_id,
@@ -627,6 +639,10 @@ async fn put_resource_updates_net_totals_if_previous_month_exists(pool: PgPool) 
     let year_id = app.insert_year(year).await;
     let month = (2..12).fake();
     let month_id = app.insert_month(year_id, month).await;
+    app.insert_month_net_total(month_id, DummyNetTotalType::Asset)
+        .await;
+    app.insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
+        .await;
     // prev month
     let prev_month = month - 1;
     let month2_id = app.insert_month(year_id, prev_month).await;

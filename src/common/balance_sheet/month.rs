@@ -3,7 +3,7 @@ use sqlx::PgPool;
 
 use crate::{
     db,
-    domain::{Month, MonthNum, NetTotal, NetTotalType},
+    domain::{Month, MonthNum, NetTotalType},
     error::AppError,
 };
 
@@ -14,18 +14,11 @@ pub async fn update_month_net_totals(
     month_num: MonthNum,
     year: i32,
 ) -> Result<Month, AppError> {
-    let month_data = db::get_month_data(db_conn_pool, month_num, year)
+    db::get_month_data(db_conn_pool, month_num, year)
         .await
         .map_err(AppError::from_sqlx)?;
 
-    let mut month = Month {
-        id: month_data.id,
-        year,
-        month: month_num,
-        net_assets: NetTotal::new_asset(),
-        net_portfolio: NetTotal::new_portfolio(),
-        resources: db::get_financial_resources_of_month(db_conn_pool, month_num, year).await?,
-    };
+    let mut month = db::get_month(db_conn_pool, month_num, year).await?;
 
     month.compute_net_totals();
 
