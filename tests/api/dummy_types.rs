@@ -102,6 +102,7 @@ pub struct DummyFinancialResource {
     pub resource_type: DummyResourceType,
     pub balance: i64,
     pub editable: bool,
+    pub ynab_account_ids: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Clone, Serialize, Dummy)]

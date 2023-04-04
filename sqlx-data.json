@@ -29,18 +29,23 @@
           "type_info": "Bool"
         },
         {
-          "name": "balance",
+          "name": "ynab_account_ids",
           "ordinal": 5,
+          "type_info": "UuidArray"
+        },
+        {
+          "name": "balance",
+          "ordinal": 6,
           "type_info": "Int8"
         },
         {
           "name": "month",
-          "ordinal": 6,
+          "ordinal": 7,
           "type_info": "Int2"
         },
         {
           "name": "year",
-          "ordinal": 7,
+          "ordinal": 8,
           "type_info": "Int4"
         }
       ],
@@ -50,6 +55,7 @@
         false,
         false,
         false,
+        true,
         false,
         false,
         false
@@ -350,13 +356,18 @@
           "type_info": "Bool"
         },
         {
-          "name": "balance",
+          "name": "ynab_account_ids",
           "ordinal": 5,
+          "type_info": "UuidArray"
+        },
+        {
+          "name": "balance",
+          "ordinal": 6,
           "type_info": "Int8"
         },
         {
           "name": "month",
-          "ordinal": 6,
+          "ordinal": 7,
           "type_info": "Int2"
         }
       ],
@@ -366,6 +377,7 @@
         false,
         false,
         false,
+        true,
         false,
         false
       ],
@@ -421,6 +433,23 @@
     },
     "query": "\n        SELECT\n            id,\n            type AS \"net_type: NetTotalType\",\n            total,\n            percent_var,\n            balance_var\n        FROM balance_sheet_net_totals_months\n        WHERE month_id = $1;\n        "
   },
+  "47b5fcb6fa0593c538b583bd24cdf5db878f65bdddf74778d2486f11fbd79b6b": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Varchar",
+          "Varchar",
+          "Varchar",
+          "Bool",
+          "UuidArray"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO balance_sheet_resources (id, name, category, type, editable, ynab_account_ids)\n        VALUES ($1, $2, $3, $4, $5, $6)\n        ON CONFLICT (id) DO UPDATE\n        SET name = EXCLUDED.name,\n        category = EXCLUDED.category,\n        type = EXCLUDED.type,\n        editable = EXCLUDED.editable,\n        ynab_account_ids = EXCLUDED.ynab_account_ids;\n        "
+  },
   "4fbdc5e8476541303b9ee0e112e972adae88c80bc24fb4562f49394233cd0e23": {
     "describe": {
       "columns": [
@@ -447,6 +476,30 @@
       }
     },
     "query": "\n        SELECT\n            m.id,\n            month\n        FROM balance_sheet_months AS m\n        JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1\n        WHERE m.month = $2;\n        "
+  },
+  "5847cff2ebd9d4184a20d08ee9fbc98b7a098855ee12ac1e435cd3fb9bc92ad3": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Varchar",
+          "Bool",
+          "Bool",
+          "Text",
+          "Int8",
+          "Int8",
+          "Int8",
+          "Uuid",
+          "Bool",
+          "Bool",
+          "Bool"
+        ]
+      }
+    },
+    "query": "\n                INSERT INTO accounts (id, name, type, on_budget, closed, note, balance, cleared_balance, uncleared_balance, transfer_payee_id, direct_import_linked, direct_import_in_error, deleted)\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)\n                ON CONFLICT (id) DO UPDATE SET\n                name = EXCLUDED.name,\n                type = EXCLUDED.type,\n                on_budget = EXCLUDED.on_budget,\n                closed = EXCLUDED.closed,\n                note = EXCLUDED.note,\n                balance = EXCLUDED.balance,\n                cleared_balance = EXCLUDED.cleared_balance,\n                uncleared_balance = EXCLUDED.uncleared_balance,\n                transfer_payee_id = EXCLUDED.transfer_payee_id,\n                direct_import_linked = EXCLUDED.direct_import_linked,\n                direct_import_in_error = EXCLUDED.direct_import_in_error,\n                deleted = EXCLUDED.deleted;\n                "
   },
   "5ec115656afff53681a14da2be5b93d2ddfe069690e458d0748f204bc706b7ef": {
     "describe": {
@@ -615,18 +668,23 @@
           "type_info": "Bool"
         },
         {
-          "name": "balance",
+          "name": "ynab_account_ids",
           "ordinal": 5,
+          "type_info": "UuidArray"
+        },
+        {
+          "name": "balance",
+          "ordinal": 6,
           "type_info": "Int8"
         },
         {
           "name": "month",
-          "ordinal": 6,
+          "ordinal": 7,
           "type_info": "Int2"
         },
         {
           "name": "year",
-          "ordinal": 7,
+          "ordinal": 8,
           "type_info": "Int4"
         }
       ],
@@ -636,6 +694,7 @@
         false,
         false,
         false,
+        true,
         false,
         false,
         false
@@ -1040,22 +1099,6 @@
     },
     "query": "\n        SELECT\n            m.id as month_id,\n            m.month,\n            n.id as net_total_id,\n            n.type,\n            n.total,\n            n.percent_var,\n            n.balance_var,\n            n.month_id as net_total_month_id,\n            y.year\n        FROM balance_sheet_months AS m\n        JOIN balance_sheet_net_totals_months AS n ON month_id = n.month_id\n        JOIN balance_sheet_years AS y ON y.id = m.year_id;\n        "
   },
-  "b80c17e1292f7846673f697b53b6f5a77abfbf17cf3f6d2a02a490c3ea427c0d": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Varchar",
-          "Varchar",
-          "Varchar",
-          "Bool"
-        ]
-      }
-    },
-    "query": "\n        INSERT INTO balance_sheet_resources (id, name, category, type, editable)\n        VALUES ($1, $2, $3, $4, $5)\n        ON CONFLICT (id) DO UPDATE\n        SET name = EXCLUDED.name,\n        category = EXCLUDED.category,\n        type = EXCLUDED.type,\n        editable = EXCLUDED.editable;\n        "
-  },
   "b980045b191710d6db8fc55eff29dfce6ed3b4293e7efc20a16253a3aa26a1af": {
     "describe": {
       "columns": [
@@ -1085,18 +1128,23 @@
           "type_info": "Bool"
         },
         {
-          "name": "balance",
+          "name": "ynab_account_ids",
           "ordinal": 5,
+          "type_info": "UuidArray"
+        },
+        {
+          "name": "balance",
+          "ordinal": 6,
           "type_info": "Int8"
         },
         {
           "name": "month",
-          "ordinal": 6,
+          "ordinal": 7,
           "type_info": "Int2"
         },
         {
           "name": "year",
-          "ordinal": 7,
+          "ordinal": 8,
           "type_info": "Int4"
         }
       ],
@@ -1106,6 +1154,7 @@
         false,
         false,
         false,
+        true,
         false,
         false,
         false
@@ -1211,6 +1260,96 @@
       }
     },
     "query": "\n                DELETE FROM scheduled_transactions\n                WHERE id = $1\n                "
+  },
+  "bf2077986bee2847a1e6ce0faccc1e01bb2eb21500aebb359c81d7c4832d9590": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "account_type: AccountType",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "on_budget",
+          "ordinal": 3,
+          "type_info": "Bool"
+        },
+        {
+          "name": "closed",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "note",
+          "ordinal": 5,
+          "type_info": "Text"
+        },
+        {
+          "name": "balance",
+          "ordinal": 6,
+          "type_info": "Int8"
+        },
+        {
+          "name": "cleared_balance",
+          "ordinal": 7,
+          "type_info": "Int8"
+        },
+        {
+          "name": "uncleared_balance",
+          "ordinal": 8,
+          "type_info": "Int8"
+        },
+        {
+          "name": "transfer_payee_id",
+          "ordinal": 9,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "direct_import_linked",
+          "ordinal": 10,
+          "type_info": "Bool"
+        },
+        {
+          "name": "direct_import_in_error",
+          "ordinal": 11,
+          "type_info": "Bool"
+        },
+        {
+          "name": "deleted",
+          "ordinal": 12,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        true,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n        SELECT \n            id,\n            name,\n            type AS \"account_type: AccountType\",\n            on_budget,\n            closed,\n            note,\n            balance,\n            cleared_balance,\n            uncleared_balance,\n            transfer_payee_id,\n            direct_import_linked,\n            direct_import_in_error,\n            deleted\n        FROM accounts\n        "
   },
   "c7cba48f62a616ad68598b9ada02fb55627ce56137acbd70277e754ef5cc4c07": {
     "describe": {

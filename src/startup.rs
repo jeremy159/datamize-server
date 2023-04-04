@@ -18,9 +18,9 @@ use crate::{
         balance_sheet_months, balance_sheet_resource, balance_sheet_resources, balance_sheet_year,
         balance_sheet_years, create_balance_sheet_month, create_balance_sheet_resource,
         create_balance_sheet_year, delete_balance_sheet_month, delete_balance_sheet_resource,
-        delete_balance_sheet_year, health_check, refresh_balance_sheet_resources, template_details,
-        template_summary, template_transactions, update_balance_sheet_resource,
-        update_balance_sheet_year,
+        delete_balance_sheet_year, get_ynab_accounts, health_check,
+        refresh_balance_sheet_resources, template_details, template_summary, template_transactions,
+        update_balance_sheet_resource, update_balance_sheet_year,
     },
 };
 
@@ -61,50 +61,58 @@ impl Application {
         ))?;
         let port = socket_addr.port();
 
-        // TODO: Add tracing::instrument with request id to requests.
-        let app = Router::new()
-            .route("/", get(|| async { "Hello, World!" }))
-            .route("/health_check", get(health_check))
-            .route("/api/template/details", get(template_details))
-            .route("/api/template/summary", get(template_summary))
-            .route("/api/template/transactions", get(template_transactions))
+        let template_routes = Router::new()
+            .route("/details", get(template_details))
+            .route("/summary", get(template_summary))
+            .route("/transactions", get(template_transactions));
+
+        let balance_sheet_routes = Router::new()
             .route(
-                "/api/balance_sheet/years",
+                "/years",
                 get(balance_sheet_years).post(create_balance_sheet_year),
             )
             .route(
-                "/api/balance_sheet/years/:year",
+                "/years/:year",
                 get(balance_sheet_year)
                     .put(update_balance_sheet_year)
                     .delete(delete_balance_sheet_year),
             )
-            .route("/api/balance_sheet/months", get(all_balance_sheet_months))
+            .route("/months", get(all_balance_sheet_months))
             .route(
-                "/api/balance_sheet/resources",
+                "/resources",
                 get(all_balance_sheet_resources).post(create_balance_sheet_resource),
             )
             .route(
-                "/api/balance_sheet/resources/:resource_id",
+                "/resources/:resource_id",
                 get(balance_sheet_resource)
                     .put(update_balance_sheet_resource)
                     .delete(delete_balance_sheet_resource),
             )
+            .route("/resources/refresh", post(refresh_balance_sheet_resources))
+            .route("/years/:year/resources", get(balance_sheet_resources))
             .route(
-                "/api/balance_sheet/resources/refresh",
-                post(refresh_balance_sheet_resources),
-            )
-            .route(
-                "/api/balance_sheet/years/:year/resources",
-                get(balance_sheet_resources),
-            )
-            .route(
-                "/api/balance_sheet/years/:year/months",
+                "/years/:year/months",
                 get(balance_sheet_months).post(create_balance_sheet_month),
             )
             .route(
-                "/api/balance_sheet/years/:year/months/:month",
+                "/years/:year/months/:month",
                 get(balance_sheet_month).delete(delete_balance_sheet_month),
-            )
+            );
+
+        let api_routes = Router::new()
+            .nest("/template", template_routes)
+            .nest("/balance_sheet", balance_sheet_routes);
+
+        let ynab_routes = Router::new().route("/accounts", get(get_ynab_accounts));
+
+        let budget_providers_routes = Router::new().nest("/ynab", ynab_routes);
+
+        // TODO: Add tracing::instrument with request id to requests.
+        let app = Router::new()
+            .route("/", get(|| async { "Hello, World!" }))
+            .route("/health_check", get(health_check))
+            .nest("/api", api_routes)
+            .nest("/budget_providers", budget_providers_routes)
             .layer(CorsLayer::permissive()) // TODO: To be more restrictive...
             .layer(TraceLayer::new_for_http())
             .with_state(app_state);

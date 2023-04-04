@@ -34,7 +34,6 @@ pub async fn create_balance_sheet_resource(
     let db_conn_pool = app_state.db_conn_pool;
     let resource: FinancialResourceYearly = body.into();
 
-    // TODO: Add test to cover that month gets created when sending resource with non-existing month.
     if !resource.balance_per_month.is_empty() {
         for month in resource.balance_per_month.keys() {
             if let Err(sqlx::Error::RowNotFound) =

@@ -182,12 +182,40 @@ async fn refresh_resources_should_return_as_many_ids_as_accounts_from_ynab_when_
         .await;
     app.insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
         .await;
+    let mortgage_id: Uuid = Faker.fake();
+    let car_loan_id: Uuid = Faker.fake();
+    let checking_id: Uuid = Faker.fake();
+    app.insert_financial_resource_with_balance_and_ynab_account_ids(
+        month_id,
+        Faker.fake::<i32>() as i64,
+        Some(vec![mortgage_id]),
+        DummyResourceCategory::Liability,
+        DummyResourceType::LongTerm,
+    )
+    .await;
+    app.insert_financial_resource_with_balance_and_ynab_account_ids(
+        month_id,
+        Faker.fake::<i32>() as i64,
+        Some(vec![car_loan_id]),
+        DummyResourceCategory::Liability,
+        DummyResourceType::LongTerm,
+    )
+    .await;
+    app.insert_financial_resource_with_balance_and_ynab_account_ids(
+        month_id,
+        Faker.fake::<i32>() as i64,
+        Some(vec![checking_id]),
+        DummyResourceCategory::Asset,
+        DummyResourceType::Cash,
+    )
+    .await;
     let accounts: Vec<DummyAccount> = vec![
         DummyAccount {
             account_type: DummyAccountType::Mortgage,
             closed: false,
             deleted: false,
             balance: Faker.fake::<i32>() as i64,
+            id: mortgage_id,
             ..Faker.fake()
         },
         DummyAccount {
@@ -195,6 +223,7 @@ async fn refresh_resources_should_return_as_many_ids_as_accounts_from_ynab_when_
             closed: false,
             deleted: false,
             balance: Faker.fake::<i32>() as i64,
+            id: car_loan_id,
             ..Faker.fake()
         },
         DummyAccount {
@@ -202,6 +231,7 @@ async fn refresh_resources_should_return_as_many_ids_as_accounts_from_ynab_when_
             closed: false,
             deleted: false,
             balance: Faker.fake::<i32>() as i64,
+            id: checking_id,
             ..Faker.fake()
         },
     ];
@@ -236,12 +266,40 @@ async fn refresh_resources_should_persit_refreshed_ids_in_db(pool: PgPool) {
         .await;
     app.insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
         .await;
+    let mortgage_id: Uuid = Faker.fake();
+    let car_loan_id: Uuid = Faker.fake();
+    let checking_id: Uuid = Faker.fake();
+    app.insert_financial_resource_with_balance_and_ynab_account_ids(
+        month_id,
+        Faker.fake::<i32>() as i64,
+        Some(vec![mortgage_id]),
+        DummyResourceCategory::Liability,
+        DummyResourceType::LongTerm,
+    )
+    .await;
+    app.insert_financial_resource_with_balance_and_ynab_account_ids(
+        month_id,
+        Faker.fake::<i32>() as i64,
+        Some(vec![car_loan_id]),
+        DummyResourceCategory::Liability,
+        DummyResourceType::LongTerm,
+    )
+    .await;
+    app.insert_financial_resource_with_balance_and_ynab_account_ids(
+        month_id,
+        Faker.fake::<i32>() as i64,
+        Some(vec![checking_id]),
+        DummyResourceCategory::Asset,
+        DummyResourceType::Cash,
+    )
+    .await;
     let accounts: Vec<DummyAccount> = vec![
         DummyAccount {
             account_type: DummyAccountType::Mortgage,
             closed: false,
             deleted: false,
             balance: Faker.fake::<i32>() as i64,
+            id: mortgage_id,
             ..Faker.fake()
         },
         DummyAccount {
@@ -249,6 +307,7 @@ async fn refresh_resources_should_persit_refreshed_ids_in_db(pool: PgPool) {
             closed: false,
             deleted: false,
             balance: Faker.fake::<i32>() as i64,
+            id: car_loan_id,
             ..Faker.fake()
         },
         DummyAccount {
@@ -256,6 +315,7 @@ async fn refresh_resources_should_persit_refreshed_ids_in_db(pool: PgPool) {
             closed: false,
             deleted: false,
             balance: Faker.fake::<i32>() as i64,
+            id: checking_id,
             ..Faker.fake()
         },
     ];
@@ -301,7 +361,7 @@ async fn refresh_resources_should_persit_refreshed_ids_in_db(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn refresh_resources_should_add_balance_from_same_ynab_accounts(pool: PgPool) {
+async fn refresh_resources_should_add_balance_from_same_ynab_accounts_type(pool: PgPool) {
     // Arange
     let app = spawn_app(pool).await;
     let current_date = Local::now().date_naive();
@@ -313,12 +373,23 @@ async fn refresh_resources_should_add_balance_from_same_ynab_accounts(pool: PgPo
         .await;
     app.insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
         .await;
+    let car_loan1_id: Uuid = Faker.fake();
+    let car_loan2_id: Uuid = Faker.fake();
+    app.insert_financial_resource_with_balance_and_ynab_account_ids(
+        month_id,
+        Faker.fake::<i32>() as i64,
+        Some(vec![car_loan1_id, car_loan2_id]),
+        DummyResourceCategory::Liability,
+        DummyResourceType::LongTerm,
+    )
+    .await;
     let accounts: Vec<DummyAccount> = vec![
         DummyAccount {
             account_type: DummyAccountType::AutoLoan,
             closed: false,
             deleted: false,
             balance: Faker.fake::<i32>() as i64,
+            id: car_loan1_id,
             ..Faker.fake()
         },
         DummyAccount {
@@ -326,6 +397,7 @@ async fn refresh_resources_should_add_balance_from_same_ynab_accounts(pool: PgPo
             closed: false,
             deleted: false,
             balance: Faker.fake::<i32>() as i64,
+            id: car_loan2_id,
             ..Faker.fake()
         },
     ];
@@ -363,7 +435,7 @@ async fn refresh_resources_should_add_balance_from_same_ynab_accounts(pool: PgPo
     .expect("Failed to select financial resource of a month.");
 
     assert_eq!(
-        accounts.iter().map(|a| a.balance).sum::<i64>(),
+        accounts.iter().map(|a| a.balance.abs()).sum::<i64>(),
         saved.balance
     )
 }
@@ -383,20 +455,22 @@ async fn refresh_resources_should_only_update_balance_if_existing_resource_has_d
         .await;
     app.insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
         .await;
+    let car_loan_id: Uuid = Faker.fake();
     let car_loan_res = app
-        .insert_financial_resource_with_name_and_balance(
+        .insert_financial_resource_with_balance_and_ynab_account_ids(
             month_id,
-            "Prêts Automobile".to_string(),
             Faker.fake::<i32>() as i64,
+            Some(vec![car_loan_id]),
             DummyResourceCategory::Liability,
             DummyResourceType::LongTerm,
         )
         .await;
+    let bank_account_id: Uuid = Faker.fake();
     let bank_accounts_res = app
-        .insert_financial_resource_with_name_and_balance(
+        .insert_financial_resource_with_balance_and_ynab_account_ids(
             month_id,
-            "Comptes Bancaires".to_string(),
             Faker.fake::<i32>() as i64,
+            Some(vec![bank_account_id]),
             DummyResourceCategory::Asset,
             DummyResourceType::Cash,
         )
@@ -406,12 +480,14 @@ async fn refresh_resources_should_only_update_balance_if_existing_resource_has_d
         closed: false,
         deleted: false,
         balance: car_loan_res.balance,
+        id: car_loan_id,
         ..Faker.fake()
     };
     let dummy_checking = DummyAccount {
         account_type: DummyAccountType::Checking,
         closed: false,
         deleted: false,
+        id: bank_account_id,
         ..Faker.fake()
     };
     let accounts: Vec<DummyAccount> = vec![dummy_car_loan.clone(), dummy_checking.clone()];
@@ -430,10 +506,8 @@ async fn refresh_resources_should_only_update_balance_if_existing_resource_has_d
     let ids: Vec<Uuid> = serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
     // Assert
-    assert!(!ids.contains(&car_loan_res.id));
-    println!("ids = {:?}", &ids);
-    println!("bank_accounts_res.id = {:?}", &bank_accounts_res.id);
     assert!(ids.contains(&bank_accounts_res.id));
+    assert!(!ids.contains(&car_loan_res.id));
 }
 
 #[sqlx::test]
@@ -445,16 +519,55 @@ async fn refresh_resources_should_update_month_net_totals(pool: PgPool) {
     let year_id = app.insert_year(year).await;
     let month = current_date.month();
     let month_id = app.insert_month(year_id, month as i16).await;
-    app.insert_month_net_total(month_id, DummyNetTotalType::Asset)
+    let net_total_assets = app
+        .insert_month_net_total(month_id, DummyNetTotalType::Asset)
         .await;
-    app.insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
+    let net_total_portfolio = app
+        .insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
         .await;
+    let mortgate_id: Uuid = Faker.fake();
+    app.insert_financial_resource_with_balance_and_ynab_account_ids(
+        month_id,
+        Faker.fake::<i32>() as i64,
+        Some(vec![mortgate_id]),
+        DummyResourceCategory::Liability,
+        DummyResourceType::LongTerm,
+    )
+    .await;
+    let car_loan_id: Uuid = Faker.fake();
+    app.insert_financial_resource_with_balance_and_ynab_account_ids(
+        month_id,
+        Faker.fake::<i32>() as i64,
+        Some(vec![car_loan_id]),
+        DummyResourceCategory::Liability,
+        DummyResourceType::LongTerm,
+    )
+    .await;
+    let bank_account_id: Uuid = Faker.fake();
+    app.insert_financial_resource_with_balance_and_ynab_account_ids(
+        month_id,
+        Faker.fake::<i32>() as i64,
+        Some(vec![bank_account_id]),
+        DummyResourceCategory::Asset,
+        DummyResourceType::Cash,
+    )
+    .await;
+    let credit_card_id: Uuid = Faker.fake();
+    app.insert_financial_resource_with_balance_and_ynab_account_ids(
+        month_id,
+        Faker.fake::<i32>() as i64,
+        Some(vec![credit_card_id]),
+        DummyResourceCategory::Liability,
+        DummyResourceType::Cash,
+    )
+    .await;
     let accounts: Vec<DummyAccount> = vec![
         DummyAccount {
             account_type: DummyAccountType::Mortgage,
             closed: false,
             deleted: false,
             balance: Faker.fake::<i32>() as i64,
+            id: mortgate_id,
             ..Faker.fake()
         },
         DummyAccount {
@@ -462,6 +575,7 @@ async fn refresh_resources_should_update_month_net_totals(pool: PgPool) {
             closed: false,
             deleted: false,
             balance: Faker.fake::<i32>() as i64,
+            id: car_loan_id,
             ..Faker.fake()
         },
         DummyAccount {
@@ -469,6 +583,7 @@ async fn refresh_resources_should_update_month_net_totals(pool: PgPool) {
             closed: false,
             deleted: false,
             balance: Faker.fake::<i32>() as i64,
+            id: bank_account_id,
             ..Faker.fake()
         },
         DummyAccount {
@@ -476,6 +591,7 @@ async fn refresh_resources_should_update_month_net_totals(pool: PgPool) {
             closed: false,
             deleted: false,
             balance: Faker.fake::<i32>() as i64,
+            id: credit_card_id,
             ..Faker.fake()
         },
     ];
@@ -497,7 +613,9 @@ async fn refresh_resources_should_update_month_net_totals(pool: PgPool) {
     let month: Month =
         serde_json::from_str(&app.get_month(year, month).await.text().await.unwrap()).unwrap();
     assert_ne!(month.net_assets.total, 0);
+    assert_ne!(month.net_assets.total, net_total_assets.total as i64);
     assert_ne!(month.net_portfolio.total, 0);
+    assert_ne!(month.net_portfolio.total, net_total_portfolio.total as i64);
 }
 
 #[sqlx::test]
@@ -513,6 +631,15 @@ async fn refresh_resources_should_update_month_net_totals_with_prev_month(pool: 
         .await;
     app.insert_month_net_total(month1_id, DummyNetTotalType::Portfolio)
         .await;
+    let checking_id: Uuid = Faker.fake();
+    app.insert_financial_resource_with_balance_and_ynab_account_ids(
+        month1_id,
+        Faker.fake::<i32>() as i64,
+        Some(vec![checking_id]),
+        DummyResourceCategory::Asset,
+        DummyResourceType::Cash,
+    )
+    .await;
 
     let chrono_prev_month = chrono::Month::from_u32(month).unwrap().pred();
     let prev_month_id = match chrono_prev_month {
@@ -534,6 +661,8 @@ async fn refresh_resources_should_update_month_net_totals_with_prev_month(pool: 
         account_type: DummyAccountType::Checking,
         closed: false,
         deleted: false,
+        id: checking_id,
+        balance: Faker.fake::<i32>() as i64,
         ..Faker.fake()
     }];
     Mock::given(path_regex("/accounts"))
@@ -555,10 +684,10 @@ async fn refresh_resources_should_update_month_net_totals_with_prev_month(pool: 
         serde_json::from_str(&app.get_month(year, month).await.text().await.unwrap()).unwrap();
     assert_eq!(
         month.net_assets.balance_var,
-        accounts[0].balance - prev_net_total_assets.total as i64
+        accounts[0].balance.abs() - prev_net_total_assets.total as i64
     );
     assert_eq!(
         month.net_portfolio.balance_var,
-        accounts[0].balance - prev_net_total_portfolio.total as i64
+        accounts[0].balance.abs() - prev_net_total_portfolio.total as i64
     );
 }

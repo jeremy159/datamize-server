@@ -732,6 +732,10 @@ async fn delete_resource_returns_a_200_and_the_resource_for_existing_resource(po
     let year_id = app.insert_year(year).await;
     let month1: DummyMonthNum = date.month().try_into().unwrap();
     let month1_id = app.insert_month(year_id, month1 as i16).await;
+    app.insert_month_net_total(month1_id, DummyNetTotalType::Asset)
+        .await;
+    app.insert_month_net_total(month1_id, DummyNetTotalType::Portfolio)
+        .await;
     let res = app
         .insert_financial_resource(
             month1_id,
@@ -741,6 +745,10 @@ async fn delete_resource_returns_a_200_and_the_resource_for_existing_resource(po
         .await;
     let month2: DummyMonthNum = month1.pred();
     let month2_id = app.insert_month(year_id, month2 as i16).await;
+    app.insert_month_net_total(month2_id, DummyNetTotalType::Asset)
+        .await;
+    app.insert_month_net_total(month2_id, DummyNetTotalType::Portfolio)
+        .await;
     let other_month_balance = app
         .insert_financial_resource_with_id_in_month(month2_id, res.id)
         .await;

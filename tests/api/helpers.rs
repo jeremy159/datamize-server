@@ -409,53 +409,53 @@ impl TestApp {
         category: DummyResourceCategory,
         res_type: DummyResourceType,
     ) -> DummyFinancialResource {
-        self.insert_financial_resource_with_name(month_id, Faker.fake(), category, res_type)
+        self.insert_financial_resource_with_balance(month_id, Faker.fake(), category, res_type)
             .await
     }
 
-    pub async fn insert_financial_resource_with_name(
+    pub async fn insert_financial_resource_with_balance(
         &self,
         month_id: Uuid,
-        name: String,
-        category: DummyResourceCategory,
-        res_type: DummyResourceType,
-    ) -> DummyFinancialResource {
-        self.insert_financial_resource_with_name_and_balance(
-            month_id,
-            name,
-            Faker.fake(),
-            category,
-            res_type,
-        )
-        .await
-    }
-
-    pub async fn insert_financial_resource_with_name_and_balance(
-        &self,
-        month_id: Uuid,
-        name: String,
         balance: i64,
         category: DummyResourceCategory,
         res_type: DummyResourceType,
     ) -> DummyFinancialResource {
+        self.insert_financial_resource_with_balance_and_ynab_account_ids(
+            month_id, balance, None, category, res_type,
+        )
+        .await
+    }
+
+    pub async fn insert_financial_resource_with_balance_and_ynab_account_ids(
+        &self,
+        month_id: Uuid,
+        balance: i64,
+        ynab_account_ids: Option<Vec<Uuid>>,
+        category: DummyResourceCategory,
+        res_type: DummyResourceType,
+    ) -> DummyFinancialResource {
         let resource = DummyFinancialResource {
-            name: name.clone(),
             category,
             resource_type: res_type,
             balance,
+            ynab_account_ids,
             ..Faker.fake()
         };
 
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_resources (id, name, category, type, editable)
-            VALUES ($1, $2, $3, $4, $5);
+            INSERT INTO balance_sheet_resources (id, name, category, type, editable, ynab_account_ids)
+            VALUES ($1, $2, $3, $4, $5, $6);
             "#,
             resource.id,
             resource.name,
             resource.category.to_string(),
             resource.resource_type.to_string(),
             resource.editable,
+            resource
+                .ynab_account_ids
+                .as_ref()
+                .map(|accounts| accounts.as_slice()),
         )
         .execute(&self.db_pool)
         .await

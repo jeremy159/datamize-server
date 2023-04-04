@@ -113,6 +113,8 @@ pub async fn get_months(db_conn_pool: &PgPool, year: i32) -> Result<Vec<Month>, 
             super::get_financial_resources_of_month(db_conn_pool, m.month, m.year).await?;
     }
 
+    months.retain(|m| !m.resources.is_empty());
+
     Ok(months)
 }
 
@@ -197,6 +199,8 @@ pub async fn get_all_months(db_conn_pool: &PgPool) -> Result<Vec<Month>, sqlx::E
         m.resources =
             super::get_financial_resources_of_month(db_conn_pool, m.month, m.year).await?;
     }
+
+    months.retain(|m| !m.resources.is_empty());
 
     Ok(months)
 }

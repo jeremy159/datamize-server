@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use chrono::{Datelike, NaiveDate};
-use datamize::domain::FinancialResourceYearly;
+use datamize::domain::{FinancialResourceYearly, MonthNum};
 use fake::faker::chrono::en::Date;
 use fake::{Dummy, Fake, Faker};
 use serde::Serialize;
@@ -403,23 +403,24 @@ async fn get_resources_returns_months_ordered_in_same_resource(pool: PgPool) {
     let app = spawn_app(pool).await;
     let year = Date().fake::<NaiveDate>().year();
     let year_id = app.insert_year(year).await;
-    let month1 = app.insert_random_month(year_id).await;
+    let month: MonthNum = (2..12).fake::<i16>().try_into().unwrap();
+    let month1_id = app.insert_month(year_id, month as i16).await;
     let res1_month1 = app
         .insert_financial_resource(
-            month1.0,
+            month1_id,
             DummyResourceCategory::Asset,
             DummyResourceType::Cash,
         )
         .await;
     let res2_month1 = app
         .insert_financial_resource(
-            month1.0,
+            month1_id,
             DummyResourceCategory::Liability,
             DummyResourceType::Cash,
         )
         .await;
 
-    let prev_month = month1.1.pred();
+    let prev_month = month.pred();
     let month2 = app.insert_month(year_id, prev_month as i16).await;
     app.insert_financial_resource_with_id_in_month(month2, res1_month1.id)
         .await;
@@ -445,7 +446,7 @@ async fn get_resources_returns_months_ordered_in_same_resource(pool: PgPool) {
     );
     assert_eq!(
         *resources[0].balance_per_month.last_key_value().unwrap().0 as i16,
-        month1.1 as i16
+        month as i16
     );
     assert_eq!(
         *resources[1].balance_per_month.first_key_value().unwrap().0 as i16,
@@ -453,7 +454,7 @@ async fn get_resources_returns_months_ordered_in_same_resource(pool: PgPool) {
     );
     assert_eq!(
         *resources[1].balance_per_month.last_key_value().unwrap().0 as i16,
-        month1.1 as i16
+        month as i16
     );
 }
 

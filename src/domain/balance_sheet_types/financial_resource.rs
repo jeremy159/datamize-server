@@ -83,6 +83,8 @@ pub struct BaseFinancialResource {
     pub r_type: ResourceType,
     /// Flag to indicate if the resource can be edited with the API.
     pub editable: bool,
+    /// Any YNAB accounts that should be used to refresh this resource's balance.
+    pub ynab_account_ids: Option<Vec<Uuid>>,
 }
 
 impl BaseFinancialResource {
@@ -91,6 +93,7 @@ impl BaseFinancialResource {
         category: ResourceCategory,
         r_type: ResourceType,
         editable: bool,
+        ynab_account_ids: Option<Vec<Uuid>>,
     ) -> Self {
         BaseFinancialResource {
             id: Uuid::new_v4(),
@@ -98,26 +101,39 @@ impl BaseFinancialResource {
             category,
             r_type,
             editable,
+            ynab_account_ids,
         }
     }
 
-    pub fn new_asset(name: String, r_type: ResourceType, editable: bool) -> Self {
+    pub fn new_asset(
+        name: String,
+        r_type: ResourceType,
+        editable: bool,
+        ynab_account_ids: Option<Vec<Uuid>>,
+    ) -> Self {
         BaseFinancialResource {
             id: Uuid::new_v4(),
             name,
             category: ResourceCategory::Asset,
             r_type,
             editable,
+            ynab_account_ids,
         }
     }
 
-    pub fn new_liability(name: String, r_type: ResourceType, editable: bool) -> Self {
+    pub fn new_liability(
+        name: String,
+        r_type: ResourceType,
+        editable: bool,
+        ynab_account_ids: Option<Vec<Uuid>>,
+    ) -> Self {
         BaseFinancialResource {
             id: Uuid::new_v4(),
             name,
             category: ResourceCategory::Liability,
             r_type,
             editable,
+            ynab_account_ids,
         }
     }
 }
@@ -142,7 +158,7 @@ impl FinancialResourceYearly {
         year: i32,
     ) -> Self {
         FinancialResourceYearly {
-            base: BaseFinancialResource::new(name, category, r_type, editable),
+            base: BaseFinancialResource::new(name, category, r_type, editable, None),
             year,
             balance_per_month: BTreeMap::new(),
         }
@@ -150,7 +166,7 @@ impl FinancialResourceYearly {
 
     pub fn new_asset(name: String, r_type: ResourceType, editable: bool, year: i32) -> Self {
         FinancialResourceYearly {
-            base: BaseFinancialResource::new_asset(name, r_type, editable),
+            base: BaseFinancialResource::new_asset(name, r_type, editable, None),
             year,
             balance_per_month: BTreeMap::new(),
         }
@@ -158,7 +174,7 @@ impl FinancialResourceYearly {
 
     pub fn new_liability(name: String, r_type: ResourceType, editable: bool, year: i32) -> Self {
         FinancialResourceYearly {
-            base: BaseFinancialResource::new_liability(name, r_type, editable),
+            base: BaseFinancialResource::new_liability(name, r_type, editable, None),
             year,
             balance_per_month: BTreeMap::new(),
         }
@@ -188,7 +204,7 @@ impl FinancialResourceMonthly {
         year: i32,
     ) -> Self {
         FinancialResourceMonthly {
-            base: BaseFinancialResource::new(name, category, r_type, editable),
+            base: BaseFinancialResource::new(name, category, r_type, editable, None),
             month,
             year,
             balance: 0,
@@ -203,7 +219,7 @@ impl FinancialResourceMonthly {
         year: i32,
     ) -> Self {
         FinancialResourceMonthly {
-            base: BaseFinancialResource::new_asset(name, r_type, editable),
+            base: BaseFinancialResource::new_asset(name, r_type, editable, None),
             month,
             year,
             balance: 0,
@@ -218,7 +234,7 @@ impl FinancialResourceMonthly {
         year: i32,
     ) -> Self {
         FinancialResourceMonthly {
-            base: BaseFinancialResource::new_liability(name, r_type, editable),
+            base: BaseFinancialResource::new_liability(name, r_type, editable, None),
             month,
             year,
             balance: 0,
@@ -235,7 +251,7 @@ pub struct SaveResource {
     pub editable: bool,
     pub year: i32,
     pub balance_per_month: BTreeMap<MonthNum, i64>,
-    // TODO: Maybe also add possibility to save ynab accounts linked to it.
+    pub ynab_account_ids: Option<Vec<Uuid>>,
 }
 
 impl From<SaveResource> for FinancialResourceYearly {
@@ -246,6 +262,7 @@ impl From<SaveResource> for FinancialResourceYearly {
                 value.category,
                 value.r_type,
                 value.editable,
+                value.ynab_account_ids,
             ),
             year: value.year,
             balance_per_month: value.balance_per_month,

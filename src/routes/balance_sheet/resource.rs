@@ -28,7 +28,7 @@ pub async fn balance_sheet_resource(
     ))
 }
 
-/// Updates the resource.
+/// Updates the resource. Will create any non-existing months.
 /// Will also update the months' and year's net totals.
 #[tracing::instrument(skip_all)]
 pub async fn update_balance_sheet_resource(
@@ -86,6 +86,17 @@ pub async fn delete_balance_sheet_resource(
         .await
         .map_err(AppError::from_sqlx)?;
     db::delete_financial_resource(&db_conn_pool, resource_id).await?;
+
+    if !resource.balance_per_month.is_empty() {
+        update_month_net_totals(
+            &db_conn_pool,
+            *resource.balance_per_month.first_key_value().unwrap().0,
+            resource.year,
+        )
+        .await?;
+    }
+
+    update_year_net_totals(&db_conn_pool, resource.year).await?;
 
     Ok(Json(resource))
 }

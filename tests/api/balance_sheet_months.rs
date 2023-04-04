@@ -716,16 +716,34 @@ async fn get_all_months_returns_all_months_of_all_years_ordered_by_year_then_mon
         .await;
     app.insert_month_net_total(month1, DummyNetTotalType::Portfolio)
         .await;
+    app.insert_financial_resource(
+        month1,
+        DummyResourceCategory::Asset,
+        DummyResourceType::Cash,
+    )
+    .await;
     let month2 = app.insert_month(year_id, prev_month).await;
     app.insert_month_net_total(month2, DummyNetTotalType::Asset)
         .await;
     app.insert_month_net_total(month2, DummyNetTotalType::Portfolio)
         .await;
+    app.insert_financial_resource(
+        month2,
+        DummyResourceCategory::Asset,
+        DummyResourceType::Cash,
+    )
+    .await;
     let month3 = app.insert_random_month(prev_year_id).await;
     app.insert_month_net_total(month3.0, DummyNetTotalType::Asset)
         .await;
     app.insert_month_net_total(month3.0, DummyNetTotalType::Portfolio)
         .await;
+    app.insert_financial_resource(
+        month3.0,
+        DummyResourceCategory::Asset,
+        DummyResourceType::Cash,
+    )
+    .await;
 
     // Act
     let response = app.get_all_months().await;

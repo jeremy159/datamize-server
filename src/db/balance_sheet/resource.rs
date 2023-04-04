@@ -49,6 +49,7 @@ pub async fn get_all_financial_resources_of_all_years(
                         category: r.category.parse().unwrap(),
                         r_type: r.r#type.parse().unwrap(),
                         editable: r.editable,
+                        ynab_account_ids: r.ynab_account_ids,
                     },
                     year: r.year,
                     balance_per_month,
@@ -106,6 +107,7 @@ pub async fn get_financial_resources_of_year(
                         category: r.category.parse().unwrap(),
                         r_type: r.r#type.parse().unwrap(),
                         editable: r.editable,
+                        ynab_account_ids: r.ynab_account_ids,
                     },
                     year,
                     balance_per_month,
@@ -150,6 +152,7 @@ pub async fn get_financial_resources_of_month(
                 category: r.category.parse().unwrap(),
                 r_type: r.r#type.parse().unwrap(),
                 editable: r.editable,
+                ynab_account_ids: r.ynab_account_ids,
             },
             month: r.month.try_into().unwrap(),
             year: r.year,
@@ -203,6 +206,7 @@ pub async fn get_financial_resource(
                         category: r.category.parse().unwrap(),
                         r_type: r.r#type.parse().unwrap(),
                         editable: r.editable,
+                        ynab_account_ids: r.ynab_account_ids,
                     },
                     year: r.year,
                     balance_per_month,
@@ -222,19 +226,25 @@ pub async fn update_financial_resource(
     // First update the resource itself
     sqlx::query!(
         r#"
-        INSERT INTO balance_sheet_resources (id, name, category, type, editable)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO balance_sheet_resources (id, name, category, type, editable, ynab_account_ids)
+        VALUES ($1, $2, $3, $4, $5, $6)
         ON CONFLICT (id) DO UPDATE
         SET name = EXCLUDED.name,
         category = EXCLUDED.category,
         type = EXCLUDED.type,
-        editable = EXCLUDED.editable;
+        editable = EXCLUDED.editable,
+        ynab_account_ids = EXCLUDED.ynab_account_ids;
         "#,
         resource.base.id,
         resource.base.name,
         resource.base.category.to_string(),
         resource.base.r_type.to_string(),
         resource.base.editable,
+        resource
+            .base
+            .ynab_account_ids
+            .as_ref()
+            .map(|accounts| accounts.as_slice()),
     )
     .execute(db_conn_pool)
     .await?;
