@@ -11,6 +11,7 @@ pub struct Settings {
     pub ynab_client: YnabClientSettings,
     pub database: DatabaseSettings,
     pub redis: RedisSettings,
+    pub webdriver: WebDriverSettings,
 }
 
 #[derive(Clone, Deserialize)]
@@ -77,6 +78,18 @@ impl RedisSettings {
     }
 }
 
+#[derive(Clone, Deserialize)]
+pub struct WebDriverSettings {
+    pub host: String,
+    pub port: u16,
+}
+
+impl WebDriverSettings {
+    pub fn connection_string(&self) -> String {
+        format!("http://{}:{}/", self.host, self.port)
+    }
+}
+
 impl Default for Settings {
     fn default() -> Settings {
         Settings {
@@ -100,6 +113,10 @@ impl Default for Settings {
             redis: RedisSettings {
                 host: String::from("127.0.0.1"),
                 port: 6379,
+            },
+            webdriver: WebDriverSettings {
+                host: String::from("localhost"),
+                port: 4444,
             },
         }
     }

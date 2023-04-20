@@ -11,7 +11,8 @@ use crate::{
         save_scheduled_transactions, set_scheduled_transactions_delta,
     },
     error::HttpJsonAppResult,
-    startup::{get_redis_conn, AppState},
+    get_redis_conn,
+    startup::AppState,
 };
 
 /// Returns a budget template transactions, i.e. all the scheduled transactions in the upcoming month.

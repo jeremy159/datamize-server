@@ -4,7 +4,8 @@ use ynab::types::Account;
 
 use crate::db::{self, get_accounts_delta, set_accounts_detla};
 use crate::error::HttpJsonAppResult;
-use crate::startup::{get_redis_conn, AppState};
+use crate::get_redis_conn;
+use crate::startup::AppState;
 
 /// Returns all accounts from YNAB's API.
 #[tracing::instrument(name = "Get all accounts from YNAB's API", skip_all)]

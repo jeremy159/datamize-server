@@ -39,7 +39,7 @@ pub async fn get_all_financial_resources_of_all_years(
             .or_insert_with(|| {
                 let mut balance_per_month: BTreeMap<MonthNum, i64> = BTreeMap::new();
 
-                // TODO: Can month already be there? And what will happen? To test...
+                // Relations in the DB enforces that only one month in a year exists for one resource
                 balance_per_month.insert(r.month.try_into().unwrap(), r.balance);
 
                 FinancialResourceYearly {
@@ -50,6 +50,7 @@ pub async fn get_all_financial_resources_of_all_years(
                         r_type: r.r#type.parse().unwrap(),
                         editable: r.editable,
                         ynab_account_ids: r.ynab_account_ids,
+                        external_account_ids: r.external_account_ids,
                     },
                     year: r.year,
                     balance_per_month,
@@ -97,7 +98,7 @@ pub async fn get_financial_resources_of_year(
             .or_insert_with(|| {
                 let mut balance_per_month: BTreeMap<MonthNum, i64> = BTreeMap::new();
 
-                // TODO: Can month already be there? And what will happen? To test...
+                // Relations in the DB enforces that only one month in a year exists for one resource
                 balance_per_month.insert(r.month.try_into().unwrap(), r.balance);
 
                 FinancialResourceYearly {
@@ -108,6 +109,7 @@ pub async fn get_financial_resources_of_year(
                         r_type: r.r#type.parse().unwrap(),
                         editable: r.editable,
                         ynab_account_ids: r.ynab_account_ids,
+                        external_account_ids: r.external_account_ids,
                     },
                     year,
                     balance_per_month,
@@ -153,6 +155,7 @@ pub async fn get_financial_resources_of_month(
                 r_type: r.r#type.parse().unwrap(),
                 editable: r.editable,
                 ynab_account_ids: r.ynab_account_ids,
+                external_account_ids: r.external_account_ids,
             },
             month: r.month.try_into().unwrap(),
             year: r.year,
@@ -196,7 +199,7 @@ pub async fn get_financial_resource(
             None => {
                 let mut balance_per_month: BTreeMap<MonthNum, i64> = BTreeMap::new();
 
-                // TODO: Can month already be there? And what will happen? To test...
+                // Relations in the DB enforces that only one month in a year exists for one resource
                 balance_per_month.insert(r.month.try_into().unwrap(), r.balance);
 
                 resource = Some(FinancialResourceYearly {
@@ -207,6 +210,7 @@ pub async fn get_financial_resource(
                         r_type: r.r#type.parse().unwrap(),
                         editable: r.editable,
                         ynab_account_ids: r.ynab_account_ids,
+                        external_account_ids: r.external_account_ids,
                     },
                     year: r.year,
                     balance_per_month,
@@ -226,14 +230,15 @@ pub async fn update_financial_resource(
     // First update the resource itself
     sqlx::query!(
         r#"
-        INSERT INTO balance_sheet_resources (id, name, category, type, editable, ynab_account_ids)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO balance_sheet_resources (id, name, category, type, editable, ynab_account_ids, external_account_ids)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
         ON CONFLICT (id) DO UPDATE
         SET name = EXCLUDED.name,
         category = EXCLUDED.category,
         type = EXCLUDED.type,
         editable = EXCLUDED.editable,
-        ynab_account_ids = EXCLUDED.ynab_account_ids;
+        ynab_account_ids = EXCLUDED.ynab_account_ids,
+        external_account_ids = EXCLUDED.external_account_ids;
         "#,
         resource.base.id,
         resource.base.name,
@@ -245,14 +250,17 @@ pub async fn update_financial_resource(
             .ynab_account_ids
             .as_ref()
             .map(|accounts| accounts.as_slice()),
+            resource
+            .base
+            .external_account_ids
+            .as_ref()
+            .map(|accounts| accounts.as_slice()),
     )
     .execute(db_conn_pool)
     .await?;
 
     // Then the balance per month
     for (month, balance) in &resource.balance_per_month {
-        // TODO: To test, what happens when month already there but not resource? Technically it should update...
-        // Or if resource already there but not month...
         sqlx::query!(
             r#"
             INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)
@@ -305,8 +313,6 @@ pub async fn update_monthly_financial_resource(
     .await?;
 
     // Then the balance of the month
-    // TODO: To test, what happens when month already there but not resource? Technically it should update...
-    // Or if resource already there but not month...
     sqlx::query!(
         r#"
         INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)

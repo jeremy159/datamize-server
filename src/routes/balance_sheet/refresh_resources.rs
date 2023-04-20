@@ -1,3 +1,4 @@
+use anyhow::Context;
 use axum::{extract::State, Json};
 use chrono::{Datelike, Local};
 use uuid::Uuid;
@@ -7,7 +8,9 @@ use crate::{
     db,
     domain::{Month, MonthNum},
     error::{AppError, HttpJsonAppResult},
+    get_redis_conn,
     startup::AppState,
+    web_scraper,
 };
 
 /// Endpoint to refresh non-editable financial resources.
@@ -20,6 +23,8 @@ pub async fn refresh_balance_sheet_resources(
     State(app_state): State<AppState>,
 ) -> HttpJsonAppResult<Vec<Uuid>> {
     let db_conn_pool = app_state.db_conn_pool;
+    let mut redis_conn = get_redis_conn(&app_state.redis_conn_pool)
+        .context("failed to get redis connection from pool")?;
     let ynab_client = app_state.ynab_client.as_ref();
     let current_date = Local::now().date_naive();
     let current_year = current_date.year();
@@ -42,44 +47,58 @@ pub async fn refresh_balance_sheet_resources(
         .map_err(AppError::from_sqlx)?;
 
     let accounts = ynab_client.get_accounts().await?;
+    let external_accounts =
+        web_scraper::get_external_accounts(&db_conn_pool, &mut redis_conn).await?;
+
     let mut refreshed = vec![];
 
     for res in &mut resources {
         if let Some(ref account_ids) = res.base.ynab_account_ids {
-            let balance = accounts
-                .iter()
-                .filter(|a| account_ids.contains(&a.id))
-                .map(|a| a.balance.abs())
-                .sum::<i64>();
+            if !account_ids.is_empty() {
+                let balance = accounts
+                    .iter()
+                    .filter(|a| account_ids.contains(&a.id))
+                    .map(|a| a.balance.abs())
+                    .sum::<i64>();
 
-            match res.balance_per_month.get_mut(&current_month) {
-                Some(current_balance) => {
-                    if *current_balance != balance {
-                        *current_balance = balance;
+                match res.balance_per_month.get_mut(&current_month) {
+                    Some(current_balance) => {
+                        if *current_balance != balance {
+                            *current_balance = balance;
+                            refreshed.push(res.base.id);
+                        }
+                    }
+                    None => {
+                        res.balance_per_month.insert(current_month, balance);
                         refreshed.push(res.base.id);
                     }
                 }
-                None => {
-                    res.balance_per_month.insert(current_month, balance);
-                    refreshed.push(res.base.id);
+            }
+        }
+
+        if let Some(ref account_ids) = res.base.external_account_ids {
+            if !account_ids.is_empty() {
+                let balance = external_accounts
+                    .iter()
+                    .filter(|a| account_ids.contains(&a.id))
+                    .map(|a| a.balance.abs())
+                    .sum::<i64>();
+
+                match res.balance_per_month.get_mut(&current_month) {
+                    Some(current_balance) => {
+                        if *current_balance != balance {
+                            *current_balance = balance;
+                            refreshed.push(res.base.id);
+                        }
+                    }
+                    None => {
+                        res.balance_per_month.insert(current_month, balance);
+                        refreshed.push(res.base.id);
+                    }
                 }
             }
         }
     }
-
-    // TODO: Add scrapping of other accounts.
-    // try_join!(
-    //     // TODO: Make it more testable, not able to mock at the moment...
-    //     budget_data_api::get_balance_celi_jeremy().map_err(AppError::from),
-    //     budget_data_api::get_balance_celi_sandryne().map_err(AppError::from),
-    // )?;
-    // TODO: Find a better way than having those hard coded...
-    // let celi_jeremy = "CELI Jeremy";
-    // let celi_sandryne = "CELI Sandryne";
-
-    // let mut resources_balance: HashMap<&str, i64> = HashMap::new();
-    // resources_balance.insert(celi_jeremy, balance_celi_j);
-    // resources_balance.insert(celi_sandryne, balance_celi_s);
 
     if !refreshed.is_empty() {
         resources.retain(|r| refreshed.contains(&r.base.id));

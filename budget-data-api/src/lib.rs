@@ -1,7 +1,6 @@
 pub mod config;
 mod data_builder;
 mod error;
-pub mod web_scraper;
 
 use crate::config::BudgetDataConfig;
 pub use data_builder::types::CategoryIdToNameMap;
@@ -41,24 +40,4 @@ pub fn build_scheduled_transactions(
     category_id_to_name_map: &CategoryIdToNameMap,
 ) -> Result<ScheduledTransactionsDistribution> {
     data_builder::scheduled_transactions(scheduled_transactions, category_id_to_name_map)
-}
-
-pub async fn get_balance_celi_jeremy() -> Result<i64> {
-    let config = BudgetDataConfig::build();
-    let celi_config = config
-        .celis
-        .iter()
-        .find(|c| &c.name == "CELI Jeremy")
-        .unwrap();
-    web_scraper::get_current_amount_of_celi(celi_config).await
-}
-
-pub async fn get_balance_celi_sandryne() -> Result<i64> {
-    let config = BudgetDataConfig::build();
-    let celi_config = config
-        .celis
-        .iter()
-        .find(|c| &c.name == "CELI Sandryne")
-        .unwrap();
-    web_scraper::get_current_amount_of_celi(celi_config).await
 }

@@ -6,5 +6,6 @@ mod balance_sheet_resources;
 mod balance_sheet_year;
 mod balance_sheet_years;
 mod dummy_types;
+mod external_accounts;
 mod health_check;
 mod helpers;

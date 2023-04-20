@@ -83,11 +83,3 @@ pub struct PersonSalaryConfig {
     pub name: String,
     pub payee_id: Uuid,
 }
-
-#[derive(Serialize, Deserialize)]
-pub struct CeliConfig {
-    pub name: String,
-    pub params: Vec<(String, String)>,
-    pub login_url: String,
-    pub data_url: String,
-}

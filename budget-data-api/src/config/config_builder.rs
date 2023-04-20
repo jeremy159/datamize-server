@@ -1,5 +1,5 @@
 use super::types::{
-    BugdetCalculationDataConfig, CeliConfig, FixedExpenses, LongTermSavings, PersonSalaryConfig,
+    BugdetCalculationDataConfig, FixedExpenses, LongTermSavings, PersonSalaryConfig,
     RetirementSavings, ShortTermSavings, VariableExpenses,
 };
 use figment::{
@@ -12,7 +12,6 @@ use serde::{Deserialize, Serialize};
 pub struct BudgetDataConfig {
     pub budget_calculation_data: BugdetCalculationDataConfig,
     pub person_salaries: Vec<PersonSalaryConfig>,
-    pub celis: Vec<CeliConfig>,
 }
 
 impl Default for BudgetDataConfig {
@@ -34,7 +33,6 @@ impl Default for BudgetDataConfig {
                 external_expenses: vec![],
             },
             person_salaries: vec![],
-            celis: vec![],
         }
     }
 }

@@ -12,16 +12,18 @@ use sqlx::{PgPool, Pool, Postgres};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 
 use crate::{
-    config::{RedisSettings, Settings},
+    config::Settings,
+    get_redis_connection_pool,
     routes::{
         all_balance_sheet_months, all_balance_sheet_resources, balance_sheet_month,
         balance_sheet_months, balance_sheet_resource, balance_sheet_resources, balance_sheet_year,
         balance_sheet_years, create_balance_sheet_month, create_balance_sheet_resource,
         create_balance_sheet_year, delete_balance_sheet_month, delete_balance_sheet_resource,
-        delete_balance_sheet_year, get_ynab_accounts, health_check,
+        delete_balance_sheet_year, get::get_external_accounts, get_ynab_accounts, health_check,
         refresh_balance_sheet_resources, template_details, template_summary, template_transactions,
         update_balance_sheet_resource, update_balance_sheet_year,
     },
+    web_scraper::get_web_scraper,
 };
 
 #[derive(Clone)]
@@ -104,13 +106,17 @@ impl Application {
             .nest("/balance_sheet", balance_sheet_routes);
 
         let ynab_routes = Router::new().route("/accounts", get(get_ynab_accounts));
+        let external_accounts_routes = Router::new().route("/accounts", get(get_external_accounts));
 
-        let budget_providers_routes = Router::new().nest("/ynab", ynab_routes);
+        let budget_providers_routes = Router::new()
+            .nest("/ynab", ynab_routes)
+            .nest("/external", external_accounts_routes);
 
         // TODO: Add tracing::instrument with request id to requests.
         let app = Router::new()
             .route("/", get(|| async { "Hello, World!" }))
             .route("/health_check", get(health_check))
+            .route("/web_scraper", get(get_web_scraper)) // TODO: To remove once done with tests...
             .nest("/api", api_routes)
             .nest("/budget_providers", budget_providers_routes)
             .layer(CorsLayer::permissive()) // TODO: To be more restrictive...
@@ -137,18 +143,4 @@ impl Application {
             .context("failed to start hyper server")?;
         Ok(())
     }
-}
-
-pub fn get_redis_connection_pool(
-    configuration: &RedisSettings,
-) -> Result<r2d2::Pool<redis::Client>> {
-    let redis_client = redis::Client::open(configuration.connection_string())
-        .context("failed to establish connection to the redis instance")?;
-    Ok(r2d2::Pool::new(redis_client).context("failed to create pool of redis connections")?)
-}
-
-pub fn get_redis_conn(
-    pool: &r2d2::Pool<redis::Client>,
-) -> Result<r2d2::PooledConnection<redis::Client>, r2d2::Error> {
-    pool.get()
 }

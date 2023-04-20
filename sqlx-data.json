@@ -34,18 +34,23 @@
           "type_info": "UuidArray"
         },
         {
-          "name": "balance",
+          "name": "external_account_ids",
           "ordinal": 6,
+          "type_info": "UuidArray"
+        },
+        {
+          "name": "balance",
+          "ordinal": 7,
           "type_info": "Int8"
         },
         {
           "name": "month",
-          "ordinal": 7,
+          "ordinal": 8,
           "type_info": "Int2"
         },
         {
           "name": "year",
-          "ordinal": 8,
+          "ordinal": 9,
           "type_info": "Int4"
         }
       ],
@@ -55,6 +60,7 @@
         false,
         false,
         false,
+        true,
         true,
         false,
         false,
@@ -361,13 +367,18 @@
           "type_info": "UuidArray"
         },
         {
-          "name": "balance",
+          "name": "external_account_ids",
           "ordinal": 6,
+          "type_info": "UuidArray"
+        },
+        {
+          "name": "balance",
+          "ordinal": 7,
           "type_info": "Int8"
         },
         {
           "name": "month",
-          "ordinal": 7,
+          "ordinal": 8,
           "type_info": "Int2"
         }
       ],
@@ -377,6 +388,7 @@
         false,
         false,
         false,
+        true,
         true,
         false,
         false
@@ -432,23 +444,6 @@
       }
     },
     "query": "\n        SELECT\n            id,\n            type AS \"net_type: NetTotalType\",\n            total,\n            percent_var,\n            balance_var\n        FROM balance_sheet_net_totals_months\n        WHERE month_id = $1;\n        "
-  },
-  "47b5fcb6fa0593c538b583bd24cdf5db878f65bdddf74778d2486f11fbd79b6b": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Uuid",
-          "Varchar",
-          "Varchar",
-          "Varchar",
-          "Bool",
-          "UuidArray"
-        ]
-      }
-    },
-    "query": "\n        INSERT INTO balance_sheet_resources (id, name, category, type, editable, ynab_account_ids)\n        VALUES ($1, $2, $3, $4, $5, $6)\n        ON CONFLICT (id) DO UPDATE\n        SET name = EXCLUDED.name,\n        category = EXCLUDED.category,\n        type = EXCLUDED.type,\n        editable = EXCLUDED.editable,\n        ynab_account_ids = EXCLUDED.ynab_account_ids;\n        "
   },
   "4fbdc5e8476541303b9ee0e112e972adae88c80bc24fb4562f49394233cd0e23": {
     "describe": {
@@ -673,18 +668,23 @@
           "type_info": "UuidArray"
         },
         {
-          "name": "balance",
+          "name": "external_account_ids",
           "ordinal": 6,
+          "type_info": "UuidArray"
+        },
+        {
+          "name": "balance",
+          "ordinal": 7,
           "type_info": "Int8"
         },
         {
           "name": "month",
-          "ordinal": 7,
+          "ordinal": 8,
           "type_info": "Int2"
         },
         {
           "name": "year",
-          "ordinal": 8,
+          "ordinal": 9,
           "type_info": "Int4"
         }
       ],
@@ -694,6 +694,7 @@
         false,
         false,
         false,
+        true,
         true,
         false,
         false,
@@ -707,6 +708,62 @@
       }
     },
     "query": "\n            SELECT\n                r.*,\n                rm.balance,\n                m.month,\n                y.year\n            FROM balance_sheet_resources AS r\n            JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id\n            JOIN balance_sheet_months AS m ON rm.month_id = m.id AND m.month = $1\n            JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $2;\n            "
+  },
+  "7f64723de9c6c2488a455330b95780ff85e2cc4b6f06db6f97a4217d0d6a958d": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "type",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "balance",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "username",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "encrypted_password",
+          "ordinal": 5,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "deleted",
+          "ordinal": 6,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        SELECT * FROM external_accounts\n        WHERE name = $1;\n        "
   },
   "7f88d669c3e18ee34ab8d0d1e05d608f57fd96bd5b83a5af50887fce2b6bfc65": {
     "describe": {
@@ -1004,6 +1061,24 @@
     },
     "query": "\n        SELECT\n            y.id as year_id,\n            y.year,\n            n.id as net_total_id,\n            n.type,\n            n.total,\n            n.percent_var,\n            n.balance_var,\n            n.year_id as net_total_year_id\n        FROM balance_sheet_years AS y\n        JOIN balance_sheet_net_totals_years AS n ON year_id = n.year_id;\n        "
   },
+  "98d76359b99210c66687519b34c99a01267c155267ae1d6569c72fb4fca143d2": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Varchar",
+          "Varchar",
+          "Varchar",
+          "Bool",
+          "UuidArray",
+          "UuidArray"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO balance_sheet_resources (id, name, category, type, editable, ynab_account_ids, external_account_ids)\n        VALUES ($1, $2, $3, $4, $5, $6, $7)\n        ON CONFLICT (id) DO UPDATE\n        SET name = EXCLUDED.name,\n        category = EXCLUDED.category,\n        type = EXCLUDED.type,\n        editable = EXCLUDED.editable,\n        ynab_account_ids = EXCLUDED.ynab_account_ids,\n        external_account_ids = EXCLUDED.external_account_ids;\n        "
+  },
   "9b808421bf97b16f910fa575a648c2c36e418b358d56da24496755317b8c662b": {
     "describe": {
       "columns": [],
@@ -1133,18 +1208,23 @@
           "type_info": "UuidArray"
         },
         {
-          "name": "balance",
+          "name": "external_account_ids",
           "ordinal": 6,
+          "type_info": "UuidArray"
+        },
+        {
+          "name": "balance",
+          "ordinal": 7,
           "type_info": "Int8"
         },
         {
           "name": "month",
-          "ordinal": 7,
+          "ordinal": 8,
           "type_info": "Int2"
         },
         {
           "name": "year",
-          "ordinal": 8,
+          "ordinal": 9,
           "type_info": "Int4"
         }
       ],
@@ -1154,6 +1234,7 @@
         false,
         false,
         false,
+        true,
         true,
         false,
         false,
@@ -1363,6 +1444,24 @@
     },
     "query": "\n            DELETE FROM balance_sheet_resources\n            WHERE id = $1\n        "
   },
+  "c855889b01703ef24f87816d316b327c8e4b5ee4705e6c5365e121b431f786ad": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Varchar",
+          "Int8",
+          "Text",
+          "Bytea",
+          "Bool"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO external_accounts (id, name, type, balance, username, encrypted_password, deleted)\n        VALUES ($1, $2, $3, $4, $5, $6, $7);\n        "
+  },
   "d493ee29627f77dc3e74bdfffc0639b5238901f454eee02f24733e9b5708f7c0": {
     "describe": {
       "columns": [
@@ -1453,6 +1552,78 @@
       }
     },
     "query": "\n            INSERT INTO balance_sheet_saving_rates (id, name, savings, employer_contribution, employee_contribution, mortgage_capital, incomes, rate, year_id)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n            ON CONFLICT (id) DO UPDATE\n            SET name = EXCLUDED.name,\n            savings = EXCLUDED.savings,\n            employer_contribution = EXCLUDED.employer_contribution,\n            employee_contribution = EXCLUDED.employee_contribution,\n            mortgage_capital = EXCLUDED.mortgage_capital,\n            incomes = EXCLUDED.incomes,\n            rate = EXCLUDED.rate;\n            "
+  },
+  "e2e0825b6a057d940b9cbf33111a29dfbb836c1ba0f262787d604397130e7e41": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Varchar",
+          "Int8",
+          "Text",
+          "Bytea",
+          "Bool"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO external_accounts (id, name, type, balance, username, encrypted_password, deleted)\n        VALUES ($1, $2, $3, $4, $5, $6, $7)\n        ON CONFLICT (id) DO UPDATE SET\n        name = EXCLUDED.name,\n        type = EXCLUDED.type,\n        balance = EXCLUDED.balance,\n        username = EXCLUDED.username,\n        encrypted_password = EXCLUDED.encrypted_password,\n        deleted = EXCLUDED.deleted;\n        "
+  },
+  "e52796131ab114c0c3f8c8fbc5f2edfca9dfbdc4830c0fca96330d844b16b29f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "type",
+          "ordinal": 2,
+          "type_info": "Varchar"
+        },
+        {
+          "name": "balance",
+          "ordinal": 3,
+          "type_info": "Int8"
+        },
+        {
+          "name": "username",
+          "ordinal": 4,
+          "type_info": "Text"
+        },
+        {
+          "name": "encrypted_password",
+          "ordinal": 5,
+          "type_info": "Bytea"
+        },
+        {
+          "name": "deleted",
+          "ordinal": 6,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n        SELECT * FROM external_accounts;\n        "
   },
   "e8f2e689316f69430758f3c9a575996815e207f1d126b2e2ebd6018db78daffc": {
     "describe": {

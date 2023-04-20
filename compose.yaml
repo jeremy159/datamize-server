@@ -12,6 +12,7 @@ services:
     depends_on:
       - postgres
       - redis
+      - webdriver
   postgres:
     image: postgres
     restart: always
@@ -30,6 +31,13 @@ services:
       - 6379:6379
     volumes:
       - redis:/data
+  webdriver:
+    image: "selenium/standalone-chrome"
+    restart: always
+    ports:
+      - 4444:4444
+      - 7900:7900
+    shm_size: 2gb
 volumes:
   db:
   redis:

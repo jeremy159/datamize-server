@@ -2,8 +2,8 @@ use std::fmt::Display;
 
 use chrono::{Datelike, NaiveDate, Utc};
 use datamize::{
-    config,
-    startup::{get_redis_connection_pool, Application},
+    config, get_redis_connection_pool,
+    startup::Application,
     telemetry::{get_subscriber, init_subscriber},
 };
 use fake::{faker::chrono::en::Date, Fake, Faker};

@@ -1,10 +1,9 @@
 use anyhow::Context;
 use datamize::{
-    config::{self, DatabaseSettings},
+    config, get_connection_pool,
     startup::Application,
     telemetry::{get_subscriber, init_subscriber},
 };
-use sqlx::{postgres::PgPoolOptions, PgPool};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -27,11 +26,4 @@ async fn main() -> anyhow::Result<()> {
         .context("failed to run application")?;
 
     Ok(())
-}
-
-pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
-    PgPoolOptions::new()
-        .max_connections(2)
-        .acquire_timeout(std::time::Duration::from_secs(2))
-        .connect_lazy_with(configuration.with_db())
 }

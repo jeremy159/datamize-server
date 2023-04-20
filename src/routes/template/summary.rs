@@ -10,7 +10,8 @@ use crate::{
         set_categories_detla, set_scheduled_transactions_delta,
     },
     error::HttpJsonAppResult,
-    startup::{get_redis_conn, AppState},
+    get_redis_conn,
+    startup::AppState,
 };
 
 /// Returns a budget template summary.
