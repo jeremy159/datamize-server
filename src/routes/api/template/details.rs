@@ -4,7 +4,7 @@ use budget_data_api::BudgetDetails;
 use futures::try_join;
 
 use crate::{
-    db::{
+    db::budget_providers::ynab::{
         get_categories, get_categories_delta, get_scheduled_transactions,
         get_scheduled_transactions_delta, save_categories, save_scheduled_transactions,
         set_categories_detla, set_scheduled_transactions_delta,

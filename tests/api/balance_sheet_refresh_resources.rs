@@ -1,5 +1,5 @@
 use chrono::{Datelike, Local};
-use datamize::domain::Month;
+use datamize::models::balance_sheet::Month;
 use fake::{Fake, Faker};
 use num_traits::FromPrimitive;
 use serde::Serialize;

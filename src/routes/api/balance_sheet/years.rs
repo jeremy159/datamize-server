@@ -2,12 +2,13 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use axum_extra::extract::WithRejection;
 
 use crate::{
-    common::{get_year, update_year_net_totals},
-    db,
-    domain::{SaveYear, YearDetail, YearSummary},
+    db::balance_sheet::{add_new_year, get_year_data, get_years_summary},
     error::{AppError, HttpJsonAppResult, JsonError},
+    models::balance_sheet::{SaveYear, YearDetail, YearSummary},
     startup::AppState,
 };
+
+use super::common::{get_year, update_year_net_totals};
 
 /// Returns a summary of all the years with balance sheets.
 #[tracing::instrument(name = "Get a summary of all years", skip_all)]
@@ -16,7 +17,7 @@ pub async fn balance_sheet_years(
 ) -> HttpJsonAppResult<Vec<YearSummary>> {
     let db_conn_pool = app_state.db_conn_pool;
 
-    Ok(Json(db::get_years_summary(&db_conn_pool).await?))
+    Ok(Json(get_years_summary(&db_conn_pool).await?))
 }
 
 /// Creates a new year if it doesn't already exist and returns the newly created entity.
@@ -29,13 +30,13 @@ pub async fn create_balance_sheet_year(
     let db_conn_pool = app_state.db_conn_pool;
 
     let Err(sqlx::Error::RowNotFound) =
-        db::get_year_data(&db_conn_pool, body.year).await else
+        get_year_data(&db_conn_pool, body.year).await else
     {
         return Err(AppError::MonthAlreadyExist);
     };
 
     let year = YearDetail::new(body.year);
-    db::add_new_year(&db_conn_pool, &year).await?;
+    add_new_year(&db_conn_pool, &year).await?;
 
     update_year_net_totals(&db_conn_pool, body.year).await?;
 

@@ -4,14 +4,18 @@ use chrono::{Datelike, Local};
 use uuid::Uuid;
 
 use crate::{
-    common::{update_month_net_totals, update_year_net_totals},
-    db,
-    domain::{Month, MonthNum},
+    db::balance_sheet::{
+        add_new_month, get_financial_resources_of_year, get_month_data, get_year_data,
+        update_financial_resource,
+    },
     error::{AppError, HttpJsonAppResult},
     get_redis_conn,
+    models::balance_sheet::{Month, MonthNum},
     startup::AppState,
     web_scraper,
 };
+
+use super::common::{update_month_net_totals, update_year_net_totals};
 
 /// Endpoint to refresh non-editable financial resources.
 /// Only resources from the current month will be refreshed by this endpoint.
@@ -29,20 +33,20 @@ pub async fn refresh_balance_sheet_resources(
     let current_date = Local::now().date_naive();
     let current_year = current_date.year();
     // The only condition is that the year exists...
-    db::get_year_data(&db_conn_pool, current_year)
+    get_year_data(&db_conn_pool, current_year)
         .await
         .map_err(AppError::from_sqlx)?;
 
     let current_month: MonthNum = current_date.month().try_into().unwrap();
     if let Err(sqlx::Error::RowNotFound) =
-        db::get_month_data(&db_conn_pool, current_month, current_year).await
+        get_month_data(&db_conn_pool, current_month, current_year).await
     {
         // If month doesn't exist, create it
         let month = Month::new(current_month, current_year);
-        db::add_new_month(&db_conn_pool, &month, current_year).await?;
+        add_new_month(&db_conn_pool, &month, current_year).await?;
     }
 
-    let mut resources = db::get_financial_resources_of_year(&db_conn_pool, current_year)
+    let mut resources = get_financial_resources_of_year(&db_conn_pool, current_year)
         .await
         .map_err(AppError::from_sqlx)?;
 
@@ -103,7 +107,7 @@ pub async fn refresh_balance_sheet_resources(
     if !refreshed.is_empty() {
         resources.retain(|r| refreshed.contains(&r.base.id));
         for r in resources {
-            db::update_financial_resource(&db_conn_pool, &r).await?;
+            update_financial_resource(&db_conn_pool, &r).await?;
         }
         update_month_net_totals(&db_conn_pool, current_month, current_year).await?;
         update_year_net_totals(&db_conn_pool, current_year).await?;

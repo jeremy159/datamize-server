@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use chrono::{Datelike, NaiveDate};
-use datamize::domain::FinancialResourceYearly;
+use datamize::models::balance_sheet::FinancialResourceYearly;
 use fake::{faker::chrono::en::Date, Dummy, Fake, Faker};
 use serde::Serialize;
 use sqlx::PgPool;

@@ -2,7 +2,9 @@ use anyhow::Context;
 use axum::{extract::State, Json};
 use ynab::types::Account;
 
-use crate::db::{self, get_accounts_delta, set_accounts_detla};
+use crate::db::budget_providers::ynab::{
+    get_accounts, get_accounts_delta, save_accounts, set_accounts_detla,
+};
 use crate::error::HttpJsonAppResult;
 use crate::get_redis_conn;
 use crate::startup::AppState;
@@ -30,14 +32,14 @@ pub async fn get_ynab_accounts(
         .filter(|a| !a.deleted)
         .collect::<Vec<_>>();
 
-    db::save_accounts(&db_conn_pool, &accounts)
+    save_accounts(&db_conn_pool, &accounts)
         .await
         .context("failed to save accounts in database")?;
 
     set_accounts_detla(&mut redis_conn, accounts_delta.server_knowledge)
         .context("failed to save last known server knowledge of accounts in redis")?;
 
-    let saved_accounts = db::get_accounts(&db_conn_pool)
+    let saved_accounts = get_accounts(&db_conn_pool)
         .await
         .context("failed to get accounts from database")?;
 

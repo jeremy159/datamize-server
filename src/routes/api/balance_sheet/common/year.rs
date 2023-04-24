@@ -3,22 +3,25 @@ use futures::try_join;
 use sqlx::PgPool;
 
 use crate::{
-    db,
-    domain::{NetTotal, NetTotalType, YearDetail},
+    db::balance_sheet::{
+        get_financial_resources_of_year, get_months, get_saving_rates_for, get_year_data,
+        get_year_net_totals_for, insert_yearly_net_totals,
+    },
     error::AppError,
+    models::balance_sheet::{NetTotal, NetTotalType, YearDetail},
 };
 
 #[tracing::instrument(skip_all)]
 pub async fn get_year(db_conn_pool: &PgPool, year: i32) -> Result<YearDetail, AppError> {
-    let year_data = db::get_year_data(db_conn_pool, year)
+    let year_data = get_year_data(db_conn_pool, year)
         .await
         .map_err(AppError::from_sqlx)?;
 
     let (net_totals, saving_rates, months, resources) = try_join!(
-        db::get_year_net_totals_for(db_conn_pool, year_data.id),
-        db::get_saving_rates_for(db_conn_pool, year_data.id),
-        db::get_months(db_conn_pool, year),
-        db::get_financial_resources_of_year(db_conn_pool, year_data.year),
+        get_year_net_totals_for(db_conn_pool, year_data.id),
+        get_saving_rates_for(db_conn_pool, year_data.id),
+        get_months(db_conn_pool, year),
+        get_financial_resources_of_year(db_conn_pool, year_data.year),
     )?;
 
     let net_assets = match net_totals
@@ -56,14 +59,14 @@ pub async fn update_year_net_totals(
     db_conn_pool: &PgPool,
     year: i32,
 ) -> Result<YearDetail, AppError> {
-    let year_data = db::get_year_data(db_conn_pool, year)
+    let year_data = get_year_data(db_conn_pool, year)
         .await
         .map_err(AppError::from_sqlx)?;
 
     let (net_totals, saving_rates, months) = try_join!(
-        db::get_year_net_totals_for(db_conn_pool, year_data.id),
-        db::get_saving_rates_for(db_conn_pool, year_data.id),
-        db::get_months(db_conn_pool, year),
+        get_year_net_totals_for(db_conn_pool, year_data.id),
+        get_saving_rates_for(db_conn_pool, year_data.id),
+        get_months(db_conn_pool, year),
     )?;
 
     let net_assets = match net_totals
@@ -101,8 +104,8 @@ pub async fn update_year_net_totals(
     }
 
     // Also update with previous year since we might just have updated the total balance of current year.
-    if let Ok(prev_year) = db::get_year_data(db_conn_pool, year.year - 1).await {
-        if let Ok(prev_net_totals) = db::get_year_net_totals_for(db_conn_pool, prev_year.id).await {
+    if let Ok(prev_year) = get_year_data(db_conn_pool, year.year - 1).await {
+        if let Ok(prev_net_totals) = get_year_net_totals_for(db_conn_pool, prev_year.id).await {
             if let Some(prev_net_assets) = prev_net_totals
                 .iter()
                 .find(|pnt| pnt.net_type == NetTotalType::Asset)
@@ -119,11 +122,11 @@ pub async fn update_year_net_totals(
     }
 
     // Should also try to update next year if it exists
-    if let Ok(next_year) = db::get_year_data(db_conn_pool, year.year + 1).await {
+    if let Ok(next_year) = get_year_data(db_conn_pool, year.year + 1).await {
         update_year_net_totals(db_conn_pool, next_year.year).await?;
     }
 
-    db::insert_yearly_net_totals(
+    insert_yearly_net_totals(
         db_conn_pool,
         year.id,
         [&year.net_assets, &year.net_portfolio],

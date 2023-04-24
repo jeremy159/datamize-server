@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use chrono::{Datelike, NaiveDate};
-use datamize::domain::{FinancialResourceYearly, MonthNum};
+use datamize::models::balance_sheet::{FinancialResourceYearly, MonthNum};
 use fake::faker::chrono::en::Date;
 use fake::{Dummy, Fake, Faker};
 use serde::Serialize;

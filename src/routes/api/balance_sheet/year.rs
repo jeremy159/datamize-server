@@ -5,12 +5,13 @@ use axum::{
 use axum_extra::extract::WithRejection;
 
 use crate::{
-    common::get_year,
-    db,
-    domain::{UpdateYear, YearDetail},
+    db::balance_sheet::{delete_year, update_saving_rates},
     error::{HttpJsonAppResult, JsonError},
+    models::balance_sheet::{UpdateYear, YearDetail},
     startup::AppState,
 };
+
+use super::common::get_year;
 
 /// Returns a detailed year with its balance sheet, its saving rates, its months and its financial resources.
 #[tracing::instrument(name = "Get a detailed year", skip_all)]
@@ -35,7 +36,7 @@ pub async fn update_balance_sheet_year(
     let mut year = get_year(&db_conn_pool, year).await?;
     year.update_saving_rates(body.saving_rates);
 
-    db::update_saving_rates(&db_conn_pool, &year).await?;
+    update_saving_rates(&db_conn_pool, &year).await?;
 
     Ok(Json(year))
 }
@@ -49,7 +50,7 @@ pub async fn delete_balance_sheet_year(
     let db_conn_pool = app_state.db_conn_pool;
 
     let year_detail = get_year(&db_conn_pool, year).await?;
-    db::delete_year(&db_conn_pool, year).await?;
+    delete_year(&db_conn_pool, year).await?;
 
     Ok(Json(year_detail))
 }

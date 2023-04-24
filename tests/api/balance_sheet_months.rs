@@ -1,5 +1,5 @@
 use chrono::{Datelike, NaiveDate};
-use datamize::domain::{Month, ResourceCategory};
+use datamize::models::balance_sheet::{Month, ResourceCategory};
 use fake::faker::chrono::en::Date;
 use fake::Fake;
 use serde::Serialize;

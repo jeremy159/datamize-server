@@ -1,5 +1,5 @@
 use chrono::{Datelike, Months, NaiveDate};
-use datamize::domain::{NetTotalType, YearDetail};
+use datamize::models::balance_sheet::{NetTotalType, YearDetail};
 use fake::faker::chrono::en::Date;
 use fake::Fake;
 use serde::Serialize;

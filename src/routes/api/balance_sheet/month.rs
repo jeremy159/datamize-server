@@ -4,9 +4,9 @@ use axum::{
 };
 
 use crate::{
-    db,
-    domain::{Month, MonthNum},
+    db::balance_sheet::{delete_month, get_month},
     error::{AppError, HttpJsonAppResult},
+    models::balance_sheet::{Month, MonthNum},
     startup::AppState,
 };
 
@@ -19,7 +19,7 @@ pub async fn balance_sheet_month(
     let db_conn_pool = app_state.db_conn_pool;
 
     Ok(Json(
-        db::get_month(&db_conn_pool, month, year)
+        get_month(&db_conn_pool, month, year)
             .await
             .map_err(AppError::from_sqlx)?,
     ))
@@ -33,10 +33,10 @@ pub async fn delete_balance_sheet_month(
 ) -> HttpJsonAppResult<Month> {
     let db_conn_pool = app_state.db_conn_pool;
 
-    let month_detail = db::get_month(&db_conn_pool, month, year)
+    let month_detail = get_month(&db_conn_pool, month, year)
         .await
         .map_err(AppError::from_sqlx)?;
-    db::delete_month(&db_conn_pool, month, year).await?;
+    delete_month(&db_conn_pool, month, year).await?;
 
     Ok(Json(month_detail))
 }

@@ -2,11 +2,10 @@ use crate::config::{DatabaseSettings, RedisSettings};
 use anyhow::{Context, Ok, Result};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
-pub mod common;
 pub mod config;
 pub mod db;
-pub mod domain;
 pub mod error;
+pub mod models;
 pub mod routes;
 pub mod startup;
 pub mod telemetry;

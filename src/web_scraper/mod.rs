@@ -40,16 +40,20 @@ pub async fn get_external_accounts(
     let configuration = config::Settings::build()?;
     let webdriver_location = configuration.webdriver.connection_string();
 
-    let encryption_key = match db::get_encryption_key(redis_conn) {
+    let encryption_key = match db::budget_providers::external::get_encryption_key(redis_conn) {
         Some(ref val) => SecretKey::from_slice(val).unwrap(),
         None => {
             let key = SecretKey::default();
-            db::set_encryption_key(redis_conn, key.unprotected_as_bytes())?;
+            db::budget_providers::external::set_encryption_key(
+                redis_conn,
+                key.unprotected_as_bytes(),
+            )?;
             key
         }
     };
 
-    let initial_accounts = db::get_all_external_accounts(db_conn_pool).await?;
+    let initial_accounts =
+        db::budget_providers::external::get_all_external_accounts(db_conn_pool).await?;
     let updated_accounts = initial_accounts
         .clone()
         .into_iter()

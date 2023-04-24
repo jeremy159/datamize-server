@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, HashMap};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::domain::{
+use crate::models::balance_sheet::{
     BaseFinancialResource, FinancialResourceMonthly, FinancialResourceYearly, MonthNum,
 };
 

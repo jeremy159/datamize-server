@@ -3,7 +3,13 @@ use std::fmt;
 use anyhow::Context;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use datamize::web_scraper::account::{EncryptedPassword, WebScrapingAccount};
-use datamize::{db, get_redis_conn, get_redis_connection_pool};
+use datamize::{
+    db::budget_providers::external::{
+        add_new_external_account, get_external_account_by_name, set_encryption_key,
+        update_external_account,
+    },
+    get_redis_conn, get_redis_connection_pool,
+};
 use orion::aead;
 use orion::kex::SecretKey;
 use redis::Connection;
@@ -146,7 +152,7 @@ async fn create_account(
         deleted: false,
     };
 
-    db::add_new_external_account(db_conn_pool, &account).await?;
+    add_new_external_account(db_conn_pool, &account).await?;
     println!("Successfully created {:?}", account.name);
 
     Ok(())
@@ -159,7 +165,7 @@ async fn update_account(
     args: UpdateArgs,
 ) -> anyhow::Result<()> {
     // check if  account exists
-    let account = db::get_external_account_by_name(db_conn_pool, &name).await?;
+    let account = get_external_account_by_name(db_conn_pool, &name).await?;
     if account.is_none() {
         return Err::<(), anyhow::Error>(sqlx::Error::RowNotFound.into())
             .with_context(|| format!("Account {} does not exist", name));
@@ -184,27 +190,29 @@ async fn update_account(
         new_account.balance = (balance * 1000_f32) as i64;
     }
 
-    db::update_external_account(db_conn_pool, &new_account).await?;
+    update_external_account(db_conn_pool, &new_account).await?;
     println!("Successfully updated {:?}", new_account.name);
 
     Ok(())
 }
 
 fn get_encryption_key(redis_conn: &mut Connection) -> anyhow::Result<SecretKey> {
-    Ok(match db::get_encryption_key(redis_conn) {
-        Some(ref val) => {
-            if !val.is_empty() {
-                SecretKey::from_slice(val).unwrap()
-            } else {
+    Ok(
+        match datamize::db::budget_providers::external::get_encryption_key(redis_conn) {
+            Some(ref val) => {
+                if !val.is_empty() {
+                    SecretKey::from_slice(val).unwrap()
+                } else {
+                    let key = SecretKey::default();
+                    set_encryption_key(redis_conn, key.unprotected_as_bytes())?;
+                    key
+                }
+            }
+            None => {
                 let key = SecretKey::default();
-                db::set_encryption_key(redis_conn, key.unprotected_as_bytes())?;
+                set_encryption_key(redis_conn, key.unprotected_as_bytes())?;
                 key
             }
-        }
-        None => {
-            let key = SecretKey::default();
-            db::set_encryption_key(redis_conn, key.unprotected_as_bytes())?;
-            key
-        }
-    })
+        },
+    )
 }

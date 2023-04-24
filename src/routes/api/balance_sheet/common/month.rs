@@ -2,9 +2,12 @@ use async_recursion::async_recursion;
 use sqlx::PgPool;
 
 use crate::{
-    db,
-    domain::{Month, MonthNum, NetTotalType},
+    db::balance_sheet::{
+        get_month, get_month_data, get_month_net_totals_for, get_year_data,
+        insert_monthly_net_totals,
+    },
     error::AppError,
+    models::balance_sheet::{Month, MonthNum, NetTotalType},
 };
 
 #[tracing::instrument(skip(db_conn_pool))]
@@ -14,11 +17,11 @@ pub async fn update_month_net_totals(
     month_num: MonthNum,
     year: i32,
 ) -> Result<Month, AppError> {
-    db::get_month_data(db_conn_pool, month_num, year)
+    get_month_data(db_conn_pool, month_num, year)
         .await
         .map_err(AppError::from_sqlx)?;
 
-    let mut month = db::get_month(db_conn_pool, month_num, year).await?;
+    let mut month = get_month(db_conn_pool, month_num, year).await?;
 
     month.compute_net_totals();
 
@@ -27,9 +30,8 @@ pub async fn update_month_net_totals(
         _ => year,
     };
 
-    if let Ok(prev_month) = db::get_month_data(db_conn_pool, month_num.pred(), prev_year).await {
-        if let Ok(prev_net_totals) = db::get_month_net_totals_for(db_conn_pool, prev_month.id).await
-        {
+    if let Ok(prev_month) = get_month_data(db_conn_pool, month_num.pred(), prev_year).await {
+        if let Ok(prev_net_totals) = get_month_net_totals_for(db_conn_pool, prev_month.id).await {
             if let Some(prev_net_assets) = prev_net_totals
                 .iter()
                 .find(|pnt| pnt.net_type == NetTotalType::Asset)
@@ -45,7 +47,7 @@ pub async fn update_month_net_totals(
         }
     }
 
-    db::insert_monthly_net_totals(
+    insert_monthly_net_totals(
         db_conn_pool,
         month.id,
         [&month.net_assets, &month.net_portfolio],
@@ -58,9 +60,8 @@ pub async fn update_month_net_totals(
     };
 
     // Should also try to update next month if it exists
-    if (db::get_year_data(db_conn_pool, next_year_num).await).is_ok() {
-        if let Ok(next_month) =
-            db::get_month_data(db_conn_pool, month_num.succ(), next_year_num).await
+    if (get_year_data(db_conn_pool, next_year_num).await).is_ok() {
+        if let Ok(next_month) = get_month_data(db_conn_pool, month_num.succ(), next_year_num).await
         {
             update_month_net_totals(
                 db_conn_pool,

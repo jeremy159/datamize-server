@@ -1,5 +1,5 @@
 use chrono::{Datelike, NaiveDate};
-use datamize::domain::YearDetail;
+use datamize::models::balance_sheet::YearDetail;
 use fake::{faker::chrono::en::Date, Dummy, Fake, Faker};
 use rand::Rng;
 use serde::Serialize;

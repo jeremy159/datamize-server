@@ -1,10 +1,14 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, Utc};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::domain::{NetTotal, NetTotalType, SavingRatesPerPerson, YearDetail, YearSummary};
+use crate::{
+    db::balance_sheet::interface::YearData,
+    models::balance_sheet::{
+        NetTotal, NetTotalType, SavingRatesPerPerson, YearDetail, YearSummary,
+    },
+};
 
 #[tracing::instrument(skip_all)]
 pub async fn get_years_summary(db_conn_pool: &PgPool) -> Result<Vec<YearSummary>, sqlx::Error> {
@@ -79,13 +83,6 @@ pub async fn get_years_summary(db_conn_pool: &PgPool) -> Result<Vec<YearSummary>
     Ok(years)
 }
 
-#[derive(Debug, Clone, Copy, sqlx::FromRow)]
-pub struct YearData {
-    pub id: Uuid,
-    pub year: i32,
-    pub refreshed_at: DateTime<Utc>,
-}
-
 #[tracing::instrument(skip(db_conn_pool))]
 pub async fn get_year_data(db_conn_pool: &PgPool, year: i32) -> Result<YearData, sqlx::Error> {
     sqlx::query_as!(
@@ -145,6 +142,7 @@ pub async fn add_new_year(db_conn_pool: &PgPool, year: &YearDetail) -> Result<()
     Ok(())
 }
 
+#[tracing::instrument(skip(db_conn_pool, net_totals))]
 pub async fn insert_yearly_net_totals(
     db_conn_pool: &PgPool,
     year_id: Uuid,

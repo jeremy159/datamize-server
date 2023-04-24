@@ -7,12 +7,13 @@ use axum::{
 use axum_extra::extract::WithRejection;
 
 use crate::{
-    common::update_month_net_totals,
-    db,
-    domain::{Month, SaveMonth},
+    db::balance_sheet::{add_new_month, get_all_months, get_month_data, get_months, get_year_data},
     error::{AppError, HttpJsonAppResult, JsonError},
+    models::balance_sheet::{Month, SaveMonth},
     startup::AppState,
 };
+
+use super::common::update_month_net_totals;
 
 /// Returns all months of all years.
 #[tracing::instrument(name = "Get all months from all years", skip_all)]
@@ -21,7 +22,7 @@ pub async fn all_balance_sheet_months(
 ) -> HttpJsonAppResult<Vec<Month>> {
     let db_conn_pool = app_state.db_conn_pool;
 
-    Ok(Json(db::get_all_months(&db_conn_pool).await?))
+    Ok(Json(get_all_months(&db_conn_pool).await?))
 }
 
 /// Returns all the months within a year with balance sheets.
@@ -32,7 +33,7 @@ pub async fn balance_sheet_months(
 ) -> HttpJsonAppResult<Vec<Month>> {
     let db_conn_pool = app_state.db_conn_pool;
 
-    Ok(Json(db::get_months(&db_conn_pool, year).await?))
+    Ok(Json(get_months(&db_conn_pool, year).await?))
 }
 
 /// Creates a new month if it doesn't already exist and returns the newly created entity.
@@ -45,18 +46,18 @@ pub async fn create_balance_sheet_month(
 ) -> impl IntoResponse {
     let db_conn_pool = app_state.db_conn_pool;
 
-    db::get_year_data(&db_conn_pool, year)
+    get_year_data(&db_conn_pool, year)
         .await
         .map_err(AppError::from_sqlx)?;
 
     let Err(sqlx::Error::RowNotFound) =
-        db::get_month_data(&db_conn_pool, body.month, year).await else
+        get_month_data(&db_conn_pool, body.month, year).await else
     {
         return Err(AppError::MonthAlreadyExist);
     };
 
     let month = Month::new(body.month, year);
-    db::add_new_month(&db_conn_pool, &month, year).await?;
+    add_new_month(&db_conn_pool, &month, year).await?;
 
     let month = update_month_net_totals(&db_conn_pool, body.month, year).await?;
 

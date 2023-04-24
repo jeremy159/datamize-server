@@ -6,13 +6,7 @@ use budget_data_api::{CategoryIdToNameMap, ScheduledTransactionsDistribution};
 use futures::{stream::FuturesUnordered, StreamExt};
 
 use crate::{
-    db::{
-        get_category_by_id, get_scheduled_transactions, get_scheduled_transactions_delta,
-        save_scheduled_transactions, set_scheduled_transactions_delta,
-    },
-    error::HttpJsonAppResult,
-    get_redis_conn,
-    startup::AppState,
+    db::budget_providers::ynab::*, error::HttpJsonAppResult, get_redis_conn, startup::AppState,
 };
 
 /// Returns a budget template transactions, i.e. all the scheduled transactions in the upcoming month.

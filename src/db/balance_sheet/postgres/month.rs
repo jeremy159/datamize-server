@@ -3,13 +3,10 @@ use std::{cmp::Ordering, collections::HashMap};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::domain::{Month, MonthNum, NetTotal, NetTotalType};
-
-#[derive(sqlx::FromRow, Debug)]
-pub struct MonthData {
-    pub id: Uuid,
-    pub month: i16,
-}
+use crate::{
+    db::balance_sheet::interface::MonthData,
+    models::balance_sheet::{Month, MonthNum, NetTotal, NetTotalType},
+};
 
 #[tracing::instrument(skip(db_conn_pool))]
 pub async fn get_month_data(

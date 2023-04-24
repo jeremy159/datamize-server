@@ -7,12 +7,16 @@ use axum::{
 use axum_extra::extract::WithRejection;
 
 use crate::{
-    common::{update_month_net_totals, update_year_net_totals},
-    db,
-    domain::{FinancialResourceYearly, Month, SaveResource},
+    db::balance_sheet::{
+        add_new_month, get_all_financial_resources_of_all_years, get_financial_resources_of_year,
+        get_month_data, update_financial_resource,
+    },
     error::{AppError, HttpJsonAppResult, JsonError},
+    models::balance_sheet::{FinancialResourceYearly, Month, SaveResource},
     startup::AppState,
 };
+
+use super::common::{update_month_net_totals, update_year_net_totals};
 
 /// Returns all resources of all years.
 #[tracing::instrument(name = "Get all resources from all years", skip_all)]
@@ -22,7 +26,7 @@ pub async fn all_balance_sheet_resources(
     let db_conn_pool = app_state.db_conn_pool;
 
     Ok(Json(
-        db::get_all_financial_resources_of_all_years(&db_conn_pool).await?,
+        get_all_financial_resources_of_all_years(&db_conn_pool).await?,
     ))
 }
 
@@ -37,16 +41,16 @@ pub async fn create_balance_sheet_resource(
     if !resource.balance_per_month.is_empty() {
         for month in resource.balance_per_month.keys() {
             if let Err(sqlx::Error::RowNotFound) =
-                db::get_month_data(&db_conn_pool, *month, resource.year).await
+                get_month_data(&db_conn_pool, *month, resource.year).await
             {
                 // If month doesn't exist, create it
                 let month = Month::new(*month, resource.year);
-                db::add_new_month(&db_conn_pool, &month, resource.year).await?;
+                add_new_month(&db_conn_pool, &month, resource.year).await?;
             }
         }
     }
 
-    db::update_financial_resource(&db_conn_pool, &resource).await?;
+    update_financial_resource(&db_conn_pool, &resource).await?;
 
     // If balance data was received, update month and year net totals
     if !resource.balance_per_month.is_empty() {
@@ -72,6 +76,6 @@ pub async fn balance_sheet_resources(
     let db_conn_pool = app_state.db_conn_pool;
 
     Ok(Json(
-        db::get_financial_resources_of_year(&db_conn_pool, year).await?,
+        get_financial_resources_of_year(&db_conn_pool, year).await?,
     ))
 }
