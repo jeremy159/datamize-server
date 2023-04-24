@@ -4,11 +4,7 @@ use std::{
 };
 
 use anyhow::{Context, Ok, Result};
-use axum::{
-    body::Body,
-    routing::{get, post},
-    Router,
-};
+use axum::{body::Body, routing::get, Router};
 use http::{header::CONTENT_TYPE, Request};
 use sqlx::{PgPool, Pool, Postgres};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
@@ -18,15 +14,7 @@ use tracing::error_span;
 use crate::{
     config::Settings,
     get_redis_connection_pool,
-    routes::{
-        all_balance_sheet_months, all_balance_sheet_resources, balance_sheet_month,
-        balance_sheet_months, balance_sheet_resource, balance_sheet_resources, balance_sheet_year,
-        balance_sheet_years, create_balance_sheet_month, create_balance_sheet_resource,
-        create_balance_sheet_year, delete_balance_sheet_month, delete_balance_sheet_resource,
-        delete_balance_sheet_year, get::get_external_accounts, get_ynab_accounts, health_check,
-        refresh_balance_sheet_resources, template_details, template_summary, template_transactions,
-        update_balance_sheet_resource, update_balance_sheet_year,
-    },
+    routes::{get_api_routes, get_budget_providers_routes, health_check},
     web_scraper::get_web_scraper,
 };
 
@@ -67,54 +55,8 @@ impl Application {
         ))?;
         let port = socket_addr.port();
 
-        let template_routes = Router::new()
-            .route("/details", get(template_details))
-            .route("/summary", get(template_summary))
-            .route("/transactions", get(template_transactions));
-
-        let balance_sheet_routes = Router::new()
-            .route(
-                "/years",
-                get(balance_sheet_years).post(create_balance_sheet_year),
-            )
-            .route(
-                "/years/:year",
-                get(balance_sheet_year)
-                    .put(update_balance_sheet_year)
-                    .delete(delete_balance_sheet_year),
-            )
-            .route("/months", get(all_balance_sheet_months))
-            .route(
-                "/resources",
-                get(all_balance_sheet_resources).post(create_balance_sheet_resource),
-            )
-            .route(
-                "/resources/:resource_id",
-                get(balance_sheet_resource)
-                    .put(update_balance_sheet_resource)
-                    .delete(delete_balance_sheet_resource),
-            )
-            .route("/resources/refresh", post(refresh_balance_sheet_resources))
-            .route("/years/:year/resources", get(balance_sheet_resources))
-            .route(
-                "/years/:year/months",
-                get(balance_sheet_months).post(create_balance_sheet_month),
-            )
-            .route(
-                "/years/:year/months/:month",
-                get(balance_sheet_month).delete(delete_balance_sheet_month),
-            );
-
-        let api_routes = Router::new()
-            .nest("/template", template_routes)
-            .nest("/balance_sheet", balance_sheet_routes);
-
-        let ynab_routes = Router::new().route("/accounts", get(get_ynab_accounts));
-        let external_accounts_routes = Router::new().route("/accounts", get(get_external_accounts));
-
-        let budget_providers_routes = Router::new()
-            .nest("/ynab", ynab_routes)
-            .nest("/external", external_accounts_routes);
+        let api_routes = get_api_routes();
+        let budget_providers_routes = get_budget_providers_routes();
 
         let origins = [
             "https://tauri.localhost"
@@ -126,7 +68,7 @@ impl Application {
         ];
 
         let app = Router::new()
-            .route("/", get(|| async { "Hello, World!" }))
+            .route("/", get(|| async { "Welcome to Datamize!" }))
             .route("/health_check", get(health_check))
             .route("/web_scraper", get(get_web_scraper)) // TODO: To remove once done with tests...
             .nest("/api", api_routes)
