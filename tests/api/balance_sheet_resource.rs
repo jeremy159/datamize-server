@@ -139,55 +139,55 @@ async fn get_resource_returns_all_months_with_balance_of_the_year(pool: PgPool) 
 
 // #[sqlx::test]
 // TODO: To tackle later. Maybe a resource should contain a reference to multiple years (including multiple months)?
-async fn get_resource_returns_months_with_balance_only_of_requested_year(pool: PgPool) {
-    // Arange
-    let app = spawn_app(pool).await;
-    let year = Date().fake::<NaiveDate>().year();
-    let year_id = app.insert_year(year).await;
-    let month1 = (1..4).fake::<i16>();
-    let month1_id = app.insert_month(year_id, month1).await;
-    let res = app
-        .insert_financial_resource(
-            month1_id,
-            DummyResourceCategory::Asset,
-            DummyResourceType::Cash,
-        )
-        .await;
-    let month2 = (5..9).fake::<i16>();
-    let month2_id = app.insert_month(year_id, month2).await;
-    let month2_balance = app
-        .insert_financial_resource_with_id_in_month(month2_id, res.id)
-        .await;
-    // Same month but different year
-    let next_year = year + 1;
-    let next_year_id = app.insert_year(next_year).await;
-    let month2_of_next_year_id = app.insert_month(next_year_id, month2).await;
-    let month2_of_next_year_balance = app
-        .insert_financial_resource_with_id_in_month(month2_of_next_year_id, res.id)
-        .await;
+// async fn get_resource_returns_months_with_balance_only_of_requested_year(pool: PgPool) {
+//     // Arange
+//     let app = spawn_app(pool).await;
+//     let year = Date().fake::<NaiveDate>().year();
+//     let year_id = app.insert_year(year).await;
+//     let month1 = (1..4).fake::<i16>();
+//     let month1_id = app.insert_month(year_id, month1).await;
+//     let res = app
+//         .insert_financial_resource(
+//             month1_id,
+//             DummyResourceCategory::Asset,
+//             DummyResourceType::Cash,
+//         )
+//         .await;
+//     let month2 = (5..9).fake::<i16>();
+//     let month2_id = app.insert_month(year_id, month2).await;
+//     let month2_balance = app
+//         .insert_financial_resource_with_id_in_month(month2_id, res.id)
+//         .await;
+//     // Same month but different year
+//     let next_year = year + 1;
+//     let next_year_id = app.insert_year(next_year).await;
+//     let month2_of_next_year_id = app.insert_month(next_year_id, month2).await;
+//     let month2_of_next_year_balance = app
+//         .insert_financial_resource_with_id_in_month(month2_of_next_year_id, res.id)
+//         .await;
 
-    // Act
-    let response = app.get_resource(res.id).await;
-    assert!(response.status().is_success());
+//     // Act
+//     let response = app.get_resource(res.id).await;
+//     assert!(response.status().is_success());
 
-    let resource: FinancialResourceYearly =
-        serde_json::from_str(&response.text().await.unwrap()).unwrap();
+//     let resource: FinancialResourceYearly =
+//         serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
-    // Assert
-    assert!(resource
-        .balance_per_month
-        .get(&(month1.try_into().unwrap()))
-        .is_some());
-    let month2_received_balance = resource
-        .balance_per_month
-        .get(&(month2.try_into().unwrap()));
-    assert!(month2_received_balance.is_some());
-    assert_eq!(*month2_received_balance.unwrap(), month2_balance);
-    assert_ne!(
-        *month2_received_balance.unwrap(),
-        month2_of_next_year_balance
-    );
-}
+//     // Assert
+//     assert!(resource
+//         .balance_per_month
+//         .get(&(month1.try_into().unwrap()))
+//         .is_some());
+//     let month2_received_balance = resource
+//         .balance_per_month
+//         .get(&(month2.try_into().unwrap()));
+//     assert!(month2_received_balance.is_some());
+//     assert_eq!(*month2_received_balance.unwrap(), month2_balance);
+//     assert_ne!(
+//         *month2_received_balance.unwrap(),
+//         month2_of_next_year_balance
+//     );
+// }
 
 #[derive(Debug, Clone, Serialize, Dummy)]
 struct Body {
