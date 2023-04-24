@@ -1,3 +1,4 @@
+mod common;
 mod month;
 mod months;
 mod refresh_resources;
@@ -5,7 +6,6 @@ mod resource;
 mod resources;
 mod year;
 mod years;
-mod common;
 
 use axum::{
     routing::{get, post},

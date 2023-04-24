@@ -55,7 +55,7 @@ impl Default for WebScrapingAccount {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, sqlx::Type)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 #[sqlx(type_name = "account_type")]
 #[sqlx(rename_all = "camelCase")]
@@ -64,14 +64,9 @@ pub enum AccountType {
     Rrsp, // = REER
     Rpp,  // = RPA
     Resp, // REEE
+    #[default]
     OtherAsset,
     OtherLiability,
-}
-
-impl Default for AccountType {
-    fn default() -> Self {
-        AccountType::OtherAsset
-    }
 }
 
 impl fmt::Display for AccountType {
