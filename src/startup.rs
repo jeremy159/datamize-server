@@ -5,11 +5,15 @@ use std::{
 
 use anyhow::{Context, Ok, Result};
 use axum::{
+    body::Body,
     routing::{get, post},
     Router,
 };
+use http::{header::CONTENT_TYPE, Request};
 use sqlx::{PgPool, Pool, Postgres};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tower_request_id::{RequestId, RequestIdLayer};
+use tracing::error_span;
 
 use crate::{
     config::Settings,
@@ -112,15 +116,52 @@ impl Application {
             .nest("/ynab", ynab_routes)
             .nest("/external", external_accounts_routes);
 
-        // TODO: Add tracing::instrument with request id to requests.
+        let origins = [
+            "https://tauri.localhost"
+                .parse::<axum::http::HeaderValue>()
+                .unwrap(),
+            "http://localhost:4300"
+                .parse::<axum::http::HeaderValue>()
+                .unwrap(),
+        ];
+
         let app = Router::new()
             .route("/", get(|| async { "Hello, World!" }))
             .route("/health_check", get(health_check))
             .route("/web_scraper", get(get_web_scraper)) // TODO: To remove once done with tests...
             .nest("/api", api_routes)
             .nest("/budget_providers", budget_providers_routes)
-            .layer(CorsLayer::permissive()) // TODO: To be more restrictive...
-            .layer(TraceLayer::new_for_http())
+            .layer(
+                CorsLayer::new()
+                    .allow_origin(origins)
+                    .allow_headers([CONTENT_TYPE])
+                    .allow_methods([
+                        axum::http::Method::GET,
+                        axum::http::Method::DELETE,
+                        axum::http::Method::OPTIONS,
+                        axum::http::Method::HEAD,
+                        axum::http::Method::POST,
+                        axum::http::Method::PUT,
+                    ]),
+            )
+            .layer(
+                TraceLayer::new_for_http().make_span_with(|request: &Request<Body>| {
+                    // We get the request id from the extensions
+                    let request_id = request
+                        .extensions()
+                        .get::<RequestId>()
+                        .map(ToString::to_string)
+                        .unwrap_or_else(|| "unknown".into());
+                    // And then we put it along with other information into the `request` span
+                    error_span!(
+                        "request",
+                        id = %request_id,
+                        method = %request.method(),
+                        uri = %request.uri(),
+                    )
+                }),
+            )
+            .layer(RequestIdLayer)
             .with_state(app_state);
 
         Ok(Self {
