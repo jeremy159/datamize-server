@@ -1,18 +1,52 @@
 use std::collections::HashMap;
 
-use super::types::{
-    CategoryIdToNameMap, ExtendedScheduledTransactionDetail, ExtendedSubTransaction,
-    ScheduledTransactionsDistribution, ScheduledTransactionsDistributionMap,
-};
-use super::utils;
-use crate::Result;
+use anyhow::Context;
 use ynab::types::ScheduledTransactionDetail;
 
-/// Gives the scheduled transactions distribution over a month.
-pub fn scheduled_transactions(
-    scheduled_transactions: &[ScheduledTransactionDetail],
+use crate::{
+    db::budget_providers::ynab::{
+        get_scheduled_transactions, get_scheduled_transactions_delta, save_scheduled_transactions,
+        set_scheduled_transactions_delta,
+    },
+    models::budget_template::{
+        CategoryIdToNameMap, ExtendedScheduledTransactionDetail, ExtendedSubTransaction,
+        ScheduledTransactionsDistribution, ScheduledTransactionsDistributionMap,
+    },
+};
+
+use super::utils;
+
+pub async fn get_latest_scheduled_transactions(
+    db_conn_pool: &sqlx::PgPool,
+    redis_conn: &mut redis::Connection,
+    ynab_client: &ynab::Client,
+) -> anyhow::Result<Vec<ScheduledTransactionDetail>> {
+    let saved_scheduled_transactions_delta = get_scheduled_transactions_delta(redis_conn);
+
+    let scheduled_transactions_delta = ynab_client
+        .get_scheduled_transactions_delta(saved_scheduled_transactions_delta)
+        .await
+        .context("failed to get scheduled transactions from ynab's API")?;
+
+    save_scheduled_transactions(
+        db_conn_pool,
+        &scheduled_transactions_delta.scheduled_transactions,
+    )
+    .await
+    .context("failed to save scheduled transactions in database")?;
+
+    set_scheduled_transactions_delta(redis_conn, scheduled_transactions_delta.server_knowledge)
+        .context("failed to save last known server knowledge of scheduled transactions in redis")?;
+
+    get_scheduled_transactions(db_conn_pool)
+        .await
+        .context("failed to get scheduled transactions from database")
+}
+
+pub fn build_scheduled_transactions(
+    scheduled_transactions: Vec<ScheduledTransactionDetail>,
     category_id_to_name_map: &CategoryIdToNameMap,
-) -> Result<ScheduledTransactionsDistribution> {
+) -> anyhow::Result<ScheduledTransactionsDistribution> {
     let mut output: ScheduledTransactionsDistributionMap = HashMap::new();
 
     let mut extended_scheduled_transactions: Vec<ExtendedScheduledTransactionDetail> = vec![];
@@ -20,13 +54,13 @@ pub fn scheduled_transactions(
 
     extended_scheduled_transactions.extend(
         scheduled_transactions
-            .iter()
+            .into_iter()
             .filter(|st| !st.deleted)
             .filter(|st| utils::is_transaction_in_next_30_days(&st.date_next))
             .map(|st| {
                 let mut extended_st: ExtendedScheduledTransactionDetail = st.clone().into();
                 repeated_sts.extend(
-                    utils::find_repeatable_transactions(st)
+                    utils::find_repeatable_transactions(&st)
                         .into_iter()
                         .map(|rep_st| rep_st.into()),
                 );
@@ -60,19 +94,15 @@ pub fn scheduled_transactions(
 
     extended_scheduled_transactions.extend(repeated_sts);
 
-    for st in &extended_scheduled_transactions {
+    for st in extended_scheduled_transactions {
         if !st.subtransactions.is_empty() {
-            st.subtransactions.iter().for_each(|sub_st| {
-                output
-                    .entry(sub_st.date_next.to_string())
-                    .and_modify(|v| v.push(sub_st.clone().into()))
-                    .or_insert_with(|| vec![sub_st.clone().into()]);
+            st.subtransactions.into_iter().for_each(|sub_st| {
+                let entry = output.entry(sub_st.date_next.to_string());
+                entry.or_insert_with(Vec::new).push(sub_st.into());
             });
         } else {
-            output
-                .entry(st.scheduled_transaction.date_next.to_string())
-                .and_modify(|v| v.push(st.clone()))
-                .or_insert_with(|| vec![st.clone()]);
+            let entry = output.entry(st.scheduled_transaction.date_next.to_string());
+            entry.or_insert_with(Vec::new).push(st);
         }
     }
 

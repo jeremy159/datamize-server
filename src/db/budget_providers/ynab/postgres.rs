@@ -8,8 +8,8 @@ pub async fn save_categories(
     for c in categories {
         sqlx::query!(
                 r#"
-                INSERT INTO categories (id, category_group_id, name, hidden, original_category_group_id, note, budgeted, activity, balance, goal_type, goal_creation_month, goal_target, goal_target_month, goal_percentage_complete, goal_months_to_budget, goal_under_funded, goal_overall_funded, goal_overall_left, deleted)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+                INSERT INTO categories (id, category_group_id, name, hidden, original_category_group_id, note, budgeted, activity, balance, goal_type, goal_creation_month, goal_target, goal_target_month, goal_percentage_complete, goal_months_to_budget, goal_under_funded, goal_overall_funded, goal_overall_left, deleted, goal_day, goal_cadence, goal_cadence_frequency)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
                 ON CONFLICT (id) DO UPDATE
                 SET category_group_id = EXCLUDED.category_group_id,
                 name = EXCLUDED.name,
@@ -28,7 +28,10 @@ pub async fn save_categories(
                 goal_under_funded = EXCLUDED.goal_under_funded,
                 goal_overall_funded = EXCLUDED.goal_overall_funded,
                 goal_overall_left = EXCLUDED.goal_overall_left,
-                deleted = EXCLUDED.deleted;
+                deleted = EXCLUDED.deleted,
+                goal_day = EXCLUDED.goal_day,
+                goal_cadence = EXCLUDED.goal_cadence,
+                goal_cadence_frequency = EXCLUDED.goal_cadence_frequency;
                 "#,
                 c.id,
                 c.category_group_id,
@@ -48,7 +51,10 @@ pub async fn save_categories(
                 c.goal_under_funded,
                 c.goal_overall_funded,
                 c.goal_overall_left,
-                c.deleted
+                c.deleted,
+                c.goal_day,
+                c.goal_cadence,
+                c.goal_cadence_frequency,
             ).execute(db_conn_pool).await?;
     }
     Ok(())
@@ -77,7 +83,10 @@ pub async fn get_categories(db_conn_pool: &PgPool) -> Result<Vec<Category>, sqlx
             goal_under_funded,
             goal_overall_funded,
             goal_overall_left,
-            deleted
+            deleted,
+            goal_day,
+            goal_cadence,
+            goal_cadence_frequency
         FROM categories
         "#
     )
@@ -111,7 +120,10 @@ pub async fn get_category_by_id(
             goal_under_funded,
             goal_overall_funded,
             goal_overall_left,
-            deleted
+            deleted,
+            goal_day,
+            goal_cadence,
+            goal_cadence_frequency
         FROM categories
         WHERE id = $1
         "#,

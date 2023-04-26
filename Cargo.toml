@@ -14,7 +14,6 @@ name = "datamize"
 
 [dependencies]
 ynab = { path = "./ynab", features = ["sqlx-postgres"] }
-budget-data-api = { path = "./budget-data-api" }
 anyhow = { version = "1.0.68", features = ["backtrace"] }
 axum = "0.6.4"
 serde = { workspace = true, features = ["derive"] }
@@ -42,6 +41,7 @@ nom = "7.1.3"
 orion = "0.17.4"
 http = "0.2.9"
 tower-request-id = "0.2.1"
+rrule = { workspace = true }
 
 [dev-dependencies]
 fake = { version = "2.5.0", features = ["chrono", "derive", "uuid"] }
@@ -53,7 +53,6 @@ wiremock = "0.5.17"
 [workspace]
 members = [
     "datamize-cli",
-    "budget-data-api",
     "ynab",
 ]
 

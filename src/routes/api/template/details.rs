@@ -1,19 +1,16 @@
+use crate::{
+    models::budget_template::BudgetDetails,
+    routes::api::template::common::{get_latest_categories, get_latest_scheduled_transactions},
+};
 use anyhow::Context;
 use axum::{extract::State, Json};
-use budget_data_api::BudgetDetails;
 use futures::try_join;
 
-use crate::{
-    db::budget_providers::ynab::{
-        get_categories, get_categories_delta, get_scheduled_transactions,
-        get_scheduled_transactions_delta, save_categories, save_scheduled_transactions,
-        set_categories_detla, set_scheduled_transactions_delta,
-    },
-    error::HttpJsonAppResult,
-    get_redis_conn,
-    startup::AppState,
-};
+use crate::{error::HttpJsonAppResult, get_redis_conn, startup::AppState};
 
+use super::common::build_budget_details;
+
+// TODO: Implement template details for prev, current and next months
 /// Returns a budget template details
 pub async fn template_details(
     State(app_state): State<AppState>,
@@ -22,54 +19,22 @@ pub async fn template_details(
     let db_conn_pool = app_state.db_conn_pool;
     let mut redis_conn = get_redis_conn(&app_state.redis_conn_pool)
         .context("failed to get redis connection from pool")?;
-
-    let saved_categories_delta = get_categories_delta(&mut redis_conn);
-    let saved_scheduled_transactions_delta = get_scheduled_transactions_delta(&mut redis_conn);
-
-    let (category_groups_with_categories_delta, scheduled_transactions_delta) = try_join!(
-        ynab_client.get_categories_delta(saved_categories_delta),
-        ynab_client.get_scheduled_transactions_delta(saved_scheduled_transactions_delta)
-    )
-    .context("failed to get categories or scheduled transactions from ynab's API")?;
-
-    let categories = category_groups_with_categories_delta
-        .category_groups
-        .into_iter()
-        .flat_map(|cg| cg.categories)
-        .collect::<Vec<_>>();
-
-    save_categories(&db_conn_pool, &categories)
-        .await
-        .context("failed to save categories in database")?;
-
-    set_categories_detla(
-        &mut redis_conn,
-        category_groups_with_categories_delta.server_knowledge,
-    )
-    .context("failed to save last known server knowledge of categories in redis")?;
-
-    save_scheduled_transactions(
-        &db_conn_pool,
-        &scheduled_transactions_delta.scheduled_transactions,
-    )
-    .await
-    .context("failed to save scheduled transactions in database")?;
-
-    set_scheduled_transactions_delta(
-        &mut redis_conn,
-        scheduled_transactions_delta.server_knowledge,
-    )
-    .context("failed to save last known server knowledge of scheduled transactions in redis")?;
+    let mut second_redis_conn = get_redis_conn(&app_state.redis_conn_pool)
+        .context("failed to get second redis connection from pool")?;
 
     let (saved_categories, saved_scheduled_transactions) = try_join!(
-        get_categories(&db_conn_pool),
-        get_scheduled_transactions(&db_conn_pool)
+        get_latest_categories(&db_conn_pool, &mut redis_conn, ynab_client),
+        get_latest_scheduled_transactions(&db_conn_pool, &mut second_redis_conn, ynab_client)
     )
-    .context("failed to get categories and scheduled transactions from database")?;
+    .context("failed to get latest categories and scheduled transactions")?;
 
-    let data =
-        budget_data_api::build_budget_details(&saved_categories, &saved_scheduled_transactions)
-            .context("failed to compute budget details")?;
+    let data = build_budget_details(
+        saved_categories,
+        saved_scheduled_transactions,
+        &app_state.budget_calculation_data_settings,
+        &app_state.person_salary_settings,
+    )
+    .context("failed to compute budget details")?;
 
     Ok(Json(data))
 }

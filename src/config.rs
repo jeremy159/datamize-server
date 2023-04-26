@@ -4,6 +4,9 @@ use sqlx::{
     postgres::{PgConnectOptions, PgSslMode},
     ConnectOptions,
 };
+use uuid::Uuid;
+
+use crate::models::budget_template::{ExpenseType, ExternalExpense, SubExpenseType};
 
 #[derive(Clone, Deserialize)]
 pub struct Settings {
@@ -12,6 +15,8 @@ pub struct Settings {
     pub database: DatabaseSettings,
     pub redis: RedisSettings,
     pub webdriver: WebDriverSettings,
+    pub budget_calculation_data: BugdetCalculationDataSettings,
+    pub person_salaries: Vec<PersonSalarySettings>,
 }
 
 #[derive(Clone, Deserialize)]
@@ -90,6 +95,27 @@ impl WebDriverSettings {
     }
 }
 
+#[derive(Clone, Deserialize)]
+pub struct BugdetCalculationDataSettings {
+    pub category_groups: Vec<CategoryGroup>,
+    pub external_expenses: Vec<ExternalExpense>,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct CategoryGroup {
+    pub ids: Vec<Uuid>,
+    #[serde(rename = "type")]
+    pub expense_type: ExpenseType,
+    #[serde(rename = "sub_type")]
+    pub sub_expense_type: SubExpenseType,
+}
+
+#[derive(Clone, Deserialize)]
+pub struct PersonSalarySettings {
+    pub name: String,
+    pub payee_ids: Vec<Uuid>,
+}
+
 impl Default for Settings {
     fn default() -> Settings {
         Settings {
@@ -118,6 +144,11 @@ impl Default for Settings {
                 host: String::from("localhost"),
                 port: 4444,
             },
+            budget_calculation_data: BugdetCalculationDataSettings {
+                category_groups: vec![],
+                external_expenses: vec![],
+            },
+            person_salaries: vec![],
         }
     }
 }

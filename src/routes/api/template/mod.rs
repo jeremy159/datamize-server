@@ -1,3 +1,4 @@
+mod common;
 mod details;
 mod summary;
 mod transactions;
