@@ -528,7 +528,8 @@ pub async fn spawn_app(db_pool: PgPool) -> TestApp {
     let application_port = application.port();
     let _ = tokio::spawn(application.run());
 
-    // tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+    // Give time for the app to start before sending in requests. Not ideal at all...
+    tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
 
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::none())
