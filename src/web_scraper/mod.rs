@@ -41,7 +41,7 @@ pub async fn get_external_accounts(
     let webdriver_location = configuration.webdriver.connection_string();
 
     let encryption_key = match db::budget_providers::external::get_encryption_key(redis_conn) {
-        Some(ref val) => SecretKey::from_slice(val).unwrap(),
+        Some(ref val) => SecretKey::from_slice(val).unwrap_or_default(),
         None => {
             let key = SecretKey::default();
             db::budget_providers::external::set_encryption_key(
