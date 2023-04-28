@@ -75,13 +75,12 @@ pub fn get_scheduled_transactions_within_month(
     let mut scheduled_transactions = vec![];
 
     if let Some(ref frequency) = scheduled_transaction.frequency {
-        let first_day = date;
-        let first_day_next_month = first_day.checked_add_months(Months::new(1)).unwrap();
+        let first_day_next_month = date.checked_add_months(Months::new(1)).unwrap();
 
         if scheduled_transaction.date_first < first_day_next_month.date_naive() {
             if let Some(rrule) = frequency.as_rfc5545_rule() {
                 let first_day_date_time = Tz::Local(Local)
-                    .from_local_datetime(&first_day.naive_local())
+                    .from_local_datetime(&date.naive_local())
                     .unwrap();
 
                 let first_date_time = Tz::Local(Local)

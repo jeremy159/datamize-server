@@ -22,7 +22,7 @@ pub fn build_budget_details(
     let salary_per_person =
         utils::get_salary_per_person_per_month(&scheduled_transactions, person_salary_settings);
 
-    let scheduled_transactions_map =
+    let mut scheduled_transactions_map =
         build_category_to_scheduled_transaction_map(scheduled_transactions, date);
 
     let mut output: BudgetDetails = BudgetDetails::default();
@@ -33,9 +33,8 @@ pub fn build_budget_details(
             .map(|c| {
                 let cat_id = c.id;
                 let mut expense: Expense = c.into();
-                if let Some(scheduled_transactions) = scheduled_transactions_map.get(&cat_id) {
-                    expense = expense.with_scheduled_transactions(scheduled_transactions.clone());
-                    // TODO: don't clone, find a better way...
+                if let Some(scheduled_transactions) = scheduled_transactions_map.remove(&cat_id) {
+                    expense = expense.with_scheduled_transactions(scheduled_transactions);
                 }
                 expense
                     .compute_projected_amount()
