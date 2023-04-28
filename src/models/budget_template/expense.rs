@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-
+use chrono::Local;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use ynab::types::{Category, GoalType, ScheduledTransactionDetail};
@@ -30,7 +29,8 @@ pub struct Expense {
     pub individual_associated: Option<String>,
     #[serde(skip)]
     pub category: Option<Category>,
-    // TODO: Also link scheduled transactions to this expense to ease computation bellow.
+    #[serde(skip)]
+    pub scheduled_transactions: Vec<ScheduledTransactionDetail>,
 }
 
 impl Expense {
@@ -54,13 +54,19 @@ impl Expense {
             current_proportion: 0.0,
             category: None,
             individual_associated: None,
+            scheduled_transactions: vec![],
         }
     }
 
-    pub fn set_projected_amount(
+    pub fn with_scheduled_transactions(
         mut self,
-        scheduled_transactions_map: &HashMap<Uuid, Vec<ScheduledTransactionDetail>>,
+        scheduled_transactions: Vec<ScheduledTransactionDetail>,
     ) -> Self {
+        self.scheduled_transactions = scheduled_transactions;
+        self
+    }
+
+    pub fn compute_projected_amount(mut self) -> Self {
         if let Some(category) = &self.category {
             let projected_amount = match category.goal_type {
                 Some(GoalType::Debt) => 0, // Debt type goal should not be considered in the amount as they arlready have a scheduled transaction of the same amount
@@ -77,25 +83,19 @@ impl Expense {
             };
 
             self.projected_amount = projected_amount
-                + match scheduled_transactions_map.get(&category.id) {
-                    // Check with scheduled_transactions
-                    Some(t) => -t.iter().map(|v| v.amount).sum::<i64>(),
-                    None => 0,
-                };
+                + self
+                    .scheduled_transactions
+                    .iter()
+                    .map(|v| -v.amount)
+                    .sum::<i64>();
         }
 
         self
     }
 
-    pub fn set_current_amount(
-        mut self,
-        scheduled_transactions_map: &HashMap<Uuid, Vec<ScheduledTransactionDetail>>,
-    ) -> Self {
+    pub fn compute_current_amount(mut self) -> Self {
         if let Some(category) = &self.category {
-            let mut budgeted_without_goal = 0_i64;
-
-            let current_amount = match category.goal_type {
-                Some(GoalType::Debt) => 0, // Debt type goal should not be considered in the amount as they arlready have a scheduled transaction of the same amount
+            let current_amount_budgeted = match category.goal_type {
                 Some(_) => match category.goal_under_funded {
                     // If goal was fully funded, simply return what was budgeted
                     Some(0) => category.budgeted,
@@ -103,18 +103,31 @@ impl Expense {
                     Some(i) => i + category.budgeted,
                     None => 0,
                 },
-                None => {
-                    budgeted_without_goal = category.budgeted;
-                    0
-                }
+                None => category.budgeted,
             };
 
-            self.current_amount = current_amount
-                + match scheduled_transactions_map.get(&category.id) {
-                    // Check with scheduled_transactions
-                    Some(t) => -t.iter().map(|v| v.amount).sum::<i64>(),
-                    None => budgeted_without_goal, // Will return amount that was budgeted, even if category doesn't have a goal nor scheduled transactions
-                };
+            self.current_amount = current_amount_budgeted;
+            let scheduled_transactions_total = self
+                .scheduled_transactions
+                .iter()
+                .map(|v| -v.amount)
+                .sum::<i64>();
+
+            if current_amount_budgeted != scheduled_transactions_total {
+                let current_date = Local::now().date_naive();
+                let future_transactions_amount = self
+                    .scheduled_transactions
+                    .iter()
+                    .filter(|_| category.goal_type.is_none())
+                    // Current amount should only take into account scheduled transactions from future. those in past should instead be taken from budgeted section.
+                    .filter(|&st| st.date_next > current_date)
+                    .map(|st| -st.amount)
+                    .sum::<i64>();
+
+                if future_transactions_amount > 0 {
+                    self.current_amount = future_transactions_amount;
+                }
+            }
         }
 
         self
@@ -178,6 +191,7 @@ impl From<ExternalExpense> for Expense {
             sub_expense_type: value.sub_expense_type,
             category: None,
             individual_associated: None,
+            scheduled_transactions: vec![],
         }
     }
 }

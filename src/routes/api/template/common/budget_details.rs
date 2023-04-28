@@ -8,7 +8,7 @@ use crate::{
     models::budget_template::{BudgetDetails, Expense, ExpenseType},
 };
 
-use super::utils;
+use super::{flatten_sub_transactions, get_scheduled_transactions_within_month, utils};
 
 /// Gives bugdet details, spliting expenses by their type and sub-type.
 pub fn build_budget_details(
@@ -29,10 +29,15 @@ pub fn build_budget_details(
             .into_iter()
             .filter(|c| !c.hidden && !c.deleted)
             .map(|c| {
-                let expense: Expense = c.into();
+                let cat_id = c.id;
+                let mut expense: Expense = c.into();
+                if let Some(scheduled_transactions) = scheduled_transactions_map.get(&cat_id) {
+                    expense = expense.with_scheduled_transactions(scheduled_transactions.clone());
+                    // TODO: don't clone, find a better way...
+                }
                 expense
-                    .set_projected_amount(&scheduled_transactions_map)
-                    .set_current_amount(&scheduled_transactions_map)
+                    .compute_projected_amount()
+                    .compute_current_amount()
                     .set_categorization(budget_calculation_data_settings)
                     .set_individual_association(person_salary_settings)
             })
@@ -91,44 +96,19 @@ fn build_category_to_scheduled_transaction_map(
     let mut hash_map: HashMap<Uuid, Vec<ScheduledTransactionDetail>> =
         HashMap::with_capacity(scheduled_transactions.len());
 
-    let mut scheduled_transactions_filtered: Vec<ScheduledTransactionDetail> = vec![];
-    let mut repeated_sts: Vec<ScheduledTransactionDetail> = vec![];
+    let scheduled_transactions_filtered: Vec<ScheduledTransactionDetail> = scheduled_transactions
+        .into_iter()
+        .filter(|st| st.category_id.is_some())
+        .filter(|st| !st.deleted)
+        .flat_map(|st| get_scheduled_transactions_within_month(&st))
+        .collect();
 
-    scheduled_transactions_filtered.extend(
-        scheduled_transactions
-            .into_iter()
-            .filter(|st| st.category_id.is_some())
-            .filter(|st| !st.deleted)
-            .filter(|st| utils::is_transaction_in_next_30_days(&st.date_next))
-            .map(|st| {
-                repeated_sts.extend(utils::find_repeatable_transactions(&st));
-                st
-            }),
-    );
-
-    scheduled_transactions_filtered.extend(repeated_sts);
-
-    for st in scheduled_transactions_filtered {
-        let non_deleted_sub_st: Vec<_> = st
-            .subtransactions
-            .iter()
-            .filter(|sub_st| !sub_st.deleted)
-            .collect();
-
-        if !non_deleted_sub_st.is_empty() {
-            for sub_st in non_deleted_sub_st {
-                let transformed_st: ScheduledTransactionDetail =
-                    st.clone().from_subtransaction(sub_st);
-
-                let category_id = sub_st.category_id.unwrap();
-
-                let entry = hash_map.entry(category_id);
-                entry.or_insert_with(Vec::new).push(transformed_st);
-            }
-        } else {
-            let category_id = st.category_id.unwrap();
-            let entry = hash_map.entry(category_id);
-            entry.or_insert_with(Vec::new).push(st);
+    for st in flatten_sub_transactions(scheduled_transactions_filtered) {
+        if let Some(category_id) = st.category_id {
+            hash_map
+                .entry(category_id)
+                .or_insert_with(Vec::new)
+                .push(st);
         }
     }
 
