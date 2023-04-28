@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::{DateTime, Local};
 use uuid::Uuid;
 use ynab::types::{Category, ScheduledTransactionDetail};
 
@@ -14,6 +15,7 @@ use super::{flatten_sub_transactions, get_scheduled_transactions_within_month, u
 pub fn build_budget_details(
     categories: Vec<Category>,
     scheduled_transactions: Vec<ScheduledTransactionDetail>,
+    date: &DateTime<Local>,
     budget_calculation_data_settings: &BugdetCalculationDataSettings,
     person_salary_settings: &[PersonSalarySettings],
 ) -> anyhow::Result<BudgetDetails> {
@@ -21,7 +23,7 @@ pub fn build_budget_details(
         utils::get_salary_per_person_per_month(&scheduled_transactions, person_salary_settings);
 
     let scheduled_transactions_map =
-        build_category_to_scheduled_transaction_map(scheduled_transactions);
+        build_category_to_scheduled_transaction_map(scheduled_transactions, date);
 
     let mut output: BudgetDetails = BudgetDetails::default();
     output.expenses.extend(
@@ -92,6 +94,7 @@ pub fn build_budget_details(
 
 fn build_category_to_scheduled_transaction_map(
     scheduled_transactions: Vec<ScheduledTransactionDetail>,
+    date: &DateTime<Local>,
 ) -> HashMap<Uuid, Vec<ScheduledTransactionDetail>> {
     let mut hash_map: HashMap<Uuid, Vec<ScheduledTransactionDetail>> =
         HashMap::with_capacity(scheduled_transactions.len());
@@ -100,7 +103,7 @@ fn build_category_to_scheduled_transaction_map(
         .into_iter()
         .filter(|st| st.category_id.is_some())
         .filter(|st| !st.deleted)
-        .flat_map(|st| get_scheduled_transactions_within_month(&st))
+        .flat_map(|st| get_scheduled_transactions_within_month(&st, date))
         .collect();
 
     for st in flatten_sub_transactions(scheduled_transactions_filtered) {

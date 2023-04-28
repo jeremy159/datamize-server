@@ -1,8 +1,35 @@
 use std::collections::HashMap;
 
+use chrono::{DateTime, Datelike, Local, Months};
 use serde::{Deserialize, Serialize};
 
 use super::{Expense, ExpenseType};
+
+#[derive(Debug, Deserialize, Default, Copy, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum MonthTarget {
+    Previous,
+    #[default]
+    Current,
+    Next,
+}
+
+#[derive(Debug, Deserialize, Default)]
+pub struct MonthQueryParam {
+    pub month: MonthTarget,
+}
+
+impl From<MonthTarget> for DateTime<Local> {
+    fn from(value: MonthTarget) -> Self {
+        match value {
+            MonthTarget::Previous => Local::now().checked_sub_months(Months::new(1)).unwrap(),
+            MonthTarget::Current => Local::now(),
+            MonthTarget::Next => Local::now().checked_add_months(Months::new(1)).unwrap(),
+        }
+        .with_day(1)
+        .unwrap()
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GlobalMetadata {

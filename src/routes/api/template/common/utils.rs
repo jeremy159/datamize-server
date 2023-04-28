@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::{Datelike, Local, Months, NaiveDate, NaiveTime, TimeZone};
+use chrono::{DateTime, Datelike, Local, Months, NaiveDate, NaiveTime, TimeZone};
 use rrule::{RRuleSet, Tz};
 use uuid::Uuid;
 use ynab::types::{RecurFrequency, ScheduledTransactionDetail};
@@ -70,11 +70,12 @@ pub fn find_repeatable_transactions(
 /// Method to find any transactions that was scheduled in current month, might it be from previous or future days.
 pub fn get_scheduled_transactions_within_month(
     scheduled_transaction: &ScheduledTransactionDetail,
+    date: &DateTime<Local>,
 ) -> Vec<ScheduledTransactionDetail> {
     let mut scheduled_transactions = vec![];
 
     if let Some(ref frequency) = scheduled_transaction.frequency {
-        let first_day = Local::now().with_day(1).unwrap();
+        let first_day = date;
         let first_day_next_month = first_day.checked_add_months(Months::new(1)).unwrap();
 
         if scheduled_transaction.date_first < first_day_next_month.date_naive() {
