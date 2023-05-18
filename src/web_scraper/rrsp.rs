@@ -57,7 +57,6 @@ pub async fn get_rrsp_ia_sandryne(
         ))
         .await?;
     let amt = e.text().await?;
-    let amt = amt.replace(',', ""); // TODO: Maybe do this with nom?
     let balance = parse_balance(&amt)?;
 
     c.close().await?;
@@ -94,10 +93,11 @@ pub async fn get_rrsp_jeremy() -> anyhow::Result<String> {
 
     let url = c.current_url().await?;
     println!("{:?}", url.as_ref());
-    // TODO: Need to click on email button to send MFA request to email
-    // TODO: Gettings access to Outlook with https://learn.microsoft.com/en-us/azure/active-directory/develop/v2-oauth2-client-creds-grant-flow OR TODO: https://github.com/sreeise/graph-rs-sdk
-    // TODO: Read emails with https://learn.microsoft.com/en-us/outlook/rest/get-started#calling-the-mail-api
-    // TODO: And finally to enter code from email into web page to continue flow
+    // TODO: Handle MFA authentification here
+    // * Need to click on email button to send MFA request to email
+    // * Gettings access to Outlook with https://learn.microsoft.com/en-us/azure/active-directory/develop/v2-oauth2-client-creds-grant-flow OR https://github.com/sreeise/graph-rs-sdk
+    // * Read emails with https://learn.microsoft.com/en-us/outlook/rest/get-started#calling-the-mail-api
+    // * And finally to enter code from email into web page to continue flow
     c.find(Locator::Css("#button-id-lge41jnm"))
         .await?
         .click()

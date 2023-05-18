@@ -5,6 +5,7 @@ base_url = ""
 
 [ynab_client]
 # YNAB Personal Access Token
+# FIXME: Big nono, regenerate and move elsewhere
 pat = "MIQOo7PHzmTT8H15BBKLpiYa0LplxWF8YrTd6qOhTzc"
 base_url = "https://api.youneedabudget.com/v1/"
 

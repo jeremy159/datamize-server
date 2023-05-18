@@ -38,7 +38,6 @@ pub async fn get_tfsa(
         .find(Locator::Css("#dash-all .row .d-flex h2.heading-large"))
         .await?;
     let amt = e.text().await?;
-    let amt = amt.replace(',', ""); // TODO: Maybe do this with nom?
     let balance = parse_balance(&amt)?;
 
     c.close().await?;

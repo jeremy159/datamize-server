@@ -54,7 +54,7 @@ pub async fn get_rpp_canada_life_sandryne(
         .await?;
 
     let amt = e.text().await?;
-    let amt = amt.replace('\u{202f}', "").replace(',', "."); // TODO: Maybe do this with nom?
+    let amt = amt.replace('\u{202f}', "").replace(',', ".");
     let balance = parse_balance(&amt)?;
 
     c.close().await?;
