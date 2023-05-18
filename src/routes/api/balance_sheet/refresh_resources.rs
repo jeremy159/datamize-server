@@ -12,6 +12,7 @@ use crate::{
     get_redis_conn,
     models::balance_sheet::{Month, MonthNum},
     startup::AppState,
+    telemetry::spawn_blocking_with_tracing,
     web_scraper,
 };
 
@@ -24,8 +25,9 @@ use super::common::{update_month_net_totals, update_year_net_totals};
 /// Will return an array of ids for Financial Resources updated.
 #[tracing::instrument(skip_all)]
 pub async fn refresh_balance_sheet_resources(
-    State(app_state): State<AppState>,
+    state: State<AppState>,
 ) -> HttpJsonAppResult<Vec<Uuid>> {
+    let app_state = state.clone().0;
     let db_conn_pool = app_state.db_conn_pool;
     let mut redis_conn = get_redis_conn(&app_state.redis_conn_pool)
         .context("failed to get redis connection from pool")?;
@@ -51,8 +53,13 @@ pub async fn refresh_balance_sheet_resources(
         .map_err(AppError::from_sqlx)?;
 
     let accounts = ynab_client.get_accounts().await?;
-    let external_accounts =
-        web_scraper::get_external_accounts(&db_conn_pool, &mut redis_conn).await?;
+    let second_app_state = state.clone().0;
+    let second_db_conn_pool = second_app_state.db_conn_pool;
+    let external_accounts = spawn_blocking_with_tracing(move || async move {
+        web_scraper::get_external_accounts(&second_db_conn_pool, &mut redis_conn).await
+    })
+    .await?
+    .await?;
 
     let mut refreshed = vec![];
 
