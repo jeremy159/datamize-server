@@ -16,7 +16,7 @@ async fn main() -> anyhow::Result<()> {
 
     let configuration = config::Settings::build()?;
     let db_conn_pool = get_connection_pool(&configuration.database);
-    let application = Application::build(configuration.clone(), db_conn_pool)
+    let application = Application::build(configuration, db_conn_pool)
         .await
         .context("failed to build application")?;
 
