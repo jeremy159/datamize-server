@@ -196,7 +196,7 @@ impl From<ExternalExpense> for Expense {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExternalExpense {
     pub id: Option<String>,
     pub name: String,

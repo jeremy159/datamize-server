@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::models::budget_template::{ExpenseType, ExternalExpense, SubExpenseType};
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Settings {
     pub application: ApplicationSettings,
     pub ynab_client: YnabClientSettings,
@@ -19,27 +19,36 @@ pub struct Settings {
     pub person_salaries: Vec<PersonSalarySettings>,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ApplicationSettings {
     pub port: u16,
     pub host: String,
     pub base_url: String,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct YnabClientSettings {
     pub pat: Secret<String>,
+    pub pat_file: String,
     pub base_url: String,
 }
 
 impl YnabClientSettings {
-    pub fn client(self) -> ynab::Client {
+    pub fn client(mut self) -> ynab::Client {
+        self.pat = match self.pat_file {
+            file_path if !file_path.is_empty() => {
+                self.pat = Secret::new(std::fs::read_to_string(file_path).unwrap());
+                self.pat
+            }
+            _ => self.pat,
+        };
+
         ynab::Client::new(self.pat.expose_secret(), &self.base_url)
             .expect("Failed to build ynab client.")
     }
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseSettings {
     pub username: String,
     pub password: Secret<String>,
@@ -71,7 +80,7 @@ impl DatabaseSettings {
     }
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct RedisSettings {
     pub host: String,
     pub port: u16,
@@ -83,7 +92,7 @@ impl RedisSettings {
     }
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct WebDriverSettings {
     pub host: String,
     pub port: u16,
@@ -95,13 +104,13 @@ impl WebDriverSettings {
     }
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct BugdetCalculationDataSettings {
     pub category_groups: Vec<CategoryGroup>,
     pub external_expenses: Vec<ExternalExpense>,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct CategoryGroup {
     pub ids: Vec<Uuid>,
     #[serde(rename = "type")]
@@ -110,47 +119,10 @@ pub struct CategoryGroup {
     pub sub_expense_type: SubExpenseType,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct PersonSalarySettings {
     pub name: String,
     pub payee_ids: Vec<Uuid>,
-}
-
-impl Default for Settings {
-    fn default() -> Settings {
-        Settings {
-            application: ApplicationSettings {
-                port: 3000,
-                host: String::from("localhost"),
-                base_url: String::from(""),
-            },
-            ynab_client: YnabClientSettings {
-                pat: String::from("").into(),
-                base_url: String::from("https://api.youneedabudget.com/v1/"),
-            },
-            database: DatabaseSettings {
-                username: String::from("postgres"),
-                password: String::from("password").into(),
-                port: 5432,
-                host: String::from("127.0.0.1"),
-                database_name: String::from("datamize"),
-                require_ssl: false,
-            },
-            redis: RedisSettings {
-                host: String::from("127.0.0.1"),
-                port: 6379,
-            },
-            webdriver: WebDriverSettings {
-                host: String::from("localhost"),
-                port: 4444,
-            },
-            budget_calculation_data: BugdetCalculationDataSettings {
-                category_groups: vec![],
-                external_expenses: vec![],
-            },
-            person_salaries: vec![],
-        }
-    }
 }
 
 impl Settings {

@@ -4,9 +4,8 @@ port = 8000
 base_url = ""
 
 [ynab_client]
-# YNAB Personal Access Token
-# FIXME: Big nono, regenerate and move elsewhere
-pat = "MIQOo7PHzmTT8H15BBKLpiYa0LplxWF8YrTd6qOhTzc"
+pat = ""
+pat_file = ""
 base_url = "https://api.youneedabudget.com/v1/"
 
 [database]
@@ -49,4 +48,4 @@ payee_ids = ["06db274a-5dc1-47ec-aede-af6848dd9111"]
 [[person_salaries]]
 name = "Sandryne"
 payee_ids = ["b9804429-3948-4b86-a6d0-913efa58fac4"]
-# TODO: END move to redis storage
+# END move to redis storage

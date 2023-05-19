@@ -9,6 +9,9 @@ services:
       - .:/app
     environment:
       DATAMIZE_ENVIRONMENT: "staging"
+      DATAMIZE_YNAB_CLIENT__PAT_FILE: /run/secrets/ynab_pat
+    secrets:
+      - ynab_pat
     depends_on:
       - postgres
       - redis
@@ -38,6 +41,9 @@ services:
       - 4444:4444
       - 7900:7900
     shm_size: 2gb
+secrets:
+  ynab_pat:
+    file: ynab_pat.txt
 volumes:
   db:
   redis:
