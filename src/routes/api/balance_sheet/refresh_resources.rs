@@ -6,7 +6,7 @@ use uuid::Uuid;
 use crate::{
     db::balance_sheet::{
         add_new_month, get_financial_resources_of_year, get_month_data, get_year_data,
-        update_financial_resource,
+        update_financial_resource, update_refreshed_at,
     },
     error::{AppError, HttpJsonAppResult},
     get_redis_conn,
@@ -18,7 +18,7 @@ use crate::{
 
 use super::common::{update_month_net_totals, update_year_net_totals};
 
-/// Endpoint to refresh non-editable financial resources.
+/// Endpoint to refresh financial resources.
 /// Only resources from the current month will be refreshed by this endpoint.
 /// If current month does not exists, it will create it.
 /// This endpoint basically calls the YNAB api for some resources and starts a web scrapper for others.
@@ -35,7 +35,7 @@ pub async fn refresh_balance_sheet_resources(
     let current_date = Local::now().date_naive();
     let current_year = current_date.year();
     // The only condition is that the year exists...
-    get_year_data(&db_conn_pool, current_year)
+    let mut year_data = get_year_data(&db_conn_pool, current_year)
         .await
         .map_err(AppError::from_sqlx)?;
 
@@ -58,7 +58,8 @@ pub async fn refresh_balance_sheet_resources(
     let external_accounts = spawn_blocking_with_tracing(move || async move {
         web_scraper::get_external_accounts(&second_db_conn_pool, &mut redis_conn).await
     })
-    .await?
+    .await
+    .unwrap()
     .await?;
 
     let mut refreshed = vec![];
@@ -112,6 +113,9 @@ pub async fn refresh_balance_sheet_resources(
     }
 
     if !refreshed.is_empty() {
+        year_data.refreshed_at = chrono::Utc::now();
+        // year_data.save(&db_conn_pool).await?; TODO: Better aproach?
+        update_refreshed_at(&db_conn_pool, &year_data).await?;
         resources.retain(|r| refreshed.contains(&r.base.id));
         for r in resources {
             update_financial_resource(&db_conn_pool, &r).await?;

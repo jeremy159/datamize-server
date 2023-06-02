@@ -64,6 +64,14 @@ pub async fn update_saving_rates(
     postgres::update_saving_rates(db_conn_pool, year).await
 }
 
+#[tracing::instrument(skip_all)]
+pub async fn update_refreshed_at(
+    db_conn_pool: &PgPool,
+    year: &YearData,
+) -> Result<(), sqlx::Error> {
+    postgres::update_refreshed_at(db_conn_pool, year).await
+}
+
 #[tracing::instrument(skip(db_conn_pool))]
 pub async fn delete_year(db_conn_pool: &PgPool, year: i32) -> Result<(), sqlx::Error> {
     postgres::delete_year(db_conn_pool, year).await

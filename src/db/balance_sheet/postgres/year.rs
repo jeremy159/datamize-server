@@ -223,6 +223,28 @@ pub async fn get_saving_rates_for(
 }
 
 #[tracing::instrument(skip_all)]
+pub async fn update_refreshed_at(
+    db_conn_pool: &PgPool,
+    year: &YearData,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        r#"
+        INSERT INTO balance_sheet_years (id, year, refreshed_at)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (id) DO UPDATE SET
+        refreshed_at = EXCLUDED.refreshed_at;
+        "#,
+        year.id,
+        year.year,
+        year.refreshed_at,
+    )
+    .execute(db_conn_pool)
+    .await?;
+
+    Ok(())
+}
+
+#[tracing::instrument(skip_all)]
 pub async fn update_saving_rates(
     db_conn_pool: &PgPool,
     year: &YearDetail,

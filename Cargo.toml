@@ -42,6 +42,7 @@ orion = "0.17.4"
 http = "0.2.9"
 tower-request-id = "0.2.1"
 rrule = { workspace = true }
+thiserror = "1.0.40"
 
 [dev-dependencies]
 fake = { version = "2.5.0", features = ["chrono", "derive", "uuid"] }

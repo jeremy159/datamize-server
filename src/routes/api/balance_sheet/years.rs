@@ -32,7 +32,7 @@ pub async fn create_balance_sheet_year(
     let Err(sqlx::Error::RowNotFound) =
         get_year_data(&db_conn_pool, body.year).await else
     {
-        return Err(AppError::MonthAlreadyExist);
+        return Err(AppError::YearAlreadyExist);
     };
 
     let year = YearDetail::new(body.year);

@@ -78,20 +78,15 @@ struct UpdateArgs {
     balance: Option<f32>,
 }
 
-#[derive(Debug, Clone, ValueEnum)]
+#[derive(Debug, Clone, ValueEnum, Default)]
 pub enum AccountType {
     Tfsa, // = CELI
     Rrsp, // = REER
     Rpp,  // = RPA
     Resp, // REEE
+    #[default]
     OtherAsset,
     OtherLiability,
-}
-
-impl Default for AccountType {
-    fn default() -> Self {
-        AccountType::OtherAsset
-    }
 }
 
 impl fmt::Display for AccountType {

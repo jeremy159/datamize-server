@@ -41,6 +41,7 @@ category_groups = [
   { ids = ["d3fc450b-b3cb-4713-a61d-426a8171d7af"], type = "longTermSaving", sub_type = "longTermSaving" },
 ]
 
+# TODO: Create a Person entity in db to be able to add, edit infor about a person, link some payee with it and more. Maybe include a possible string lookup in notes?
 [[person_salaries]]
 name = "Jeremy"
 payee_ids = ["06db274a-5dc1-47ec-aede-af6848dd9111"]

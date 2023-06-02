@@ -8,23 +8,35 @@ use serde_json::json;
 
 pub type HttpJsonAppResult<T> = Result<Json<T>, AppError>;
 
-#[derive(Debug)]
+#[derive(thiserror::Error)]
 pub enum AppError {
-    InternalServerError(anyhow::Error),
+    #[error("resource does not exist")]
     ResourceNotFound,
+    #[error("year already exist")]
     YearAlreadyExist,
+    #[error("month already exist")]
     MonthAlreadyExist,
+    #[error("validation errors")]
     ValidationError,
+    #[error(transparent)]
+    InternalServerError(#[from] anyhow::Error),
 }
 
-// This enables using `?` on functions that return `Result<_, anyhow::Error>` to turn them into
-// `Result<_, AppError>`. That way you don't need to do that manually.
-impl<E> From<E> for AppError
-where
-    E: Into<anyhow::Error>,
-{
-    fn from(err: E) -> Self {
-        Self::InternalServerError(err.into())
+impl std::fmt::Debug for AppError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        error_chain_fmt(self, f)
+    }
+}
+
+impl From<sqlx::Error> for AppError {
+    fn from(value: sqlx::Error) -> Self {
+        AppError::from_sqlx(value)
+    }
+}
+
+impl From<ynab::Error> for AppError {
+    fn from(value: ynab::Error) -> Self {
+        Self::InternalServerError(value.into())
     }
 }
 
@@ -32,7 +44,7 @@ impl AppError {
     pub fn from_sqlx(value: sqlx::Error) -> Self {
         match value {
             sqlx::Error::RowNotFound => AppError::ResourceNotFound,
-            e => e.into(),
+            e => AppError::InternalServerError(e.into()),
         }
     }
 }
@@ -40,8 +52,8 @@ impl AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, error_message) = match self {
-            AppError::InternalServerError(inner) => {
-                tracing::error!("AppError::InternalServerError: {}", inner.to_string());
+            AppError::InternalServerError(ref inner) => {
+                tracing::error!("AppError::InternalServerError: {:?}", self);
                 tracing::debug!("stacktrace: {}", inner.backtrace());
                 (StatusCode::INTERNAL_SERVER_ERROR, "something went wrong")
             }
@@ -85,4 +97,17 @@ impl IntoResponse for JsonError {
         };
         (code, Json(payload)).into_response()
     }
+}
+
+pub fn error_chain_fmt(
+    e: &impl std::error::Error,
+    f: &mut std::fmt::Formatter<'_>,
+) -> std::fmt::Result {
+    writeln!(f, "{}\n", e)?;
+    let mut current = e.source();
+    while let Some(cause) = current {
+        writeln!(f, "Caused by:\n\t{}", cause)?;
+        current = cause.source();
+    }
+    Ok(())
 }
