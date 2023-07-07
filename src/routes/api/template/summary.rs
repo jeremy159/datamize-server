@@ -8,12 +8,12 @@ use futures::try_join;
 use crate::{
     error::HttpJsonAppResult,
     get_redis_conn,
-    models::budget_template::{CommonExpenseEstimationPerPerson, MonthQueryParam},
+    models::budget_template::{BudgetSummary, MonthQueryParam},
     routes::api::template::common::{get_categories_of_month, get_latest_scheduled_transactions},
     startup::AppState,
 };
 
-use super::common::{build_budget_details, build_budget_summary};
+use super::common::build_budget_details;
 
 /// Returns a budget template summary.
 /// Can specify the month to get summary from.
@@ -23,7 +23,7 @@ use super::common::{build_budget_details, build_budget_summary};
 pub async fn template_summary(
     State(app_state): State<AppState>,
     month: Option<Query<MonthQueryParam>>,
-) -> HttpJsonAppResult<Vec<CommonExpenseEstimationPerPerson>> {
+) -> HttpJsonAppResult<BudgetSummary> {
     let ynab_client = app_state.ynab_client.as_ref();
     let db_conn_pool = app_state.db_conn_pool;
     let mut redis_conn = get_redis_conn(&app_state.redis_conn_pool)
@@ -32,8 +32,6 @@ pub async fn template_summary(
         .context("failed to get second redis connection from pool")?;
 
     let Query(MonthQueryParam { month }) = month.unwrap_or_default();
-
-    println!("month received = {:?}", month);
 
     let (saved_categories, saved_scheduled_transactions) = try_join!(
         get_categories_of_month(&db_conn_pool, &mut redis_conn, ynab_client, month),
@@ -50,12 +48,11 @@ pub async fn template_summary(
     )
     .context("failed to compute budget details")?;
 
-    let data = build_budget_summary(
+    let data = BudgetSummary::build(
         &budget_details,
         &saved_scheduled_transactions,
-        &app_state.person_salary_settings,
-    )
-    .context("failed to compute budget summary")?;
+        (*app_state.person_salary_settings).clone(), // TODO: Get this from DB once it's possible for user to choose the payees in the frontend.
+    );
 
     Ok(Json(data))
 }

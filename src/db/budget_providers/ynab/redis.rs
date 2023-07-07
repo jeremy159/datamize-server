@@ -29,3 +29,12 @@ pub fn set_accounts_detla(redis_conn: &mut Connection, server_knowledge: i64) ->
     redis_conn.set("accounts_delta", server_knowledge)?;
     Ok(())
 }
+
+pub fn get_payees_delta(redis_conn: &mut Connection) -> Option<i64> {
+    redis_conn.get("payees_delta").ok()
+}
+
+pub fn set_payees_detla(redis_conn: &mut Connection, server_knowledge: i64) -> RedisResult<()> {
+    redis_conn.set("payees_delta", server_knowledge)?;
+    Ok(())
+}

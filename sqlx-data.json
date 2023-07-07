@@ -346,6 +346,20 @@
     },
     "query": "\n        SELECT\n            m.id,\n            month\n        FROM balance_sheet_months AS m\n        JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1\n        WHERE m.month = $2;\n        "
   },
+  "51189b7ecb6da5e735b2e94106b11f236acbcc328f9b67e5abdfa40281dc0289": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Int4",
+          "Timestamptz"
+        ]
+      }
+    },
+    "query": "\n        INSERT INTO balance_sheet_years (id, year, refreshed_at)\n        VALUES ($1, $2, $3)\n        ON CONFLICT (id) DO UPDATE SET\n        refreshed_at = EXCLUDED.refreshed_at;\n        "
+  },
   "5847cff2ebd9d4184a20d08ee9fbc98b7a098855ee12ac1e435cd3fb9bc92ad3": {
     "describe": {
       "columns": [],

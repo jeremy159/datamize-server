@@ -1,5 +1,5 @@
 use sqlx::PgPool;
-use ynab::types::{Account, AccountType, Category, GoalType, ScheduledTransactionDetail};
+use ynab::types::{Account, AccountType, Category, GoalType, Payee, ScheduledTransactionDetail};
 
 pub async fn save_categories(
     db_conn_pool: &PgPool,
@@ -303,6 +303,44 @@ pub async fn get_accounts(db_conn_pool: &PgPool) -> Result<Vec<Account>, sqlx::E
             direct_import_in_error,
             deleted
         FROM accounts
+        "#
+    )
+    .fetch_all(db_conn_pool)
+    .await
+}
+
+pub async fn save_payees(db_conn_pool: &PgPool, payees: &[Payee]) -> Result<(), sqlx::Error> {
+    for p in payees {
+        sqlx::query!(
+            r#"
+                INSERT INTO payees (id, name, transfer_account_id, deleted)
+                VALUES ($1, $2, $3, $4)
+                ON CONFLICT (id) DO UPDATE SET
+                name = EXCLUDED.name,
+                transfer_account_id = EXCLUDED.transfer_account_id,
+                deleted = EXCLUDED.deleted;
+                "#,
+            p.id,
+            p.name,
+            p.transfer_account_id,
+            p.deleted
+        )
+        .execute(db_conn_pool)
+        .await?;
+    }
+    Ok(())
+}
+
+pub async fn get_payees(db_conn_pool: &PgPool) -> Result<Vec<Payee>, sqlx::Error> {
+    sqlx::query_as!(
+        Payee,
+        r#"
+        SELECT 
+            id,
+            name,
+            transfer_account_id,
+            deleted
+        FROM payees
         "#
     )
     .fetch_all(db_conn_pool)

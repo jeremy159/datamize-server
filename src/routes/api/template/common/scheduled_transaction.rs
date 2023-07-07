@@ -9,12 +9,11 @@ use crate::{
         set_scheduled_transactions_delta,
     },
     models::budget_template::{
-        CategoryIdToNameMap, ExtendedScheduledTransactionDetail, ExtendedSubTransaction,
+        find_repeatable_transactions, is_transaction_in_next_30_days, CategoryIdToNameMap,
+        ExtendedScheduledTransactionDetail, ExtendedSubTransaction,
         ScheduledTransactionsDistribution, ScheduledTransactionsDistributionMap,
     },
 };
-
-use super::utils;
 
 pub async fn get_latest_scheduled_transactions(
     db_conn_pool: &sqlx::PgPool,
@@ -56,11 +55,11 @@ pub fn build_scheduled_transactions(
         scheduled_transactions
             .into_iter()
             .filter(|st| !st.deleted)
-            .filter(|st| utils::is_transaction_in_next_30_days(&st.date_next))
+            .filter(|st| is_transaction_in_next_30_days(&st.date_next))
             .map(|st| {
                 let mut extended_st: ExtendedScheduledTransactionDetail = st.clone().into();
                 repeated_sts.extend(
-                    utils::find_repeatable_transactions(&st)
+                    find_repeatable_transactions(&st)
                         .into_iter()
                         .map(|rep_st| rep_st.into()),
                 );

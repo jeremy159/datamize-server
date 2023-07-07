@@ -2,6 +2,7 @@ use ::redis::{Connection, RedisResult};
 use sqlx::PgPool;
 use ynab::types::Account;
 use ynab::types::Category;
+use ynab::types::Payee;
 use ynab::types::ScheduledTransactionDetail;
 
 use super::postgres;
@@ -46,6 +47,14 @@ pub async fn get_accounts(db_conn_pool: &PgPool) -> Result<Vec<Account>, sqlx::E
     postgres::get_accounts(db_conn_pool).await
 }
 
+pub async fn save_payees(db_conn_pool: &PgPool, payees: &[Payee]) -> Result<(), sqlx::Error> {
+    postgres::save_payees(db_conn_pool, payees).await
+}
+
+pub async fn get_payees(db_conn_pool: &PgPool) -> Result<Vec<Payee>, sqlx::Error> {
+    postgres::get_payees(db_conn_pool).await
+}
+
 pub fn get_categories_delta(redis_conn: &mut Connection) -> Option<i64> {
     redis::get_categories_delta(redis_conn)
 }
@@ -71,4 +80,12 @@ pub fn get_accounts_delta(redis_conn: &mut Connection) -> Option<i64> {
 
 pub fn set_accounts_detla(redis_conn: &mut Connection, server_knowledge: i64) -> RedisResult<()> {
     redis::set_accounts_detla(redis_conn, server_knowledge)
+}
+
+pub fn get_payees_delta(redis_conn: &mut Connection) -> Option<i64> {
+    redis::get_payees_delta(redis_conn)
+}
+
+pub fn set_payees_detla(redis_conn: &mut Connection, server_knowledge: i64) -> RedisResult<()> {
+    redis::set_payees_detla(redis_conn, server_knowledge)
 }

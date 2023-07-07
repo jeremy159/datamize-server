@@ -822,9 +822,9 @@ pub struct Payee {
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 /// See https://api.youneedabudget.com/v1#/Payees/getPayeeById
 pub struct Payee {
-    pub id: String,
+    pub id: Uuid,
     pub name: String,
-    pub transfer_account_id: Option<String>,
+    pub transfer_account_id: Option<Uuid>,
     pub deleted: bool,
 }
 

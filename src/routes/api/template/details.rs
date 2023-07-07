@@ -31,6 +31,7 @@ pub async fn template_details(
 
     let Query(MonthQueryParam { month }) = month.unwrap_or_default();
 
+    // TODO: Discard knowledge_server when changing month.
     let (saved_categories, saved_scheduled_transactions) = try_join!(
         get_categories_of_month(&db_conn_pool, &mut redis_conn, ynab_client, month),
         get_latest_scheduled_transactions(&db_conn_pool, &mut second_redis_conn, ynab_client)

@@ -16,3 +16,4 @@ Cargo.lock
 
 **/*budget-data-config.toml
 **/*ynab_pat.txt
+**/*local.toml
