@@ -360,6 +360,21 @@
     },
     "query": "\n        INSERT INTO balance_sheet_years (id, year, refreshed_at)\n        VALUES ($1, $2, $3)\n        ON CONFLICT (id) DO UPDATE SET\n        refreshed_at = EXCLUDED.refreshed_at;\n        "
   },
+  "5283d766a3c758570d9e5c30883f821ef522026e9aed3d013ad64fdafcf1a6af": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Uuid",
+          "Text",
+          "Uuid",
+          "Bool"
+        ]
+      }
+    },
+    "query": "\n                INSERT INTO payees (id, name, transfer_account_id, deleted)\n                VALUES ($1, $2, $3, $4)\n                ON CONFLICT (id) DO UPDATE SET\n                name = EXCLUDED.name,\n                transfer_account_id = EXCLUDED.transfer_account_id,\n                deleted = EXCLUDED.deleted;\n                "
+  },
   "5847cff2ebd9d4184a20d08ee9fbc98b7a098855ee12ac1e435cd3fb9bc92ad3": {
     "describe": {
       "columns": [],
@@ -1127,6 +1142,42 @@
       }
     },
     "query": "\n            INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)\n            SELECT r.id, m.id, balance\n            FROM (\n            VALUES\n                ($1::bigint)\n            ) x (balance)\n\t\t\tJOIN balance_sheet_resources AS r ON r.id = $2\n            JOIN balance_sheet_years AS y ON y.year = $3\n\t\t\tJOIN balance_sheet_months AS m ON m.month = $4 AND m.year_id = y.id\n\t\t\tON CONFLICT (resource_id, month_id) DO UPDATE SET\n            balance = EXCLUDED.balance;\n            "
+  },
+  "af75fe0af6fb07bf5adbc123108f5ea6e9f4cf43140fa22539ecad9a673342d7": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "transfer_account_id",
+          "ordinal": 2,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "deleted",
+          "ordinal": 3,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "\n        SELECT \n            id,\n            name,\n            transfer_account_id,\n            deleted\n        FROM payees\n        "
   },
   "b77035e04d643f69ec4d475a89e290d0f9128f8be53fe170f5d769b010133c7b": {
     "describe": {
