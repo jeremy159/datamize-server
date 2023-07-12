@@ -37,15 +37,15 @@ impl<S: ExpenseState> Expense<S> {
         &self.sub_expense_type
     }
 
-    pub fn individual_associated(&self) -> &Option<String> {
-        &self.individual_associated
+    pub fn individual_associated(&self) -> Option<&String> {
+        self.individual_associated.as_ref()
     }
 
-    pub fn category(&self) -> &Option<Category> {
-        &self.category
+    pub fn category(&self) -> Option<&Category> {
+        self.category.as_ref()
     }
 
-    pub fn scheduled_transactions(&self) -> &Vec<ScheduledTransactionDetail> {
+    pub fn scheduled_transactions(&self) -> &[ScheduledTransactionDetail] {
         &self.scheduled_transactions
     }
 
