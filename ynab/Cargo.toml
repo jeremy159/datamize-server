@@ -17,5 +17,5 @@ reqwest = { workspace = true }
 rrule = { workspace = true }
 thiserror = { workspace = true }
 uuid = { workspace = true }
-sqlx = { version = "^0.7.0", default-features = false, features = ["postgres", "uuid", "chrono", "json"], optional = true }
+sqlx = { version = "^0.7.0", features = ["postgres", "uuid", "chrono", "json"], optional = true }
 chrono = { workspace = true, features = ["serde"] }

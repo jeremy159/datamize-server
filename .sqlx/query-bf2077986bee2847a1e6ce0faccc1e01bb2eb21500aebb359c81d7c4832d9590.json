@@ -1,0 +1,92 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT \n            id,\n            name,\n            type AS \"account_type: AccountType\",\n            on_budget,\n            closed,\n            note,\n            balance,\n            cleared_balance,\n            uncleared_balance,\n            transfer_payee_id,\n            direct_import_linked,\n            direct_import_in_error,\n            deleted\n        FROM accounts\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "account_type: AccountType",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "on_budget",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "closed",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "note",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "balance",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "cleared_balance",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "uncleared_balance",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "transfer_payee_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "direct_import_linked",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 11,
+        "name": "direct_import_in_error",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 12,
+        "name": "deleted",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "bf2077986bee2847a1e6ce0faccc1e01bb2eb21500aebb359c81d7c4832d9590"
+}

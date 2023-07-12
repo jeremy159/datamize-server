@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO payees (id, name, transfer_account_id, deleted)\n                VALUES ($1, $2, $3, $4)\n                ON CONFLICT (id) DO UPDATE SET\n                name = EXCLUDED.name,\n                transfer_account_id = EXCLUDED.transfer_account_id,\n                deleted = EXCLUDED.deleted;\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5283d766a3c758570d9e5c30883f821ef522026e9aed3d013ad64fdafcf1a6af"
+}

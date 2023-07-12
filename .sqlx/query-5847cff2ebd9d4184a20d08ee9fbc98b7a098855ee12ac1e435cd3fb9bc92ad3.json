@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO accounts (id, name, type, on_budget, closed, note, balance, cleared_balance, uncleared_balance, transfer_payee_id, direct_import_linked, direct_import_in_error, deleted)\n                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)\n                ON CONFLICT (id) DO UPDATE SET\n                name = EXCLUDED.name,\n                type = EXCLUDED.type,\n                on_budget = EXCLUDED.on_budget,\n                closed = EXCLUDED.closed,\n                note = EXCLUDED.note,\n                balance = EXCLUDED.balance,\n                cleared_balance = EXCLUDED.cleared_balance,\n                uncleared_balance = EXCLUDED.uncleared_balance,\n                transfer_payee_id = EXCLUDED.transfer_payee_id,\n                direct_import_linked = EXCLUDED.direct_import_linked,\n                direct_import_in_error = EXCLUDED.direct_import_in_error,\n                deleted = EXCLUDED.deleted;\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Varchar",
+        "Bool",
+        "Bool",
+        "Text",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Uuid",
+        "Bool",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5847cff2ebd9d4184a20d08ee9fbc98b7a098855ee12ac1e435cd3fb9bc92ad3"
+}

@@ -1,0 +1,146 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT \n            id,\n            category_group_id,\n            name,\n            hidden,\n            original_category_group_id,\n            note,\n            budgeted,\n            activity,\n            balance,\n            goal_type AS \"goal_type?: GoalType\",\n            goal_creation_month,\n            goal_target,\n            goal_target_month,\n            goal_percentage_complete,\n            goal_months_to_budget,\n            goal_under_funded,\n            goal_overall_funded,\n            goal_overall_left,\n            deleted,\n            goal_day,\n            goal_cadence,\n            goal_cadence_frequency\n        FROM categories\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "category_group_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "hidden",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "original_category_group_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "note",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "budgeted",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "activity",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "balance",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "goal_type?: GoalType",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "goal_creation_month",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 11,
+        "name": "goal_target",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "goal_target_month",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 13,
+        "name": "goal_percentage_complete",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 14,
+        "name": "goal_months_to_budget",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 15,
+        "name": "goal_under_funded",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 16,
+        "name": "goal_overall_funded",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 17,
+        "name": "goal_overall_left",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 18,
+        "name": "deleted",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 19,
+        "name": "goal_day",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 20,
+        "name": "goal_cadence",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 21,
+        "name": "goal_cadence_frequency",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "5cf0314bbf980c2d4aa970ada8e8cc4379929c019d20cdfd31ce77f85dbc314a"
+}

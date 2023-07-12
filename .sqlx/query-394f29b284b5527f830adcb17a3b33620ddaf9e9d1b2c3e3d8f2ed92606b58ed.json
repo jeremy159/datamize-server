@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO balance_sheet_resources (id, name, category, type, editable)\n        VALUES ($1, $2, $3, $4, $5)\n        ON CONFLICT (id) DO UPDATE SET\n        name = EXCLUDED.name,\n        category = EXCLUDED.category,\n        type = EXCLUDED.type,\n        editable = EXCLUDED.editable;\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "394f29b284b5527f830adcb17a3b33620ddaf9e9d1b2c3e3d8f2ed92606b58ed"
+}
