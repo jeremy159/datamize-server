@@ -1,6 +1,8 @@
 use crate::config::{DatabaseSettings, RedisSettings};
 use anyhow::{Context, Ok, Result};
-use sqlx::{postgres::PgPoolOptions, PgPool};
+pub use redis::Connection as RedisConnection;
+pub use secrecy;
+pub use sqlx::{error as sqlx_error, postgres::PgPoolOptions, PgPool};
 
 pub mod config;
 pub mod db;

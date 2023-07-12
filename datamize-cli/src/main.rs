@@ -9,12 +9,12 @@ use datamize::{
         update_external_account,
     },
     get_redis_conn, get_redis_connection_pool,
+    secrecy::Secret,
+    sqlx_error::Error,
+    PgPool, RedisConnection,
 };
 use orion::aead;
 use orion::kex::SecretKey;
-use redis::Connection;
-use secrecy::Secret;
-use sqlx::PgPool;
 use uuid::Uuid;
 
 /// Simple program to quickly perform some operations
@@ -126,7 +126,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn create_account(
-    redis_conn: &mut Connection,
+    redis_conn: &mut RedisConnection,
     db_conn_pool: &PgPool,
     name: String,
     args: CreateArgs,
@@ -154,7 +154,7 @@ async fn create_account(
 }
 
 async fn update_account(
-    redis_conn: &mut Connection,
+    redis_conn: &mut RedisConnection,
     db_conn_pool: &PgPool,
     name: String,
     args: UpdateArgs,
@@ -162,7 +162,7 @@ async fn update_account(
     // check if  account exists
     let account = get_external_account_by_name(db_conn_pool, &name).await?;
     if account.is_none() {
-        return Err::<(), anyhow::Error>(sqlx::Error::RowNotFound.into())
+        return Err::<(), anyhow::Error>(Error::RowNotFound.into())
             .with_context(|| format!("Account {} does not exist", name));
     }
 
@@ -191,7 +191,7 @@ async fn update_account(
     Ok(())
 }
 
-fn get_encryption_key(redis_conn: &mut Connection) -> anyhow::Result<SecretKey> {
+fn get_encryption_key(redis_conn: &mut RedisConnection) -> anyhow::Result<SecretKey> {
     Ok(
         match datamize::db::budget_providers::external::get_encryption_key(redis_conn) {
             Some(ref val) => {
