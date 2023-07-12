@@ -4,7 +4,7 @@ use ynab::types::ScheduledTransactionDetail;
 
 use crate::config::PersonSalarySettings;
 
-use super::{find_repeatable_transactions, Expense};
+use super::{expense, find_repeatable_transactions, Expense};
 
 /// A Budgeter represents someone that has income and expenses for the month.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -107,10 +107,19 @@ pub struct ComputedSalary {
 }
 
 impl Budgeter<ComputedSalary> {
+    pub fn name(&self) -> &String {
+        // TODO: Maybe define in a Trait?
+        &self.extra.configured.name
+    }
+
+    pub fn salary_month(&self) -> i64 {
+        self.extra.salary_month
+    }
+
     pub fn compute_expenses(
         self,
         total_budgeter: &TotalBudgeter<ComputedExpenses>,
-        expenses: &[&Expense],
+        expenses: &[&Expense<expense::Computed>],
     ) -> Budgeter<ComputedExpenses> {
         let proportion = self.extra.salary_month as f64
             / total_budgeter.extra.compuded_salary.salary_month as f64;
@@ -119,8 +128,8 @@ impl Budgeter<ComputedSalary> {
             * 1000_f64) as i64;
         let individual_expenses = expenses
             .iter()
-            .filter(|e| e.name.contains(&self.extra.configured.name))
-            .map(|e| e.projected_amount)
+            .filter(|e| e.name().contains(&self.extra.configured.name))
+            .map(|e| e.projected_amount())
             .sum();
         let left_over = self.extra.salary_month - common_expenses - individual_expenses;
 
@@ -139,18 +148,21 @@ impl Budgeter<ComputedSalary> {
 impl TotalBudgeter<ComputedSalary> {
     pub fn compute_expenses<'a>(
         self,
-        expenses: &'a [Expense],
+        expenses: &'a [Expense<expense::Computed>],
         budgeters: &[Budgeter<ComputedSalary>],
-    ) -> (TotalBudgeter<ComputedExpenses>, Vec<&'a Expense>) {
-        let mut individual_expenses: Vec<&Expense> = vec![];
+    ) -> (
+        TotalBudgeter<ComputedExpenses>,
+        Vec<&'a Expense<expense::Computed>>,
+    ) {
+        let mut individual_expenses: Vec<&Expense<expense::Computed>> = vec![];
 
         let common_expenses = expenses
             .iter()
-            .filter(|&e| !e.is_external)
+            .filter(|&e| e.category().is_some())
             .filter(|&e| {
                 match budgeters
                     .iter()
-                    .find(|b| e.name.contains(&b.extra.configured.name))
+                    .find(|b| e.name().contains(&b.extra.configured.name))
                 {
                     Some(_) => {
                         individual_expenses.push(e);
@@ -159,12 +171,12 @@ impl TotalBudgeter<ComputedSalary> {
                     None => true,
                 }
             })
-            .map(|e| e.projected_amount)
+            .map(|e| e.projected_amount())
             .sum();
 
         let total_individual_expenses = individual_expenses
             .iter()
-            .map(|ie| ie.projected_amount)
+            .map(|ie| ie.projected_amount())
             .sum();
         let left_over = self.extra.salary_month - common_expenses - total_individual_expenses;
 
@@ -196,10 +208,6 @@ pub struct ComputedExpenses {
     /// The left over amount for this budgeter.
     left_over: i64,
 }
-
-pub trait Computed {}
-// impl Computed for ComputedSalary {}
-impl Computed for ComputedExpenses {}
 
 pub trait BudgeterState {}
 impl BudgeterState for Empty {}

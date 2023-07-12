@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use anyhow::Context;
 use axum::{extract::State, Json};
 use futures::{stream::FuturesUnordered, StreamExt};
+use ynab::types::ScheduledTransactionDetail;
 
 use crate::{
     db::budget_providers::ynab::*,
@@ -12,10 +13,7 @@ use crate::{
     startup::AppState,
 };
 
-use super::common::{
-    build_scheduled_transactions, get_latest_scheduled_transactions,
-    get_subtransactions_category_ids,
-};
+use super::common::{build_scheduled_transactions, get_latest_scheduled_transactions};
 
 /// Returns a budget template transactions, i.e. all the scheduled transactions in the upcoming 30 days.
 pub async fn template_transactions(
@@ -61,4 +59,14 @@ pub async fn template_transactions(
         .context("failed to compute scheduled transactions map")?;
 
     Ok(Json(data))
+}
+
+fn get_subtransactions_category_ids(
+    scheduled_transactions: &[ScheduledTransactionDetail],
+) -> Vec<uuid::Uuid> {
+    scheduled_transactions
+        .iter()
+        .flat_map(|st| &st.subtransactions)
+        .filter_map(|sub_st| sub_st.category_id.to_owned())
+        .collect()
 }

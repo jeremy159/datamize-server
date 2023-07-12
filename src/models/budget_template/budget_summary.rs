@@ -16,7 +16,7 @@ pub struct CommonExpenseEstimationPerPerson {
     pub left_over: i64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BudgetSummary {
     budgeters: Vec<Budgeter<ComputedExpenses>>,
     total_budgeter: TotalBudgeter<ComputedExpenses>,
@@ -36,7 +36,7 @@ impl BudgetSummary {
 
         let (total_budgeter, individual_expenses) = TotalBudgeter::new()
             .compute_salary(&budgeters)
-            .compute_expenses(&budget_details.expenses, &budgeters);
+            .compute_expenses(budget_details.expenses(), &budgeters);
 
         let budgeters: Vec<_> = budgeters
             .into_iter()

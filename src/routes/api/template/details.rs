@@ -11,8 +11,6 @@ use futures::try_join;
 
 use crate::{error::HttpJsonAppResult, get_redis_conn, startup::AppState};
 
-use super::common::build_budget_details;
-
 /// Returns a budget template details
 /// Can specify the month to get details from.
 /// /template/details?month=previous
@@ -38,14 +36,13 @@ pub async fn template_details(
     )
     .context("failed to get latest categories and scheduled transactions")?;
 
-    let data = build_budget_details(
+    let data = BudgetDetails::build(
         saved_categories,
         saved_scheduled_transactions,
         &month.into(),
-        &app_state.budget_calculation_data_settings,
-        &app_state.person_salary_settings,
-    )
-    .context("failed to compute budget details")?;
+        (*app_state.budget_calculation_data_settings).clone(), // TODO: Get this from DB once it's possible for user to choose the payees in the frontend.
+        (*app_state.person_salary_settings).clone(), // TODO: Get this from DB once it's possible for user to choose the payees in the frontend.
+    );
 
     Ok(Json(data))
 }

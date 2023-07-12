@@ -1,63 +1,81 @@
 use chrono::Local;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use ynab::types::{Category, GoalType, ScheduledTransactionDetail};
 
-use crate::config::{BugdetCalculationDataSettings, PersonSalarySettings};
+use crate::config::CategoryGroup;
+
+use super::{Budgeter, ComputedSalary};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct Expense {
-    pub id: Option<Uuid>,
-    pub is_external: bool,
-    pub name: String,
+pub struct Expense<S: ExpenseState> {
+    name: String,
     /// The type the expense relates to.
     #[serde(rename = "type")]
-    pub expense_type: ExpenseType,
+    expense_type: ExpenseType,
     /// The sub_type the expense relates to. This can be useful for example to group only housing expenses together.
     #[serde(rename = "sub_type")]
-    pub sub_expense_type: SubExpenseType,
-    /// Will either be the goal_under_funded, the goal_target for the month or the amount of the linked scheduled transaction coming in the month.
-    pub projected_amount: i64,
-    /// At the begining of the month, this amount will be the same as projected_amount,
-    /// but it will get updated during the month when some expenses occur in the category.
-    pub current_amount: i64,
-    /// The proportion the projected amount represents relative to the total monthly income (salaries + health insurance + work-related RRSP)
-    pub projected_proportion: f64,
-    /// The proportion the current amount represents relative to the total monthly income (salaries + health insurance + work-related RRSP)
-    pub current_proportion: f64,
+    sub_expense_type: SubExpenseType,
     /// The individual associated with the expense. This is used to let know this expense is associated with a person in particular.
-    pub individual_associated: Option<String>,
+    individual_associated: Option<String>,
+    category: Option<Category>,
     #[serde(skip)]
-    pub category: Option<Category>,
-    #[serde(skip)]
-    pub scheduled_transactions: Vec<ScheduledTransactionDetail>,
+    scheduled_transactions: Vec<ScheduledTransactionDetail>,
+    #[serde(flatten)]
+    extra: S,
 }
 
-impl Expense {
-    pub fn new(
-        id: Uuid,
-        name: String,
-        expense_type: ExpenseType,
-        sub_expense_type: SubExpenseType,
-        projected_amount: i64,
-        current_amount: i64,
-    ) -> Self {
-        Self {
-            id: Some(id),
-            is_external: false,
-            name,
-            expense_type,
-            sub_expense_type,
-            projected_amount,
-            current_amount,
-            projected_proportion: 0.0,
-            current_proportion: 0.0,
-            category: None,
-            individual_associated: None,
-            scheduled_transactions: vec![],
-        }
+impl<S: ExpenseState> Expense<S> {
+    pub fn name(&self) -> &String {
+        &self.name
     }
 
+    pub fn expense_type(&self) -> &ExpenseType {
+        &self.expense_type
+    }
+
+    pub fn sub_expense_type(&self) -> &SubExpenseType {
+        &self.sub_expense_type
+    }
+
+    pub fn individual_associated(&self) -> &Option<String> {
+        &self.individual_associated
+    }
+
+    pub fn category(&self) -> &Option<Category> {
+        &self.category
+    }
+
+    pub fn scheduled_transactions(&self) -> &Vec<ScheduledTransactionDetail> {
+        &self.scheduled_transactions
+    }
+
+    pub fn set_categorization(mut self, category_groups: &[CategoryGroup]) -> Self {
+        if let Some(category) = &self.category {
+            for cat_group in category_groups {
+                if cat_group.ids.contains(&category.category_group_id) {
+                    self.expense_type = cat_group.expense_type.clone();
+                    self.sub_expense_type = cat_group.sub_expense_type.clone();
+                    return self;
+                }
+            }
+        }
+
+        self
+    }
+
+    pub fn set_individual_association(mut self, budgeters: &[Budgeter<ComputedSalary>]) -> Self {
+        self.individual_associated = budgeters
+            .iter()
+            .find(|b| self.name.contains(b.name()))
+            .map(|b| b.name().clone());
+        self
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Uncomputed;
+
+impl Expense<Uncomputed> {
     pub fn with_scheduled_transactions(
         mut self,
         scheduled_transactions: Vec<ScheduledTransactionDetail>,
@@ -66,7 +84,22 @@ impl Expense {
         self
     }
 
-    pub fn compute_projected_amount(mut self) -> Self {
+    pub fn compute_amounts(mut self) -> Expense<PartiallyComputed> {
+        Expense {
+            extra: PartiallyComputed {
+                projected_amount: self.compute_projected_amount(),
+                current_amount: self.compute_current_amount(),
+            },
+            name: self.name,
+            expense_type: self.expense_type,
+            sub_expense_type: self.sub_expense_type,
+            category: self.category,
+            individual_associated: self.individual_associated,
+            scheduled_transactions: self.scheduled_transactions,
+        }
+    }
+
+    fn compute_projected_amount(&mut self) -> i64 {
         if let Some(category) = &self.category {
             let projected_amount = match category.goal_type {
                 Some(GoalType::Debt) => 0, // Debt type goal should not be considered in the amount as they arlready have a scheduled transaction of the same amount
@@ -82,7 +115,7 @@ impl Expense {
                 None => 0,
             };
 
-            self.projected_amount = projected_amount
+            return projected_amount
                 + self
                     .scheduled_transactions
                     .iter()
@@ -90,10 +123,10 @@ impl Expense {
                     .sum::<i64>();
         }
 
-        self
+        0
     }
 
-    pub fn compute_current_amount(mut self) -> Self {
+    fn compute_current_amount(&mut self) -> i64 {
         if let Some(category) = &self.category {
             let current_amount_budgeted = match category.goal_type {
                 Some(_) => match category.goal_under_funded {
@@ -106,7 +139,7 @@ impl Expense {
                 None => category.budgeted,
             };
 
-            self.current_amount = current_amount_budgeted;
+            let mut current_amount = current_amount_budgeted;
             let scheduled_transactions_total = self
                 .scheduled_transactions
                 .iter()
@@ -125,80 +158,110 @@ impl Expense {
                     .sum::<i64>();
 
                 if future_transactions_amount > 0 {
-                    self.current_amount = future_transactions_amount;
+                    current_amount = future_transactions_amount;
                 }
             }
+
+            return current_amount;
         }
 
-        self
-    }
-
-    pub fn set_categorization(
-        mut self,
-        budget_calculation_data_settings: &BugdetCalculationDataSettings,
-    ) -> Self {
-        if let Some(category) = &self.category {
-            for cat_group in &budget_calculation_data_settings.category_groups {
-                if cat_group.ids.contains(&category.category_group_id) {
-                    self.expense_type = cat_group.expense_type.clone();
-                    self.sub_expense_type = cat_group.sub_expense_type.clone();
-                    return self;
-                }
-            }
-        }
-
-        self.expense_type = ExpenseType::Undefined;
-        self.sub_expense_type = SubExpenseType::Undefined;
-
-        self
-    }
-
-    pub fn set_individual_association(
-        mut self,
-        person_salary_settings: &[PersonSalarySettings],
-    ) -> Self {
-        self.individual_associated = person_salary_settings
-            .iter()
-            .find(|config| self.name.contains(&config.name))
-            .map(|config| config.name.clone());
-        self
+        0
     }
 }
 
-impl From<Category> for Expense {
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PartiallyComputed {
+    /// Will either be the goal_under_funded, the goal_target for the month or the amount of the linked scheduled transaction coming in the month.
+    projected_amount: i64,
+    /// At the begining of the month, this amount will be the same as projected_amount,
+    /// but it will get updated during the month when some expenses occur in the category.
+    current_amount: i64,
+}
+
+impl Expense<PartiallyComputed> {
+    pub fn projected_amount(&self) -> i64 {
+        self.extra.projected_amount
+    }
+
+    pub fn current_amount(&self) -> i64 {
+        self.extra.current_amount
+    }
+
+    pub fn compute_proportions(self, total_income: i64) -> Expense<Computed> {
+        Expense {
+            extra: Computed {
+                projected_proportion: self.extra.projected_amount as f64 / total_income as f64,
+                current_proportion: self.extra.current_amount as f64 / total_income as f64,
+                partially_computed: PartiallyComputed {
+                    projected_amount: self.extra.projected_amount,
+                    current_amount: self.extra.current_amount,
+                },
+            },
+            name: self.name,
+            expense_type: self.expense_type,
+            sub_expense_type: self.sub_expense_type,
+            category: self.category,
+            individual_associated: self.individual_associated,
+            scheduled_transactions: self.scheduled_transactions,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Computed {
+    #[serde(flatten)]
+    partially_computed: PartiallyComputed,
+    /// The proportion the projected amount represents relative to the total monthly income (salaries + health insurance + work-related RRSP)
+    projected_proportion: f64,
+    /// The proportion the current amount represents relative to the total monthly income (salaries + health insurance + work-related RRSP)
+    current_proportion: f64,
+}
+
+impl Expense<Computed> {
+    pub fn projected_amount(&self) -> i64 {
+        self.extra.partially_computed.projected_amount
+    }
+
+    pub fn current_amount(&self) -> i64 {
+        self.extra.partially_computed.current_amount
+    }
+
+    pub fn projected_proportion(&self) -> f64 {
+        self.extra.projected_proportion
+    }
+
+    pub fn current_proportion(&self) -> f64 {
+        self.extra.current_proportion
+    }
+}
+
+impl From<Category> for Expense<Uncomputed> {
     fn from(value: Category) -> Self {
         Self {
-            id: Some(value.id),
             name: value.name.clone(),
-            is_external: false,
             category: Some(value),
             ..Default::default()
         }
     }
 }
 
-impl From<ExternalExpense> for Expense {
+impl From<ExternalExpense> for Expense<PartiallyComputed> {
     fn from(value: ExternalExpense) -> Self {
         Self {
-            id: None,
-            is_external: true,
             name: value.name,
-            projected_amount: value.projected_amount,
-            projected_proportion: 0.0,
-            current_amount: value.projected_amount,
-            current_proportion: 0.0,
+            extra: PartiallyComputed {
+                projected_amount: value.projected_amount,
+                current_amount: value.projected_amount,
+            },
             expense_type: value.expense_type,
             sub_expense_type: value.sub_expense_type,
-            category: None,
-            individual_associated: None,
-            scheduled_transactions: vec![],
+            ..Default::default()
         }
     }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ExternalExpense {
-    pub id: Option<String>,
     pub name: String,
     /// The type the expense relates to.
     #[serde(rename = "type")]
@@ -236,3 +299,8 @@ pub enum SubExpenseType {
     #[default]
     Undefined,
 }
+
+pub trait ExpenseState {}
+impl ExpenseState for Uncomputed {}
+impl ExpenseState for PartiallyComputed {}
+impl ExpenseState for Computed {}
