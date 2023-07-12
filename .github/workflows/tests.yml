@@ -11,6 +11,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  DATAMIZE_ENVIRONMENT: staging
 
 jobs:
   test:
