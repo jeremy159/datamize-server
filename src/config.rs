@@ -161,6 +161,7 @@ impl Settings {
 /// The possible runtime environment for our application.
 pub enum Environment {
     Local,
+    Test,
     Staging,
     Production,
 }
@@ -169,6 +170,7 @@ impl Environment {
     pub fn as_str(&self) -> &'static str {
         match self {
             Environment::Local => "local",
+            Environment::Test => "test",
             Environment::Staging => "staging",
             Environment::Production => "production",
         }
@@ -181,6 +183,7 @@ impl TryFrom<String> for Environment {
     fn try_from(s: String) -> Result<Self, Self::Error> {
         match s.to_lowercase().as_str() {
             "local" => Ok(Self::Local),
+            "test" => Ok(Self::Test),
             "staging" => Ok(Self::Staging),
             "production" => Ok(Self::Production),
             other => Err(format!(
