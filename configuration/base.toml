@@ -44,7 +44,7 @@ category_groups = [
 # TODO: Create a Person entity in db to be able to add, edit infor about a person, link some payee with it and more. Maybe include a possible string lookup in notes?
 [[person_salaries]]
 name = "Jeremy"
-payee_ids = ["06db274a-5dc1-47ec-aede-af6848dd9111"]
+payee_ids = ["b7661694-bd95-4949-9373-f46bde245505"]
 
 [[person_salaries]]
 name = "Sandryne"

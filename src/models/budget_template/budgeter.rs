@@ -57,22 +57,27 @@ impl Budgeter<Configured> {
         self,
         scheduled_transactions: &[ScheduledTransactionDetail],
     ) -> Budgeter<ComputedSalary> {
+        let mut salary = 0;
+        let salary_month = scheduled_transactions
+            .iter()
+            .filter(|st| match &st.payee_id {
+                Some(ref id) => self.extra.payee_ids.contains(id),
+                None => false,
+            })
+            .map(|st| {
+                salary = st.amount;
+                st.amount
+                    + find_repeatable_transactions(st)
+                        .iter()
+                        .map(|v| v.amount)
+                        .sum::<i64>()
+            })
+            .sum();
+
         Budgeter {
             extra: ComputedSalary {
-                salary_month: scheduled_transactions
-                    .iter()
-                    .filter(|st| match &st.payee_id {
-                        Some(ref id) => self.extra.payee_ids.contains(id),
-                        None => false,
-                    })
-                    .map(|st| {
-                        st.amount
-                            + find_repeatable_transactions(st)
-                                .iter()
-                                .map(|v| v.amount)
-                                .sum::<i64>()
-                    })
-                    .sum(),
+                salary,
+                salary_month,
                 configured: self.extra,
             },
         }
@@ -86,6 +91,7 @@ impl TotalBudgeter<Configured> {
     ) -> TotalBudgeter<ComputedSalary> {
         TotalBudgeter {
             extra: ComputedSalary {
+                salary: budgeters.iter().map(|b| b.extra.salary).sum(),
                 salary_month: budgeters.iter().map(|b| b.extra.salary_month).sum(),
                 configured: self.extra,
             },
@@ -98,7 +104,7 @@ pub struct ComputedSalary {
     #[serde(flatten)]
     configured: Configured,
     /// Single occurence salary amount.
-    // salary: i64, // TODO: Check if still needed...
+    salary: i64,
     /// Number of times the salary gets repeated for this month. This number can vary from one month to
     /// the other.
     // salary_occurence: i16, // TODO: Check if still needed...
