@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO budgeters_config (id, name, payee_ids)\n        VALUES ($1, $2, $3)\n        ON CONFLICT (id) DO UPDATE\n        SET name = EXCLUDED.name,\n        payee_ids = EXCLUDED.payee_ids;\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Varchar",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "81d8e3c25de881cb929b347b947b5a575fe5c89cbd9a4fa267f2b34f92119bb1"
+}

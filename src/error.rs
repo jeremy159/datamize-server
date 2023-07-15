@@ -12,6 +12,8 @@ pub type HttpJsonAppResult<T> = Result<Json<T>, AppError>;
 pub enum AppError {
     #[error("resource does not exist")]
     ResourceNotFound,
+    #[error("resource already exist")]
+    ResourceAlreadyExist,
     #[error("year already exist")]
     YearAlreadyExist,
     #[error("month already exist")]
@@ -59,6 +61,7 @@ impl IntoResponse for AppError {
             }
             AppError::ValidationError => (StatusCode::UNPROCESSABLE_ENTITY, "validation errors"),
             AppError::ResourceNotFound => (StatusCode::NOT_FOUND, "resource does not exist"),
+            AppError::ResourceAlreadyExist => (StatusCode::CONFLICT, "resource already exist"),
             AppError::YearAlreadyExist => (StatusCode::CONFLICT, "year already exist"),
             AppError::MonthAlreadyExist => (StatusCode::CONFLICT, "month already exist"),
         };

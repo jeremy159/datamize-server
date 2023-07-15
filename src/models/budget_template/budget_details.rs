@@ -6,10 +6,11 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use ynab::types::{Category, ScheduledTransactionDetail};
 
-use crate::config::{BugdetCalculationDataSettings, PersonSalarySettings};
+use crate::config::BugdetCalculationDataSettings;
 
 use super::{
-    expense::Computed, Budgeter, Empty, Expense, ExpenseType, PartiallyComputed, Uncomputed,
+    expense::Computed, Budgeter, BudgeterConfig, Configured, Expense, ExpenseType,
+    PartiallyComputed, Uncomputed,
 };
 
 #[derive(Debug, Deserialize, Default, Copy, Clone)]
@@ -87,11 +88,11 @@ impl BudgetDetails {
         scheduled_transactions: Vec<ScheduledTransactionDetail>,
         date: &DateTime<Local>,
         budget_calculation_data_settings: BugdetCalculationDataSettings,
-        person_salary_settings: Vec<PersonSalarySettings>,
+        budgeters_config: Vec<BudgeterConfig>,
     ) -> Self {
-        let budgeters: Vec<_> = person_salary_settings
+        let budgeters: Vec<_> = budgeters_config
             .into_iter()
-            .map(|pss| Budgeter::<Empty>::configure(pss).compute_salary(&scheduled_transactions))
+            .map(|bc| Budgeter::<Configured>::from(bc).compute_salary(&scheduled_transactions))
             .collect();
 
         let external_expenses = budget_calculation_data_settings.external_expenses;

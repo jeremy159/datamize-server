@@ -3,10 +3,10 @@ use axum::Router;
 use crate::startup::AppState;
 
 mod balance_sheet;
-mod template;
+mod budget_template;
 
 use balance_sheet::*;
-use template::*;
+use budget_template::*;
 
 pub fn get_api_routes() -> Router<AppState> {
     Router::new()

@@ -2,8 +2,6 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use ynab::types::ScheduledTransactionDetail;
 
-use crate::config::PersonSalarySettings;
-
 use super::{expense, find_repeatable_transactions, Expense};
 
 /// A Budgeter represents someone that has income and expenses for the month.
@@ -22,21 +20,11 @@ pub struct TotalBudgeter<S: BudgeterState> {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Empty;
 
-impl Budgeter<Empty> {
-    pub fn configure(person_salary_settings: PersonSalarySettings) -> Budgeter<Configured> {
-        Budgeter {
-            extra: Configured {
-                name: person_salary_settings.name,
-                payee_ids: person_salary_settings.payee_ids,
-            },
-        }
-    }
-}
-
 impl TotalBudgeter<Empty> {
     pub fn new() -> TotalBudgeter<Configured> {
         TotalBudgeter {
             extra: Configured {
+                id: Uuid::new_v4(),
                 name: "Total".into(),
                 payee_ids: vec![],
             },
@@ -46,10 +34,23 @@ impl TotalBudgeter<Empty> {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Configured {
+    id: Uuid,
     /// Name of the Person to use.
     name: String,
     /// All payee ids related to this person. Typically some Inflow payees.
     payee_ids: Vec<Uuid>,
+}
+
+impl From<BudgeterConfig> for Budgeter<Configured> {
+    fn from(value: BudgeterConfig) -> Self {
+        Budgeter {
+            extra: Configured {
+                id: value.id,
+                name: value.name,
+                payee_ids: value.payee_ids,
+            },
+        }
+    }
 }
 
 impl Budgeter<Configured> {
@@ -220,3 +221,33 @@ impl BudgeterState for Empty {}
 impl BudgeterState for Configured {}
 impl BudgeterState for ComputedSalary {}
 impl BudgeterState for ComputedExpenses {}
+
+// TODO: Use this as base state for the Budgeter.
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct BudgeterConfig {
+    pub id: Uuid,
+    pub name: String,
+    pub payee_ids: Vec<Uuid>,
+}
+
+impl BudgeterConfig {
+    pub fn new(name: String, payee_ids: Vec<Uuid>) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            name,
+            payee_ids,
+        }
+    }
+}
+
+impl From<SaveBudgeterConfig> for BudgeterConfig {
+    fn from(value: SaveBudgeterConfig) -> Self {
+        Self::new(value.name, value.payee_ids)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SaveBudgeterConfig {
+    pub name: String,
+    pub payee_ids: Vec<Uuid>,
+}

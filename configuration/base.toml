@@ -40,13 +40,4 @@ category_groups = [
   { ids = ["ec2b6914-fafe-4f9e-b0d7-ebe2c3086510"], type = "shortTermSaving", sub_type = "shortTermSaving" },
   { ids = ["d3fc450b-b3cb-4713-a61d-426a8171d7af"], type = "longTermSaving", sub_type = "longTermSaving" },
 ]
-
-# TODO: Create a Person entity in db to be able to add, edit infor about a person, link some payee with it and more. Maybe include a possible string lookup in notes?
-[[person_salaries]]
-name = "Jeremy"
-payee_ids = ["b7661694-bd95-4949-9373-f46bde245505"]
-
-[[person_salaries]]
-name = "Sandryne"
-payee_ids = ["b9804429-3948-4b86-a6d0-913efa58fac4"]
 # END move to redis storage

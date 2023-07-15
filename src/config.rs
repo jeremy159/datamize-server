@@ -16,7 +16,6 @@ pub struct Settings {
     pub redis: RedisSettings,
     pub webdriver: WebDriverSettings,
     pub budget_calculation_data: BugdetCalculationDataSettings,
-    pub person_salaries: Vec<PersonSalarySettings>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -117,12 +116,6 @@ pub struct CategoryGroup {
     pub expense_type: ExpenseType,
     #[serde(rename = "sub_type")]
     pub sub_expense_type: SubExpenseType,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct PersonSalarySettings {
-    pub name: String,
-    pub payee_ids: Vec<Uuid>,
 }
 
 impl Settings {

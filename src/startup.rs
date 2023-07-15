@@ -12,7 +12,7 @@ use tower_request_id::{RequestId, RequestIdLayer};
 use tracing::error_span;
 
 use crate::{
-    config::{BugdetCalculationDataSettings, PersonSalarySettings, Settings},
+    config::{BugdetCalculationDataSettings, Settings},
     get_redis_connection_pool,
     routes::{get_api_routes, get_budget_providers_routes, health_check},
     web_scraper::get_web_scraper,
@@ -24,7 +24,6 @@ pub struct AppState {
     pub db_conn_pool: Pool<Postgres>,
     pub redis_conn_pool: r2d2::Pool<redis::Client>,
     pub budget_calculation_data_settings: Arc<BugdetCalculationDataSettings>,
-    pub person_salary_settings: Arc<Vec<PersonSalarySettings>>,
 }
 
 pub struct Application {
@@ -39,14 +38,12 @@ impl Application {
             .context("failed to get redis connection pool")?;
         let ynab_client = Arc::new(configuration.ynab_client.client());
         let budget_calculation_data_settings = Arc::new(configuration.budget_calculation_data);
-        let person_salary_settings = Arc::new(configuration.person_salaries);
 
         let app_state = AppState {
             ynab_client,
             db_conn_pool,
             redis_conn_pool,
             budget_calculation_data_settings,
-            person_salary_settings,
         };
 
         let address = format!(

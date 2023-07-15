@@ -1,9 +1,7 @@
 use serde::{Deserialize, Serialize};
 use ynab::types::ScheduledTransactionDetail;
 
-use crate::config::PersonSalarySettings;
-
-use super::{BudgetDetails, Budgeter, ComputedExpenses, Empty, TotalBudgeter};
+use super::{BudgetDetails, Budgeter, BudgeterConfig, ComputedExpenses, Configured, TotalBudgeter};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BudgetSummary {
@@ -16,11 +14,11 @@ impl BudgetSummary {
     pub fn build(
         budget_details: &BudgetDetails,
         scheduled_transactions: &[ScheduledTransactionDetail],
-        person_salary_settings: Vec<PersonSalarySettings>,
+        budgeters_config: Vec<BudgeterConfig>,
     ) -> Self {
-        let budgeters: Vec<_> = person_salary_settings
+        let budgeters: Vec<_> = budgeters_config
             .into_iter()
-            .map(|pss| Budgeter::<Empty>::configure(pss).compute_salary(scheduled_transactions))
+            .map(|bc| Budgeter::<Configured>::from(bc).compute_salary(scheduled_transactions))
             .collect();
 
         let (total_budgeter, individual_expenses) = TotalBudgeter::new()
