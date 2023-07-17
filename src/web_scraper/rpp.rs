@@ -29,15 +29,12 @@ pub async fn get_rpp_canada_life_sandryne(
     )?)?;
 
     let f = c.form(Locator::Css(".card.login__card")).await?;
-    f.set_by_name(
-        "climsMyLogin:j_id453:j_id454:j_id455:j_id456:loginForm:username",
+    f.set(
+        Locator::Css("[name*=\"loginForm:username\"]"),
         &account.username,
     )
     .await?
-    .set_by_name(
-        "climsMyLogin:j_id453:j_id454:j_id455:j_id456:loginForm:password",
-        &password,
-    )
+    .set(Locator::Css("[name*=\"loginForm:password\"]"), &password)
     .await?
     .submit()
     .await?;
