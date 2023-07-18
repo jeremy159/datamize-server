@@ -6,7 +6,7 @@ use axum::{
 use futures::try_join;
 
 use crate::{
-    db::budget_template::get_all_budgeters_config,
+    db::budget_template::{get_all_budgeters_config, get_all_external_expenses},
     error::HttpJsonAppResult,
     get_redis_conn,
     models::budget_template::{BudgetDetails, BudgetSummary, MonthQueryParam},
@@ -40,11 +40,13 @@ pub async fn template_summary(
     )
     .context("failed to get latest categories and scheduled transactions")?;
     let budgeters_config = get_all_budgeters_config(&db_conn_pool).await?;
+    let external_expenses = get_all_external_expenses(&db_conn_pool).await?;
 
     let budget_details = BudgetDetails::build(
         saved_categories,
         saved_scheduled_transactions.clone(),
         &month.into(),
+        external_expenses,
         (*app_state.budget_calculation_data_settings).clone(), // TODO: Get this from DB once it's possible for user to choose the payees in the frontend.
         budgeters_config.clone(),
     );

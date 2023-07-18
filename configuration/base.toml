@@ -26,11 +26,6 @@ port = 4444
 
 # TODO: To move to redis storage and have UI to modify those
 [budget_calculation_data]
-external_expenses = [
-  { name = "Assurance Santé", type = "fixed", sub_type = "otherFixed", projected_amount = 60510 },
-  { name = "REER Jeremy", type = "retirementSaving", sub_type = "retirementSaving", projected_amount = 529860 },
-  { name = "RPA Sandryne", type = "retirementSaving", sub_type = "retirementSaving", projected_amount = 276960 },
-]
 category_groups = [
   { ids = ["b970e1ce-2c0a-4823-b9b4-736e469593c6"], type = "fixed", sub_type = "housing" },
   { ids = ["aa735445-d77f-47f3-8cf7-51e9913629d1"], type = "fixed", sub_type = "transport" },

@@ -9,7 +9,7 @@ use ynab::types::{Category, ScheduledTransactionDetail};
 use crate::config::BugdetCalculationDataSettings;
 
 use super::{
-    expense::Computed, Budgeter, BudgeterConfig, Configured, Expense, ExpenseType,
+    expense::Computed, Budgeter, BudgeterConfig, Configured, Expense, ExpenseType, ExternalExpense,
     PartiallyComputed, Uncomputed,
 };
 
@@ -87,6 +87,7 @@ impl BudgetDetails {
         categories: Vec<Category>,
         scheduled_transactions: Vec<ScheduledTransactionDetail>,
         date: &DateTime<Local>,
+        external_expenses: Vec<ExternalExpense>,
         budget_calculation_data_settings: BugdetCalculationDataSettings,
         budgeters_config: Vec<BudgeterConfig>,
     ) -> Self {
@@ -95,7 +96,6 @@ impl BudgetDetails {
             .map(|bc| Budgeter::<Configured>::from(bc).compute_salary(&scheduled_transactions))
             .collect();
 
-        let external_expenses = budget_calculation_data_settings.external_expenses;
         let category_groups = budget_calculation_data_settings.category_groups;
 
         let mut scheduled_transactions_map =

@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            id,\n            name,\n            type AS \"expense_type: ExpenseType\",\n            sub_type AS \"sub_expense_type: SubExpenseType\",\n            projected_amount\n        FROM external_expenses\n        WHERE name = $1;\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "expense_type: ExpenseType",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "sub_expense_type: SubExpenseType",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "projected_amount",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "691eda54e714cb3ade5a4e4c2046d454a0b4a6e40d483cdcb430dd78a351a9a2"
+}

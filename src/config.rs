@@ -6,7 +6,7 @@ use sqlx::{
 };
 use uuid::Uuid;
 
-use crate::models::budget_template::{ExpenseType, ExternalExpense, SubExpenseType};
+use crate::models::budget_template::{ExpenseType, SubExpenseType};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Settings {
@@ -106,7 +106,6 @@ impl WebDriverSettings {
 #[derive(Debug, Clone, Deserialize)]
 pub struct BugdetCalculationDataSettings {
     pub category_groups: Vec<CategoryGroup>,
-    pub external_expenses: Vec<ExternalExpense>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

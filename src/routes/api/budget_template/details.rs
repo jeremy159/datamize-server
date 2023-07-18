@@ -1,5 +1,5 @@
 use crate::{
-    db::budget_template::get_all_budgeters_config,
+    db::budget_template::{get_all_budgeters_config, get_all_external_expenses},
     models::budget_template::{BudgetDetails, MonthQueryParam},
     routes::api::budget_template::common::{
         get_categories_of_month, get_latest_scheduled_transactions,
@@ -39,11 +39,13 @@ pub async fn template_details(
     )
     .context("failed to get latest categories and scheduled transactions")?;
     let budgeters_config = get_all_budgeters_config(&db_conn_pool).await?;
+    let external_expenses = get_all_external_expenses(&db_conn_pool).await?;
 
     let data = BudgetDetails::build(
         saved_categories,
         saved_scheduled_transactions,
         &month.into(),
+        external_expenses,
         (*app_state.budget_calculation_data_settings).clone(), // TODO: Get this from DB once it's possible for user to choose the payees in the frontend.
         budgeters_config,
     );

@@ -1,7 +1,7 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::budget_template::BudgeterConfig;
+use crate::models::budget_template::{BudgeterConfig, ExternalExpense};
 
 use super::postgres;
 
@@ -39,4 +39,40 @@ pub async fn update_budgeter_config(
 #[tracing::instrument(skip(db_conn_pool))]
 pub async fn delete_budgeter_config(db_conn_pool: &PgPool, id: Uuid) -> Result<(), sqlx::Error> {
     postgres::delete_budgeter_config(db_conn_pool, id).await
+}
+
+#[tracing::instrument(skip(db_conn_pool))]
+pub async fn get_all_external_expenses(
+    db_conn_pool: &PgPool,
+) -> Result<Vec<ExternalExpense>, sqlx::Error> {
+    postgres::get_all_external_expenses(db_conn_pool).await
+}
+
+#[tracing::instrument(skip(db_conn_pool))]
+pub async fn get_external_expense(
+    db_conn_pool: &PgPool,
+    id: Uuid,
+) -> Result<ExternalExpense, sqlx::Error> {
+    postgres::get_external_expense(db_conn_pool, id).await
+}
+
+#[tracing::instrument(skip(db_conn_pool))]
+pub async fn get_external_expense_by_name(
+    db_conn_pool: &PgPool,
+    name: &str,
+) -> Result<ExternalExpense, sqlx::Error> {
+    postgres::get_external_expense_by_name(db_conn_pool, name).await
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn update_external_expense(
+    db_conn_pool: &PgPool,
+    external_expense: &ExternalExpense,
+) -> Result<(), sqlx::Error> {
+    postgres::update_external_expense(db_conn_pool, external_expense).await
+}
+
+#[tracing::instrument(skip(db_conn_pool))]
+pub async fn delete_external_expense(db_conn_pool: &PgPool, id: Uuid) -> Result<(), sqlx::Error> {
+    postgres::delete_external_expense(db_conn_pool, id).await
 }

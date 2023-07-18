@@ -1,13 +1,17 @@
+use std::{fmt, str::FromStr};
+
 use chrono::Local;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 use ynab::types::{Category, GoalType, ScheduledTransactionDetail};
 
 use crate::config::CategoryGroup;
 
-use super::{Budgeter, ComputedSalary};
+use super::{Budgeter, ComputedSalary, ExternalExpense};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Expense<S: ExpenseState> {
+    id: Uuid,
     name: String,
     /// The type the expense relates to.
     #[serde(rename = "type")]
@@ -15,8 +19,11 @@ pub struct Expense<S: ExpenseState> {
     /// The sub_type the expense relates to. This can be useful for example to group only housing expenses together.
     #[serde(rename = "sub_type")]
     sub_expense_type: SubExpenseType,
+    /// To indicate if the expense comes from manually entered expenses, i.e. external to YNAB's data.
+    is_external: bool,
     /// The individual associated with the expense. This is used to let know this expense is associated with a person in particular.
     individual_associated: Option<String>,
+    #[serde(skip)]
     category: Option<Category>,
     #[serde(skip)]
     scheduled_transactions: Vec<ScheduledTransactionDetail>,
@@ -35,6 +42,10 @@ impl<S: ExpenseState> Expense<S> {
 
     pub fn sub_expense_type(&self) -> &SubExpenseType {
         &self.sub_expense_type
+    }
+
+    pub fn is_external(&self) -> bool {
+        self.is_external
     }
 
     pub fn individual_associated(&self) -> Option<&String> {
@@ -90,9 +101,11 @@ impl Expense<Uncomputed> {
                 projected_amount: self.compute_projected_amount(),
                 current_amount: self.compute_current_amount(),
             },
+            id: self.id,
             name: self.name,
             expense_type: self.expense_type,
             sub_expense_type: self.sub_expense_type,
+            is_external: self.is_external,
             category: self.category,
             individual_associated: self.individual_associated,
             scheduled_transactions: self.scheduled_transactions,
@@ -197,9 +210,11 @@ impl Expense<PartiallyComputed> {
                     current_amount: self.extra.current_amount,
                 },
             },
+            id: self.id,
             name: self.name,
             expense_type: self.expense_type,
             sub_expense_type: self.sub_expense_type,
+            is_external: self.is_external,
             category: self.category,
             individual_associated: self.individual_associated,
             scheduled_transactions: self.scheduled_transactions,
@@ -238,7 +253,9 @@ impl Expense<Computed> {
 impl From<Category> for Expense<Uncomputed> {
     fn from(value: Category) -> Self {
         Self {
+            id: value.id,
             name: value.name.clone(),
+            is_external: false,
             category: Some(value),
             ..Default::default()
         }
@@ -248,6 +265,7 @@ impl From<Category> for Expense<Uncomputed> {
 impl From<ExternalExpense> for Expense<PartiallyComputed> {
     fn from(value: ExternalExpense) -> Self {
         Self {
+            id: value.id,
             name: value.name,
             extra: PartiallyComputed {
                 projected_amount: value.projected_amount,
@@ -255,25 +273,15 @@ impl From<ExternalExpense> for Expense<PartiallyComputed> {
             },
             expense_type: value.expense_type,
             sub_expense_type: value.sub_expense_type,
+            is_external: true,
             ..Default::default()
         }
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct ExternalExpense {
-    pub name: String,
-    /// The type the expense relates to.
-    #[serde(rename = "type")]
-    pub expense_type: ExpenseType,
-    /// The sub_type the expense relates to. This can be useful for example to group only housing expenses together.
-    #[serde(rename = "sub_type")]
-    pub sub_expense_type: SubExpenseType,
-    /// Will either be the goal_under_funded or the amount of the linked scheduled transaction coming in the month
-    pub projected_amount: i64,
-}
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Serialize, Deserialize, Default)]
+#[derive(
+    Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Serialize, Deserialize, Default, sqlx::Type,
+)]
 #[serde(rename_all = "camelCase")]
 pub enum ExpenseType {
     Fixed,
@@ -285,7 +293,41 @@ pub enum ExpenseType {
     Undefined,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Default)]
+impl fmt::Display for ExpenseType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ExpenseType::Fixed => write!(f, "fixed"),
+            ExpenseType::Variable => write!(f, "variable"),
+            ExpenseType::ShortTermSaving => write!(f, "shortTermSaving"),
+            ExpenseType::LongTermSaving => write!(f, "longTermSaving"),
+            ExpenseType::RetirementSaving => write!(f, "retirementSaving"),
+            ExpenseType::Undefined => write!(f, "undefined"),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseExpenseTypeError;
+
+impl FromStr for ExpenseType {
+    type Err = ParseExpenseTypeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "fixed" => Ok(Self::Fixed),
+            "variable" => Ok(Self::Variable),
+            "shortTermSaving" => Ok(Self::ShortTermSaving),
+            "longTermSaving" => Ok(Self::LongTermSaving),
+            "retirementSaving" => Ok(Self::RetirementSaving),
+            "undefined" => Ok(Self::Undefined),
+            _ => Err(ParseExpenseTypeError),
+        }
+    }
+}
+
+#[derive(
+    Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Default, sqlx::Type,
+)]
 #[serde(rename_all = "camelCase")]
 pub enum SubExpenseType {
     Housing,
@@ -298,6 +340,44 @@ pub enum SubExpenseType {
     RetirementSaving,
     #[default]
     Undefined,
+}
+
+impl fmt::Display for SubExpenseType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            SubExpenseType::Housing => write!(f, "housing"),
+            SubExpenseType::Transport => write!(f, "transport"),
+            SubExpenseType::OtherFixed => write!(f, "otherFixed"),
+            SubExpenseType::Subscription => write!(f, "subscription"),
+            SubExpenseType::OtherVariable => write!(f, "otherVariable"),
+            SubExpenseType::ShortTermSaving => write!(f, "shortTermSaving"),
+            SubExpenseType::LongTermSaving => write!(f, "longTermSaving"),
+            SubExpenseType::RetirementSaving => write!(f, "retirementSaving"),
+            SubExpenseType::Undefined => write!(f, "undefined"),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseSubExpenseTypeError;
+
+impl FromStr for SubExpenseType {
+    type Err = ParseSubExpenseTypeError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "housing" => Ok(Self::Housing),
+            "transport" => Ok(Self::Transport),
+            "otherFixed" => Ok(Self::OtherFixed),
+            "subscription" => Ok(Self::Subscription),
+            "otherVariable" => Ok(Self::OtherVariable),
+            "shortTermSaving" => Ok(Self::ShortTermSaving),
+            "longTermSaving" => Ok(Self::LongTermSaving),
+            "retirementSaving" => Ok(Self::RetirementSaving),
+            "undefined" => Ok(Self::Undefined),
+            _ => Err(ParseSubExpenseTypeError),
+        }
+    }
 }
 
 pub trait ExpenseState {}
