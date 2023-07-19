@@ -4,9 +4,6 @@ use sqlx::{
     postgres::{PgConnectOptions, PgSslMode},
     ConnectOptions,
 };
-use uuid::Uuid;
-
-use crate::models::budget_template::{ExpenseType, SubExpenseType};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Settings {
@@ -15,7 +12,6 @@ pub struct Settings {
     pub database: DatabaseSettings,
     pub redis: RedisSettings,
     pub webdriver: WebDriverSettings,
-    pub budget_calculation_data: BugdetCalculationDataSettings,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -101,20 +97,6 @@ impl WebDriverSettings {
     pub fn connection_string(&self) -> String {
         format!("http://{}:{}/", self.host, self.port)
     }
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct BugdetCalculationDataSettings {
-    pub category_groups: Vec<CategoryGroup>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct CategoryGroup {
-    pub ids: Vec<Uuid>,
-    #[serde(rename = "type")]
-    pub expense_type: ExpenseType,
-    #[serde(rename = "sub_type")]
-    pub sub_expense_type: SubExpenseType,
 }
 
 impl Settings {

@@ -23,16 +23,3 @@ port = 6379
 [webdriver]
 host = "127.0.0.1"
 port = 4444
-
-# TODO: To move to redis storage and have UI to modify those
-[budget_calculation_data]
-category_groups = [
-  { ids = ["b970e1ce-2c0a-4823-b9b4-736e469593c6"], type = "fixed", sub_type = "housing" },
-  { ids = ["aa735445-d77f-47f3-8cf7-51e9913629d1"], type = "fixed", sub_type = "transport" },
-  { ids = ["86ff0998-bbd8-4bed-b74b-34f87650201b"], type = "fixed", sub_type = "otherFixed" },
-  { ids = ["8fcf1451-e4cb-4f2d-9faa-174bf92d5b29"], type = "variable", sub_type = "subscription" },
-  { ids = ["d309eadc-b835-4b0b-b839-ee10456566fe"], type = "variable", sub_type = "otherVariable" },
-  { ids = ["ec2b6914-fafe-4f9e-b0d7-ebe2c3086510"], type = "shortTermSaving", sub_type = "shortTermSaving" },
-  { ids = ["d3fc450b-b3cb-4713-a61d-426a8171d7af"], type = "longTermSaving", sub_type = "longTermSaving" },
-]
-# END move to redis storage

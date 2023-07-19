@@ -6,11 +6,9 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use ynab::types::{Category, ScheduledTransactionDetail};
 
-use crate::config::BugdetCalculationDataSettings;
-
 use super::{
-    expense::Computed, Budgeter, BudgeterConfig, Configured, Expense, ExpenseType, ExternalExpense,
-    PartiallyComputed, Uncomputed,
+    expense::Computed, Budgeter, BudgeterConfig, Configured, Expense, ExpenseCategorization,
+    ExpenseType, ExternalExpense, PartiallyComputed, Uncomputed,
 };
 
 #[derive(Debug, Deserialize, Default, Copy, Clone)]
@@ -88,15 +86,13 @@ impl BudgetDetails {
         scheduled_transactions: Vec<ScheduledTransactionDetail>,
         date: &DateTime<Local>,
         external_expenses: Vec<ExternalExpense>,
-        budget_calculation_data_settings: BugdetCalculationDataSettings,
+        expenses_categorization: Vec<ExpenseCategorization>,
         budgeters_config: Vec<BudgeterConfig>,
     ) -> Self {
         let budgeters: Vec<_> = budgeters_config
             .into_iter()
             .map(|bc| Budgeter::<Configured>::from(bc).compute_salary(&scheduled_transactions))
             .collect();
-
-        let category_groups = budget_calculation_data_settings.category_groups;
 
         let mut scheduled_transactions_map =
             build_category_to_scheduled_transaction_map(scheduled_transactions, date);
@@ -118,7 +114,7 @@ impl BudgetDetails {
         let mut expenses: Vec<_> = expenses
             .into_iter()
             .map(|e| {
-                e.set_categorization(&category_groups)
+                e.set_categorization(&expenses_categorization)
                     .set_individual_association(&budgeters)
             })
             .filter(|e| e.expense_type() != &ExpenseType::Undefined)

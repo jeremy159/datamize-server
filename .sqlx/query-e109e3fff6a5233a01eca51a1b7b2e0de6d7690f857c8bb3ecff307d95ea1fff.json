@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO expenses_categorization (id, name, type, sub_type)\n        VALUES ($1, $2, $3, $4)\n        ON CONFLICT (id) DO UPDATE\n        SET name = EXCLUDED.name,\n        type = EXCLUDED.type,\n        sub_type = EXCLUDED.sub_type;\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Varchar",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e109e3fff6a5233a01eca51a1b7b2e0de6d7690f857c8bb3ecff307d95ea1fff"
+}

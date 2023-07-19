@@ -34,7 +34,7 @@ pub async fn template_summary(
 
     let Query(MonthQueryParam { month }) = month.unwrap_or_default();
 
-    let (saved_categories, saved_scheduled_transactions) = try_join!(
+    let ((saved_categories, expenses_categorization), saved_scheduled_transactions) = try_join!(
         get_categories_of_month(&db_conn_pool, &mut redis_conn, ynab_client, month),
         get_latest_scheduled_transactions(&db_conn_pool, &mut second_redis_conn, ynab_client)
     )
@@ -47,7 +47,7 @@ pub async fn template_summary(
         saved_scheduled_transactions.clone(),
         &month.into(),
         external_expenses,
-        (*app_state.budget_calculation_data_settings).clone(), // TODO: Get this from DB once it's possible for user to choose the payees in the frontend.
+        expenses_categorization,
         budgeters_config.clone(),
     );
 

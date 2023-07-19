@@ -1,0 +1,38 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            id,\n            name,\n            type,\n            sub_type\n        FROM expenses_categorization\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "sub_type",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c52ab30fd7fa4c958e34e415455f4b4e17fce90145d2636f9baad256b3950a24"
+}

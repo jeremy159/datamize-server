@@ -3,9 +3,7 @@ use std::{fmt, str::FromStr};
 use chrono::Local;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use ynab::types::{Category, GoalType, ScheduledTransactionDetail};
-
-use crate::config::CategoryGroup;
+use ynab::types::{Category, CategoryGroupWithCategories, GoalType, ScheduledTransactionDetail};
 
 use super::{Budgeter, ComputedSalary, ExternalExpense};
 
@@ -60,18 +58,23 @@ impl<S: ExpenseState> Expense<S> {
         &self.scheduled_transactions
     }
 
-    pub fn set_categorization(mut self, category_groups: &[CategoryGroup]) -> Self {
-        if let Some(category) = &self.category {
-            for cat_group in category_groups {
-                if cat_group.ids.contains(&category.category_group_id) {
-                    self.expense_type = cat_group.expense_type.clone();
-                    self.sub_expense_type = cat_group.sub_expense_type.clone();
-                    return self;
+    pub fn set_categorization(mut self, expenses_categorization: &[ExpenseCategorization]) -> Self {
+        match &self.category {
+            Some(category) => {
+                match expenses_categorization
+                    .iter()
+                    .find(|c| c.id == category.category_group_id)
+                {
+                    Some(categorization) => {
+                        self.expense_type = categorization.expense_type.clone();
+                        self.sub_expense_type = categorization.sub_expense_type.clone();
+                        self
+                    }
+                    None => self,
                 }
             }
+            None => self,
         }
-
-        self
     }
 
     pub fn set_individual_association(mut self, budgeters: &[Budgeter<ComputedSalary>]) -> Self {
@@ -384,3 +387,39 @@ pub trait ExpenseState {}
 impl ExpenseState for Uncomputed {}
 impl ExpenseState for PartiallyComputed {}
 impl ExpenseState for Computed {}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default, sqlx::FromRow)]
+pub struct ExpenseCategorization {
+    pub id: Uuid,
+    pub name: String,
+    /// The type the expense relates to.
+    #[serde(rename = "type")]
+    #[sqlx(rename = "type")]
+    pub expense_type: ExpenseType,
+    /// The sub_type the expense relates to. This can be useful for example to group only housing expenses together.
+    #[serde(rename = "sub_type")]
+    #[sqlx(rename = "sub_type")]
+    pub sub_expense_type: SubExpenseType,
+}
+
+impl ExpenseCategorization {
+    pub fn new(id: Uuid, name: String) -> Self {
+        Self {
+            id,
+            name,
+            ..Default::default()
+        }
+    }
+}
+
+impl From<CategoryGroupWithCategories> for ExpenseCategorization {
+    fn from(value: CategoryGroupWithCategories) -> Self {
+        ExpenseCategorization::new(value.id, value.name)
+    }
+}
+
+impl From<Category> for ExpenseCategorization {
+    fn from(value: Category) -> Self {
+        ExpenseCategorization::new(value.category_group_id, value.category_group_name)
+    }
+}

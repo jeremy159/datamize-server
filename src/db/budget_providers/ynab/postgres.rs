@@ -8,10 +8,11 @@ pub async fn save_categories(
     for c in categories {
         sqlx::query!(
                 r#"
-                INSERT INTO categories (id, category_group_id, name, hidden, original_category_group_id, note, budgeted, activity, balance, goal_type, goal_creation_month, goal_target, goal_target_month, goal_percentage_complete, goal_months_to_budget, goal_under_funded, goal_overall_funded, goal_overall_left, deleted, goal_day, goal_cadence, goal_cadence_frequency)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
-                ON CONFLICT (id) DO UPDATE
-                SET category_group_id = EXCLUDED.category_group_id,
+                INSERT INTO categories (id, category_group_id, category_group_name, name, hidden, original_category_group_id, note, budgeted, activity, balance, goal_type, goal_creation_month, goal_target, goal_target_month, goal_percentage_complete, goal_months_to_budget, goal_under_funded, goal_overall_funded, goal_overall_left, deleted, goal_day, goal_cadence, goal_cadence_frequency)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)
+                ON CONFLICT (id) DO UPDATE SET
+                category_group_id = EXCLUDED.category_group_id,
+                category_group_name = EXCLUDED.category_group_name,
                 name = EXCLUDED.name,
                 hidden = EXCLUDED.hidden,
                 original_category_group_id = EXCLUDED.original_category_group_id,
@@ -35,6 +36,7 @@ pub async fn save_categories(
                 "#,
                 c.id,
                 c.category_group_id,
+                c.category_group_name,
                 c.name,
                 c.hidden,
                 c.original_category_group_id,
@@ -67,6 +69,7 @@ pub async fn get_categories(db_conn_pool: &PgPool) -> Result<Vec<Category>, sqlx
         SELECT 
             id,
             category_group_id,
+            category_group_name,
             name,
             hidden,
             original_category_group_id,
@@ -104,6 +107,7 @@ pub async fn get_category_by_id(
         SELECT 
             id,
             category_group_id,
+            category_group_name,
             name,
             hidden,
             original_category_group_id,

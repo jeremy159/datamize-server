@@ -1,7 +1,7 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::models::budget_template::{BudgeterConfig, ExternalExpense};
+use crate::models::budget_template::{BudgeterConfig, ExpenseCategorization, ExternalExpense};
 
 use super::postgres;
 
@@ -75,4 +75,35 @@ pub async fn update_external_expense(
 #[tracing::instrument(skip(db_conn_pool))]
 pub async fn delete_external_expense(db_conn_pool: &PgPool, id: Uuid) -> Result<(), sqlx::Error> {
     postgres::delete_external_expense(db_conn_pool, id).await
+}
+
+#[tracing::instrument(skip(db_conn_pool))]
+pub async fn get_all_expenses_categorization(
+    db_conn_pool: &PgPool,
+) -> Result<Vec<ExpenseCategorization>, sqlx::Error> {
+    postgres::get_all_expenses_categorization(db_conn_pool).await
+}
+
+#[tracing::instrument(skip(db_conn_pool))]
+pub async fn get_expense_categorization(
+    db_conn_pool: &PgPool,
+    id: Uuid,
+) -> Result<ExpenseCategorization, sqlx::Error> {
+    postgres::get_expense_categorization(db_conn_pool, id).await
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn update_all_expenses_categorization(
+    db_conn_pool: &PgPool,
+    expenses_categorization: &[ExpenseCategorization],
+) -> Result<(), sqlx::Error> {
+    postgres::update_all_expenses_categorization(db_conn_pool, expenses_categorization).await
+}
+
+#[tracing::instrument(skip_all)]
+pub async fn update_expense_categorization(
+    db_conn_pool: &PgPool,
+    expense_categorization: &ExpenseCategorization,
+) -> Result<(), sqlx::Error> {
+    postgres::update_expense_categorization(db_conn_pool, expense_categorization).await
 }
