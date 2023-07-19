@@ -7,7 +7,7 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Accounts/getAccountById
 pub struct Account {
-    pub id: String,
+    pub id: Uuid,
     pub name: String,
     #[serde(rename = "type")]
     pub account_type: AccountType,
@@ -17,7 +17,7 @@ pub struct Account {
     pub balance: i64,
     pub cleared_balance: i64,
     pub uncleared_balance: i64,
-    pub transfer_payee_id: String,
+    pub transfer_payee_id: Uuid,
     pub direct_import_linked: Option<bool>,
     pub direct_import_in_error: Option<bool>,
     pub deleted: bool,
@@ -157,20 +157,20 @@ pub enum ClearedType {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Transactions/getTransactionById
 pub struct TransactionSummary {
-    pub id: String,
+    pub id: Uuid,
     pub date: String,
     pub amount: i64,
     pub memo: Option<String>,
     pub cleared: ClearedType,
     pub approved: bool,
     pub flag_color: Option<String>,
-    pub account_id: String,
-    pub payee_id: Option<String>,
-    pub category_id: Option<String>,
-    pub transfer_account_id: Option<String>,
-    pub transfer_transaction_id: Option<String>,
-    pub matched_transaction_id: Option<String>,
-    pub import_id: Option<String>,
+    pub account_id: Uuid,
+    pub payee_id: Option<Uuid>,
+    pub category_id: Option<Uuid>,
+    pub transfer_account_id: Option<Uuid>,
+    pub transfer_transaction_id: Option<Uuid>,
+    pub matched_transaction_id: Option<Uuid>,
+    pub import_id: Option<Uuid>,
     pub deleted: bool,
 }
 
@@ -178,40 +178,40 @@ pub struct TransactionSummary {
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 /// See https://api.youneedabudget.com/v1#/Transactions/getTransactionById
 pub struct TransactionSummary {
-    pub id: String,
+    pub id: Uuid,
     pub date: String,
     pub amount: i64,
     pub memo: Option<String>,
     pub cleared: ClearedType,
     pub approved: bool,
     pub flag_color: Option<String>,
-    pub account_id: String,
-    pub payee_id: Option<String>,
-    pub category_id: Option<String>,
-    pub transfer_account_id: Option<String>,
-    pub transfer_transaction_id: Option<String>,
-    pub matched_transaction_id: Option<String>,
-    pub import_id: Option<String>,
+    pub account_id: Uuid,
+    pub payee_id: Option<Uuid>,
+    pub category_id: Option<Uuid>,
+    pub transfer_account_id: Option<Uuid>,
+    pub transfer_transaction_id: Option<Uuid>,
+    pub matched_transaction_id: Option<Uuid>,
+    pub import_id: Option<Uuid>,
     pub deleted: bool,
 }
 
 #[cfg(not(feature = "sqlx-postgres"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BaseTransactionDetail {
-    pub id: String,
+    pub id: Uuid,
     pub date: String,
     pub amount: i64,
     pub memo: Option<String>,
     pub cleared: ClearedType,
     pub approved: bool,
     pub flag_color: Option<String>,
-    pub account_id: String,
-    pub payee_id: Option<String>,
-    pub category_id: Option<String>,
-    pub transfer_account_id: Option<String>,
-    pub transfer_transaction_id: Option<String>,
-    pub matched_transaction_id: Option<String>,
-    pub import_id: Option<String>,
+    pub account_id: Uuid,
+    pub payee_id: Option<Uuid>,
+    pub category_id: Option<Uuid>,
+    pub transfer_account_id: Option<Uuid>,
+    pub transfer_transaction_id: Option<Uuid>,
+    pub matched_transaction_id: Option<Uuid>,
+    pub import_id: Option<Uuid>,
     pub deleted: bool,
     pub account_name: String,
     pub payee_name: Option<String>,
@@ -221,20 +221,20 @@ pub struct BaseTransactionDetail {
 #[cfg(feature = "sqlx-postgres")]
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct BaseTransactionDetail {
-    pub id: String,
+    pub id: Uuid,
     pub date: String,
     pub amount: i64,
     pub memo: Option<String>,
     pub cleared: ClearedType,
     pub approved: bool,
     pub flag_color: Option<String>,
-    pub account_id: String,
-    pub payee_id: Option<String>,
-    pub category_id: Option<String>,
-    pub transfer_account_id: Option<String>,
-    pub transfer_transaction_id: Option<String>,
-    pub matched_transaction_id: Option<String>,
-    pub import_id: Option<String>,
+    pub account_id: Uuid,
+    pub payee_id: Option<Uuid>,
+    pub category_id: Option<Uuid>,
+    pub transfer_account_id: Option<Uuid>,
+    pub transfer_transaction_id: Option<Uuid>,
+    pub matched_transaction_id: Option<Uuid>,
+    pub import_id: Option<Uuid>,
     pub deleted: bool,
     pub account_name: String,
     pub payee_name: Option<String>,
@@ -298,35 +298,35 @@ pub struct TransationsDetailDelta<T: AsRef<BaseTransactionDetail>> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Transactions/createTransaction
 pub struct SaveTransaction {
-    pub account_id: String,
+    pub account_id: Uuid,
     pub date: String,
     pub amount: i64,
-    pub payee_id: Option<String>,
+    pub payee_id: Option<Uuid>,
     pub payee_name: Option<String>,
-    pub category_id: Option<String>,
+    pub category_id: Option<Uuid>,
     pub memo: Option<String>,
     pub cleared: Option<ClearedType>,
     pub approved: Option<bool>,
     pub flag_color: Option<String>,
-    pub import_id: Option<String>,
+    pub import_id: Option<Uuid>,
     pub subtransactions: Option<Vec<SaveSubTransaction>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Transactions/updateTransactions
 pub struct UpdateTransaction {
-    pub id: String,
-    pub account_id: String,
+    pub id: Uuid,
+    pub account_id: Uuid,
     pub date: String,
     pub amount: i64,
-    pub payee_id: Option<String>,
+    pub payee_id: Option<Uuid>,
     pub payee_name: Option<String>,
-    pub category_id: Option<String>,
+    pub category_id: Option<Uuid>,
     pub memo: Option<String>,
     pub cleared: Option<ClearedType>,
     pub approved: Option<bool>,
     pub flag_color: Option<String>,
-    pub import_id: Option<String>,
+    pub import_id: Option<Uuid>,
     pub subtransactions: Option<Vec<SaveSubTransaction>>,
 }
 
@@ -346,9 +346,9 @@ pub struct SubTransaction {
 /// See https://api.youneedabudget.com/v1#/Transactions/createTransaction
 pub struct SaveSubTransaction {
     pub amount: i64,
-    pub payee_id: Option<String>,
+    pub payee_id: Option<Uuid>,
     pub payee_name: Option<String>,
-    pub category_id: Option<String>,
+    pub category_id: Option<Uuid>,
     pub memo: Option<String>,
 }
 
@@ -474,17 +474,17 @@ impl FromStr for RecurFrequency {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Scheduled_Transactions/getScheduledTransactionById
 pub struct ScheduledTransactionSummary {
-    pub id: String,
+    pub id: Uuid,
     pub date_first: chrono::NaiveDate,
     pub date_next: chrono::NaiveDate,
     pub frequency: Option<RecurFrequency>,
     pub amount: i64,
     pub memo: Option<String>,
     pub flag_color: Option<String>,
-    pub account_id: String,
-    pub payee_id: Option<String>,
-    pub category_id: Option<String>,
-    pub transfer_account_id: Option<String>,
+    pub account_id: Uuid,
+    pub payee_id: Option<Uuid>,
+    pub category_id: Option<Uuid>,
+    pub transfer_account_id: Option<Uuid>,
     pub deleted: bool,
 }
 
@@ -689,6 +689,7 @@ pub struct Category {
 pub struct Category {
     pub id: Uuid,
     pub category_group_id: Uuid,
+    pub category_group_name: String,
     pub name: String,
     pub hidden: bool,
     pub original_category_group_id: Option<Uuid>,
@@ -785,20 +786,18 @@ pub struct SaveMonthCategory {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CategoryGroup {
-    pub id: String,
+    pub id: Uuid,
     pub name: String,
-    pub hidden: Option<bool>,
+    pub hidden: bool,
     pub deleted: bool,
-    pub transfer_account_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CategoryGroupWithCategories {
-    pub id: String,
+    pub id: Uuid,
     pub name: String,
-    pub hidden: Option<bool>,
+    pub hidden: bool,
     pub deleted: bool,
-    pub transfer_account_id: Option<String>,
     pub categories: Vec<Category>,
 }
 
@@ -812,9 +811,9 @@ pub struct CategoryGroupWithCategoriesDelta {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Payees/getPayeeById
 pub struct Payee {
-    pub id: String,
+    pub id: Uuid,
     pub name: String,
-    pub transfer_account_id: Option<String>,
+    pub transfer_account_id: Option<Uuid>,
     pub deleted: bool,
 }
 
@@ -838,8 +837,8 @@ pub struct PayeesDelta {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 ///See https://api.youneedabudget.com/v1#/Payee_Locations/getPayeeLocationById
 pub struct PayeeLocation {
-    pub id: String,
-    pub payee_id: String,
+    pub id: Uuid,
+    pub payee_id: Uuid,
     pub latitude: String,
     pub longitude: String,
     pub deleted: bool,
@@ -849,8 +848,8 @@ pub struct PayeeLocation {
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 ///See https://api.youneedabudget.com/v1#/Payee_Locations/getPayeeLocationById
 pub struct PayeeLocation {
-    pub id: String,
-    pub payee_id: String,
+    pub id: Uuid,
+    pub payee_id: Uuid,
     pub latitude: String,
     pub longitude: String,
     pub deleted: bool,
@@ -875,7 +874,7 @@ pub struct DateFormat {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BaseBudgetSumary {
-    pub id: String,
+    pub id: Uuid,
     pub name: String,
     pub last_modified_on: String,
     pub first_month: String,
@@ -914,7 +913,7 @@ impl AsRef<BaseBudgetSumary> for BudgetSummaryWithAccounts {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Budgets/getBudgetById
 pub struct BudgetDetail {
-    pub id: String,
+    pub id: Uuid,
     pub name: String,
     pub last_modified_on: String,
     pub first_month: String,
@@ -949,7 +948,7 @@ pub struct BudgetSettings {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/User/getUser
 pub struct User {
-    pub id: String,
+    pub id: Uuid,
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]
