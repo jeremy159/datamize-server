@@ -51,6 +51,8 @@ pub async fn get_latest_categories(
             del_categories_detla(redis_conn)?;
             set_categories_last_saved(redis_conn, current_date.to_string())?;
         }
+    } else {
+        set_categories_last_saved(redis_conn, current_date.to_string())?;
     }
     let saved_categories_delta = get_categories_delta(redis_conn);
 

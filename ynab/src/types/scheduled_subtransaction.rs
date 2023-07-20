@@ -1,0 +1,245 @@
+use rrule::{Frequency, RRule, Unvalidated};
+use serde::{Deserialize, Serialize};
+use std::{fmt, str::FromStr};
+use uuid::Uuid;
+
+use crate::SubTransaction;
+
+#[cfg(not(feature = "sqlx-postgres"))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum RecurFrequency {
+    Never,
+    Daily,
+    Weekly,
+    EveryOtherWeek,
+    TwiceAMonth,
+    Every4Weeks,
+    Monthly,
+    EveryOtherMonth,
+    Every3Months,
+    Every4Months,
+    TwiceAYear,
+    Yearly,
+    EveryOtherYear,
+}
+
+#[cfg(feature = "sqlx-postgres")]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[serde(rename_all = "camelCase")]
+#[sqlx(type_name = "frequency")]
+#[sqlx(rename_all = "camelCase")]
+pub enum RecurFrequency {
+    Never,
+    Daily,
+    Weekly,
+    EveryOtherWeek,
+    TwiceAMonth,
+    Every4Weeks,
+    Monthly,
+    EveryOtherMonth,
+    Every3Months,
+    Every4Months,
+    TwiceAYear,
+    Yearly,
+    EveryOtherYear,
+}
+
+impl RecurFrequency {
+    /// Create a `RecurrenceRule` from the given YNAB frequency if applicable.
+    ///
+    /// Note: `RecurFrequency::Never` will produce `None`.
+    pub fn as_rfc5545_rule(&self) -> Option<RRule<Unvalidated>> {
+        Some(match self {
+            RecurFrequency::Never => return None,
+            RecurFrequency::Daily => RRule::new(Frequency::Daily),
+            RecurFrequency::Weekly => RRule::new(Frequency::Weekly),
+            RecurFrequency::Monthly => RRule::new(Frequency::Monthly),
+            RecurFrequency::Yearly => RRule::new(Frequency::Yearly),
+
+            RecurFrequency::EveryOtherWeek => RRule::new(Frequency::Weekly).interval(2),
+
+            RecurFrequency::TwiceAMonth => {
+                RRule::new(Frequency::Monthly).by_month_day(vec![15, -1])
+            }
+
+            RecurFrequency::Every4Weeks => RRule::new(Frequency::Weekly).interval(4),
+
+            RecurFrequency::EveryOtherMonth => RRule::new(Frequency::Monthly).interval(2),
+            RecurFrequency::Every3Months => RRule::new(Frequency::Monthly).interval(3),
+            RecurFrequency::Every4Months => RRule::new(Frequency::Monthly).interval(4),
+
+            RecurFrequency::TwiceAYear => RRule::new(Frequency::Monthly)
+                .by_month(&[chrono::Month::June, chrono::Month::December]),
+
+            RecurFrequency::EveryOtherYear => RRule::new(Frequency::Yearly).interval(2),
+        })
+    }
+}
+
+impl fmt::Display for RecurFrequency {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            RecurFrequency::Never => write!(f, "never"),
+            RecurFrequency::Daily => write!(f, "daily"),
+            RecurFrequency::Weekly => write!(f, "weekly"),
+            RecurFrequency::Monthly => write!(f, "monthly"),
+            RecurFrequency::Yearly => write!(f, "yearly"),
+            RecurFrequency::EveryOtherWeek => write!(f, "everyOtherWeek"),
+            RecurFrequency::TwiceAMonth => write!(f, "twiceAMonth"),
+            RecurFrequency::Every4Weeks => write!(f, "every4Weeks"),
+            RecurFrequency::EveryOtherMonth => write!(f, "everyOtherMonth"),
+            RecurFrequency::Every3Months => write!(f, "every3Months"),
+            RecurFrequency::Every4Months => write!(f, "every4Months"),
+            RecurFrequency::TwiceAYear => write!(f, "twiceAYear"),
+            RecurFrequency::EveryOtherYear => write!(f, "everyOtherYear"),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ParseRecurFrequencyError;
+
+impl FromStr for RecurFrequency {
+    type Err = ParseRecurFrequencyError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "never" => Ok(Self::Never),
+            "daily" => Ok(Self::Daily),
+            "weekly" => Ok(Self::Weekly),
+            "monthly" => Ok(Self::Monthly),
+            "yearly" => Ok(Self::Yearly),
+            "everyOtherWeek" => Ok(Self::EveryOtherWeek),
+            "twiceAMonth" => Ok(Self::TwiceAMonth),
+            "every4Weeks" => Ok(Self::Every4Weeks),
+            "everyOtherMonth" => Ok(Self::EveryOtherMonth),
+            "every3Months" => Ok(Self::Every3Months),
+            "every4Months" => Ok(Self::Every4Months),
+            "twiceAYear" => Ok(Self::TwiceAYear),
+            "everyOtherYear" => Ok(Self::EveryOtherYear),
+            _ => Err(ParseRecurFrequencyError),
+        }
+    }
+}
+
+#[cfg(not(feature = "sqlx-postgres"))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+/// See https://api.youneedabudget.com/v1#/Scheduled_Transactions/getScheduledTransactionById
+pub struct ScheduledTransactionSummary {
+    pub id: Uuid,
+    pub date_first: chrono::NaiveDate,
+    pub date_next: chrono::NaiveDate,
+    pub frequency: Option<RecurFrequency>,
+    pub amount: i64,
+    pub memo: Option<String>,
+    pub flag_color: Option<String>,
+    pub account_id: Uuid,
+    pub payee_id: Option<Uuid>,
+    pub category_id: Option<Uuid>,
+    pub transfer_account_id: Option<Uuid>,
+    pub deleted: bool,
+}
+
+#[cfg(feature = "sqlx-postgres")]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+/// See https://api.youneedabudget.com/v1#/Scheduled_Transactions/getScheduledTransactionById
+pub struct ScheduledTransactionSummary {
+    pub id: Uuid,
+    pub date_first: chrono::NaiveDate,
+    pub date_next: chrono::NaiveDate,
+    pub frequency: Option<RecurFrequency>,
+    pub amount: i64,
+    pub memo: Option<String>,
+    pub flag_color: Option<String>,
+    pub account_id: Uuid,
+    pub payee_id: Option<Uuid>,
+    pub category_id: Option<Uuid>,
+    pub transfer_account_id: Option<Uuid>,
+    pub deleted: bool,
+}
+
+impl From<ScheduledTransactionDetail> for ScheduledTransactionSummary {
+    fn from(st: ScheduledTransactionDetail) -> Self {
+        Self {
+            id: st.id,
+            date_first: st.date_first,
+            date_next: st.date_next,
+            frequency: st.frequency,
+            amount: st.amount,
+            memo: st.memo,
+            flag_color: st.flag_color,
+            account_id: st.account_id,
+            payee_id: st.payee_id,
+            category_id: st.category_id,
+            transfer_account_id: st.transfer_account_id,
+            deleted: st.deleted,
+        }
+    }
+}
+
+#[cfg(not(feature = "sqlx-postgres"))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+/// See https://api.youneedabudget.com/v1#/Scheduled_Transactions/getScheduledTransactionById
+pub struct ScheduledTransactionDetail {
+    pub id: Uuid,
+    pub date_first: chrono::NaiveDate,
+    pub date_next: chrono::NaiveDate,
+    pub frequency: Option<RecurFrequency>,
+    pub amount: i64,
+    pub memo: Option<String>,
+    pub flag_color: Option<String>,
+    pub account_id: Uuid,
+    pub payee_id: Option<Uuid>,
+    pub category_id: Option<Uuid>,
+    pub transfer_account_id: Option<Uuid>,
+    pub deleted: bool,
+    pub account_name: String,
+    pub payee_name: Option<String>,
+    pub category_name: Option<String>,
+    pub subtransactions: Vec<SubTransaction>,
+}
+
+#[cfg(feature = "sqlx-postgres")]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+/// See https://api.youneedabudget.com/v1#/Scheduled_Transactions/getScheduledTransactionById
+pub struct ScheduledTransactionDetail {
+    pub id: Uuid,
+    pub date_first: chrono::NaiveDate,
+    pub date_next: chrono::NaiveDate,
+    pub frequency: Option<RecurFrequency>,
+    pub amount: i64,
+    pub memo: Option<String>,
+    pub flag_color: Option<String>,
+    pub account_id: Uuid,
+    pub payee_id: Option<Uuid>,
+    pub category_id: Option<Uuid>,
+    pub transfer_account_id: Option<Uuid>,
+    pub deleted: bool,
+    pub account_name: String,
+    pub payee_name: Option<String>,
+    pub category_name: Option<String>,
+    pub subtransactions: Vec<SubTransaction>,
+}
+
+impl ScheduledTransactionDetail {
+    pub fn from_subtransaction(self, sub_t: &SubTransaction) -> Self {
+        Self {
+            subtransactions: vec![],
+            id: sub_t.id,
+            amount: sub_t.amount,
+            memo: sub_t.memo.clone(),
+            payee_id: sub_t.payee_id,
+            category_id: sub_t.category_id,
+            transfer_account_id: sub_t.transfer_account_id,
+            deleted: sub_t.deleted,
+            ..self
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScheduledTransactionsDetailDelta {
+    pub scheduled_transactions: Vec<ScheduledTransactionDetail>,
+    pub server_knowledge: i64,
+}

@@ -31,6 +31,8 @@ pub async fn get_latest_scheduled_transactions(
             del_scheduled_transactions_delta(redis_conn)?;
             set_scheduled_transactions_last_saved(redis_conn, current_date.to_string())?;
         }
+    } else {
+        set_scheduled_transactions_last_saved(redis_conn, current_date.to_string())?;
     }
     let saved_scheduled_transactions_delta = get_scheduled_transactions_delta(redis_conn);
 
