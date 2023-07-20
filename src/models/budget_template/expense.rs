@@ -3,9 +3,9 @@ use std::{fmt, str::FromStr};
 use chrono::Local;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use ynab::types::{Category, CategoryGroupWithCategories, GoalType, ScheduledTransactionDetail};
+use ynab::types::{Category, GoalType, ScheduledTransactionDetail};
 
-use super::{Budgeter, ComputedSalary, ExternalExpense};
+use super::{Budgeter, BudgeterExt, ComputedSalary, ExpenseCategorization, ExternalExpense};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Expense<S: ExpenseState> {
@@ -81,7 +81,7 @@ impl<S: ExpenseState> Expense<S> {
         self.individual_associated = budgeters
             .iter()
             .find(|b| self.name.contains(b.name()))
-            .map(|b| b.name().clone());
+            .map(|b| b.name().to_string());
         self
     }
 }
@@ -329,7 +329,7 @@ impl FromStr for ExpenseType {
 }
 
 #[derive(
-    Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Default, sqlx::Type,
+    Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Default, Hash, sqlx::Type,
 )]
 #[serde(rename_all = "camelCase")]
 pub enum SubExpenseType {
@@ -387,39 +387,3 @@ pub trait ExpenseState {}
 impl ExpenseState for Uncomputed {}
 impl ExpenseState for PartiallyComputed {}
 impl ExpenseState for Computed {}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Default, sqlx::FromRow)]
-pub struct ExpenseCategorization {
-    pub id: Uuid,
-    pub name: String,
-    /// The type the expense relates to.
-    #[serde(rename = "type")]
-    #[sqlx(rename = "type")]
-    pub expense_type: ExpenseType,
-    /// The sub_type the expense relates to. This can be useful for example to group only housing expenses together.
-    #[serde(rename = "sub_type")]
-    #[sqlx(rename = "sub_type")]
-    pub sub_expense_type: SubExpenseType,
-}
-
-impl ExpenseCategorization {
-    pub fn new(id: Uuid, name: String) -> Self {
-        Self {
-            id,
-            name,
-            ..Default::default()
-        }
-    }
-}
-
-impl From<CategoryGroupWithCategories> for ExpenseCategorization {
-    fn from(value: CategoryGroupWithCategories) -> Self {
-        ExpenseCategorization::new(value.id, value.name)
-    }
-}
-
-impl From<Category> for ExpenseCategorization {
-    fn from(value: Category) -> Self {
-        ExpenseCategorization::new(value.category_group_id, value.category_group_name)
-    }
-}

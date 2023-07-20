@@ -63,6 +63,21 @@ pub fn set_categories_detla(redis_conn: &mut Connection, server_knowledge: i64) 
     redis::set_categories_detla(redis_conn, server_knowledge)
 }
 
+pub fn del_categories_detla(redis_conn: &mut Connection) -> RedisResult<()> {
+    redis::del_categories_detla(redis_conn)
+}
+
+pub fn get_categories_last_saved(redis_conn: &mut Connection) -> Option<String> {
+    redis::get_categories_last_saved(redis_conn)
+}
+
+pub fn set_categories_last_saved(
+    redis_conn: &mut Connection,
+    last_saved: String,
+) -> RedisResult<()> {
+    redis::set_categories_last_saved(redis_conn, last_saved)
+}
+
 pub fn get_scheduled_transactions_delta(redis_conn: &mut Connection) -> Option<i64> {
     redis::get_scheduled_transactions_delta(redis_conn)
 }
@@ -72,6 +87,21 @@ pub fn set_scheduled_transactions_delta(
     server_knowledge: i64,
 ) -> RedisResult<()> {
     redis::set_scheduled_transactions_delta(redis_conn, server_knowledge)
+}
+
+pub fn del_scheduled_transactions_delta(redis_conn: &mut Connection) -> RedisResult<()> {
+    redis::del_scheduled_transactions_delta(redis_conn)
+}
+
+pub fn get_scheduled_transactions_last_saved(redis_conn: &mut Connection) -> Option<String> {
+    redis::get_scheduled_transactions_last_saved(redis_conn)
+}
+
+pub fn set_scheduled_transactions_last_saved(
+    redis_conn: &mut Connection,
+    last_saved: String,
+) -> RedisResult<()> {
+    redis::set_scheduled_transactions_last_saved(redis_conn, last_saved)
 }
 
 pub fn get_accounts_delta(redis_conn: &mut Connection) -> Option<i64> {

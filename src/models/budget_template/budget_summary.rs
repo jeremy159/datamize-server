@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
-use ynab::types::ScheduledTransactionDetail;
 
-use super::{BudgetDetails, Budgeter, BudgeterConfig, ComputedExpenses, Configured, TotalBudgeter};
+use super::{BudgetDetails, Budgeter, ComputedExpenses, ComputedSalary, TotalBudgeter};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BudgetSummary {
@@ -11,16 +10,7 @@ pub struct BudgetSummary {
 
 /// A proportionally split budget's expenses.
 impl BudgetSummary {
-    pub fn build(
-        budget_details: &BudgetDetails,
-        scheduled_transactions: &[ScheduledTransactionDetail],
-        budgeters_config: Vec<BudgeterConfig>,
-    ) -> Self {
-        let budgeters: Vec<_> = budgeters_config
-            .into_iter()
-            .map(|bc| Budgeter::<Configured>::from(bc).compute_salary(scheduled_transactions))
-            .collect();
-
+    pub fn build(budget_details: &BudgetDetails, budgeters: Vec<Budgeter<ComputedSalary>>) -> Self {
         let (total_budgeter, individual_expenses) = TotalBudgeter::new()
             .compute_salary(&budgeters)
             .compute_expenses(budget_details.expenses(), &budgeters);

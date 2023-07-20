@@ -2,7 +2,37 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use ynab::types::ScheduledTransactionDetail;
 
-use super::{expense, find_repeatable_transactions, Expense};
+use super::{expense, find_repeatable_transactions, BudgeterConfig, Expense};
+
+pub trait BudgeterExt {
+    fn id(&self) -> Uuid;
+    fn name(&self) -> &str;
+    fn payee_ids(&self) -> &[Uuid];
+
+    fn salary(&self) -> i64 {
+        Default::default()
+    }
+
+    fn salary_month(&self) -> i64 {
+        Default::default()
+    }
+
+    fn proportion(&self) -> f64 {
+        Default::default()
+    }
+
+    fn common_expenses(&self) -> i64 {
+        Default::default()
+    }
+
+    fn individual_expenses(&self) -> i64 {
+        Default::default()
+    }
+
+    fn left_over(&self) -> i64 {
+        Default::default()
+    }
+}
 
 /// A Budgeter represents someone that has income and expenses for the month.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -85,6 +115,20 @@ impl Budgeter<Configured> {
     }
 }
 
+impl BudgeterExt for Budgeter<Configured> {
+    fn id(&self) -> Uuid {
+        self.extra.id
+    }
+
+    fn name(&self) -> &str {
+        &self.extra.name
+    }
+
+    fn payee_ids(&self) -> &[Uuid] {
+        &self.extra.payee_ids
+    }
+}
+
 impl TotalBudgeter<Configured> {
     pub fn compute_salary(
         self,
@@ -100,29 +144,31 @@ impl TotalBudgeter<Configured> {
     }
 }
 
+impl BudgeterExt for TotalBudgeter<Configured> {
+    fn id(&self) -> Uuid {
+        self.extra.id
+    }
+
+    fn name(&self) -> &str {
+        &self.extra.name
+    }
+
+    fn payee_ids(&self) -> &[Uuid] {
+        &self.extra.payee_ids
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ComputedSalary {
     #[serde(flatten)]
     configured: Configured,
     /// Single occurence salary amount.
     salary: i64,
-    /// Number of times the salary gets repeated for this month. This number can vary from one month to
-    /// the other.
-    // salary_occurence: i16, // TODO: Check if still needed...
     /// Total salary inflow for this month. This number can vary from one month to the other.
     salary_month: i64,
 }
 
 impl Budgeter<ComputedSalary> {
-    pub fn name(&self) -> &String {
-        // TODO: Maybe define in a Trait?
-        &self.extra.configured.name
-    }
-
-    pub fn salary_month(&self) -> i64 {
-        self.extra.salary_month
-    }
-
     pub fn compute_expenses(
         self,
         total_budgeter: &TotalBudgeter<ComputedExpenses>,
@@ -149,6 +195,28 @@ impl Budgeter<ComputedSalary> {
                 compuded_salary: self.extra,
             },
         }
+    }
+}
+
+impl BudgeterExt for Budgeter<ComputedSalary> {
+    fn id(&self) -> Uuid {
+        self.extra.configured.id
+    }
+
+    fn name(&self) -> &str {
+        &self.extra.configured.name
+    }
+
+    fn payee_ids(&self) -> &[Uuid] {
+        &self.extra.configured.payee_ids
+    }
+
+    fn salary(&self) -> i64 {
+        self.extra.salary
+    }
+
+    fn salary_month(&self) -> i64 {
+        self.extra.salary_month
     }
 }
 
@@ -202,6 +270,28 @@ impl TotalBudgeter<ComputedSalary> {
     }
 }
 
+impl BudgeterExt for TotalBudgeter<ComputedSalary> {
+    fn id(&self) -> Uuid {
+        self.extra.configured.id
+    }
+
+    fn name(&self) -> &str {
+        &self.extra.configured.name
+    }
+
+    fn payee_ids(&self) -> &[Uuid] {
+        &self.extra.configured.payee_ids
+    }
+
+    fn salary(&self) -> i64 {
+        self.extra.salary
+    }
+
+    fn salary_month(&self) -> i64 {
+        self.extra.salary_month
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ComputedExpenses {
     #[serde(flatten)]
@@ -216,38 +306,84 @@ pub struct ComputedExpenses {
     left_over: i64,
 }
 
+impl BudgeterExt for Budgeter<ComputedExpenses> {
+    fn id(&self) -> Uuid {
+        self.extra.compuded_salary.configured.id
+    }
+
+    fn name(&self) -> &str {
+        &self.extra.compuded_salary.configured.name
+    }
+
+    fn payee_ids(&self) -> &[Uuid] {
+        &self.extra.compuded_salary.configured.payee_ids
+    }
+
+    fn salary(&self) -> i64 {
+        self.extra.compuded_salary.salary
+    }
+
+    fn salary_month(&self) -> i64 {
+        self.extra.compuded_salary.salary_month
+    }
+
+    fn proportion(&self) -> f64 {
+        self.extra.proportion
+    }
+
+    fn common_expenses(&self) -> i64 {
+        self.extra.common_expenses
+    }
+
+    fn individual_expenses(&self) -> i64 {
+        self.extra.individual_expenses
+    }
+
+    fn left_over(&self) -> i64 {
+        self.extra.left_over
+    }
+}
+
+impl BudgeterExt for TotalBudgeter<ComputedExpenses> {
+    fn id(&self) -> Uuid {
+        self.extra.compuded_salary.configured.id
+    }
+
+    fn name(&self) -> &str {
+        &self.extra.compuded_salary.configured.name
+    }
+
+    fn payee_ids(&self) -> &[Uuid] {
+        &self.extra.compuded_salary.configured.payee_ids
+    }
+
+    fn salary(&self) -> i64 {
+        self.extra.compuded_salary.salary
+    }
+
+    fn salary_month(&self) -> i64 {
+        self.extra.compuded_salary.salary_month
+    }
+
+    fn proportion(&self) -> f64 {
+        self.extra.proportion
+    }
+
+    fn common_expenses(&self) -> i64 {
+        self.extra.common_expenses
+    }
+
+    fn individual_expenses(&self) -> i64 {
+        self.extra.individual_expenses
+    }
+
+    fn left_over(&self) -> i64 {
+        self.extra.left_over
+    }
+}
+
 pub trait BudgeterState {}
 impl BudgeterState for Empty {}
 impl BudgeterState for Configured {}
 impl BudgeterState for ComputedSalary {}
 impl BudgeterState for ComputedExpenses {}
-
-// TODO: Use this as base state for the Budgeter.
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct BudgeterConfig {
-    pub id: Uuid,
-    pub name: String,
-    pub payee_ids: Vec<Uuid>,
-}
-
-impl BudgeterConfig {
-    pub fn new(name: String, payee_ids: Vec<Uuid>) -> Self {
-        Self {
-            id: Uuid::new_v4(),
-            name,
-            payee_ids,
-        }
-    }
-}
-
-impl From<SaveBudgeterConfig> for BudgeterConfig {
-    fn from(value: SaveBudgeterConfig) -> Self {
-        Self::new(value.name, value.payee_ids)
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SaveBudgeterConfig {
-    pub name: String,
-    pub payee_ids: Vec<Uuid>,
-}

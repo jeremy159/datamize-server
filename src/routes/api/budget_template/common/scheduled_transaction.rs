@@ -1,12 +1,15 @@
 use std::collections::HashMap;
 
 use anyhow::Context;
+use chrono::{Datelike, Local, NaiveDate};
 use ynab::types::ScheduledTransactionDetail;
 
 use crate::{
     db::budget_providers::ynab::{
-        get_scheduled_transactions, get_scheduled_transactions_delta, save_scheduled_transactions,
-        set_scheduled_transactions_delta,
+        del_scheduled_transactions_delta, get_scheduled_transactions,
+        get_scheduled_transactions_delta, get_scheduled_transactions_last_saved,
+        save_scheduled_transactions, set_scheduled_transactions_delta,
+        set_scheduled_transactions_last_saved,
     },
     models::budget_template::{
         find_repeatable_transactions, is_transaction_in_next_30_days, CategoryIdToNameMap,
@@ -20,6 +23,15 @@ pub async fn get_latest_scheduled_transactions(
     redis_conn: &mut redis::Connection,
     ynab_client: &ynab::Client,
 ) -> anyhow::Result<Vec<ScheduledTransactionDetail>> {
+    let current_date = Local::now().date_naive();
+    if let Some(last_saved) = get_scheduled_transactions_last_saved(redis_conn) {
+        let last_saved_date: NaiveDate = last_saved.parse()?;
+        if current_date.month() != last_saved_date.month() {
+            // Discard knowledge_server when changing month.
+            del_scheduled_transactions_delta(redis_conn)?;
+            set_scheduled_transactions_last_saved(redis_conn, current_date.to_string())?;
+        }
+    }
     let saved_scheduled_transactions_delta = get_scheduled_transactions_delta(redis_conn);
 
     let scheduled_transactions_delta = ynab_client

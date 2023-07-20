@@ -9,7 +9,9 @@ use crate::{
     db::budget_template::{get_all_budgeters_config, get_all_external_expenses},
     error::HttpJsonAppResult,
     get_redis_conn,
-    models::budget_template::{BudgetDetails, BudgetSummary, MonthQueryParam},
+    models::budget_template::{
+        BudgetDetails, BudgetSummary, Budgeter, Configured, MonthQueryParam,
+    },
     routes::api::budget_template::common::{
         get_categories_of_month, get_latest_scheduled_transactions,
     },
@@ -32,30 +34,30 @@ pub async fn template_summary(
     let mut second_redis_conn = get_redis_conn(&app_state.redis_conn_pool)
         .context("failed to get second redis connection from pool")?;
 
-    let Query(MonthQueryParam { month }) = month.unwrap_or_default();
+    let Query(MonthQueryParam(month)) = month.unwrap_or_default();
 
     let ((saved_categories, expenses_categorization), saved_scheduled_transactions) = try_join!(
         get_categories_of_month(&db_conn_pool, &mut redis_conn, ynab_client, month),
         get_latest_scheduled_transactions(&db_conn_pool, &mut second_redis_conn, ynab_client)
     )
     .context("failed to get latest categories and scheduled transactions")?;
-    let budgeters_config = get_all_budgeters_config(&db_conn_pool).await?;
     let external_expenses = get_all_external_expenses(&db_conn_pool).await?;
+    let budgeters_config = get_all_budgeters_config(&db_conn_pool).await?;
+    let budgeters: Vec<_> = budgeters_config
+        .into_iter()
+        .map(|bc| Budgeter::<Configured>::from(bc).compute_salary(&saved_scheduled_transactions))
+        .collect();
 
     let budget_details = BudgetDetails::build(
         saved_categories,
-        saved_scheduled_transactions.clone(),
+        saved_scheduled_transactions,
         &month.into(),
         external_expenses,
         expenses_categorization,
-        budgeters_config.clone(),
+        &budgeters,
     );
 
-    let data = BudgetSummary::build(
-        &budget_details,
-        &saved_scheduled_transactions,
-        budgeters_config,
-    );
+    let data = BudgetSummary::build(&budget_details, budgeters);
 
     Ok(Json(data))
 }

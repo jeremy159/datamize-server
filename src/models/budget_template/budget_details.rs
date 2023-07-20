@@ -7,7 +7,7 @@ use uuid::Uuid;
 use ynab::types::{Category, ScheduledTransactionDetail};
 
 use super::{
-    expense::Computed, Budgeter, BudgeterConfig, Configured, Expense, ExpenseCategorization,
+    expense::Computed, Budgeter, BudgeterExt, ComputedSalary, Expense, ExpenseCategorization,
     ExpenseType, ExternalExpense, PartiallyComputed, Uncomputed,
 };
 
@@ -21,9 +21,7 @@ pub enum MonthTarget {
 }
 
 #[derive(Debug, Deserialize, Default)]
-pub struct MonthQueryParam {
-    pub month: MonthTarget,
-}
+pub struct MonthQueryParam(pub MonthTarget);
 
 impl From<MonthTarget> for DateTime<Local> {
     fn from(value: MonthTarget) -> Self {
@@ -87,13 +85,8 @@ impl BudgetDetails {
         date: &DateTime<Local>,
         external_expenses: Vec<ExternalExpense>,
         expenses_categorization: Vec<ExpenseCategorization>,
-        budgeters_config: Vec<BudgeterConfig>,
+        budgeters: &[Budgeter<ComputedSalary>],
     ) -> Self {
-        let budgeters: Vec<_> = budgeters_config
-            .into_iter()
-            .map(|bc| Budgeter::<Configured>::from(bc).compute_salary(&scheduled_transactions))
-            .collect();
-
         let mut scheduled_transactions_map =
             build_category_to_scheduled_transaction_map(scheduled_transactions, date);
 
@@ -115,7 +108,7 @@ impl BudgetDetails {
             .into_iter()
             .map(|e| {
                 e.set_categorization(&expenses_categorization)
-                    .set_individual_association(&budgeters)
+                    .set_individual_association(budgeters)
             })
             .filter(|e| e.expense_type() != &ExpenseType::Undefined)
             .collect();
