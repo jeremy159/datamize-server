@@ -7,6 +7,7 @@ use anyhow::{Context, Ok, Result};
 use axum::{body::Body, routing::get, Router};
 use http::{header::CONTENT_TYPE, Request};
 use sqlx::{PgPool, Pool, Postgres};
+use tokio::signal;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tower_request_id::{RequestId, RequestIdLayer};
 use tracing::error_span;
@@ -122,8 +123,35 @@ impl Application {
         // run it with hyper
         axum::Server::bind(&self.socket_addr)
             .serve(self.app.into_make_service())
+            .with_graceful_shutdown(Application::shutdown_signal())
             .await
             .context("failed to start hyper server")?;
         Ok(())
+    }
+
+    async fn shutdown_signal() {
+        let ctrl_c = async {
+            signal::ctrl_c()
+                .await
+                .expect("failed to install Ctrl+C handler");
+        };
+
+        #[cfg(unix)]
+        let terminate = async {
+            signal::unix::signal(signal::unix::SignalKind::terminate())
+                .expect("failed to install signal handler")
+                .recv()
+                .await;
+        };
+
+        #[cfg(not(unix))]
+        let terminate = std::future::pending::<()>();
+
+        tokio::select! {
+            _ = ctrl_c => {},
+            _ = terminate => {},
+        }
+
+        println!("signal received, starting graceful shutdown");
     }
 }
