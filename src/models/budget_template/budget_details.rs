@@ -1,14 +1,13 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, Datelike, Local, Months, NaiveTime, TimeZone};
-use rrule::Tz;
+use chrono::{DateTime, Datelike, Local, Months};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use ynab::types::{Category, ScheduledTransactionDetail};
+use ynab::types::Category;
 
 use super::{
-    expense::Computed, Budgeter, BudgeterExt, ComputedSalary, Expense, ExpenseCategorization,
-    ExpenseType, ExternalExpense, PartiallyComputed, Uncomputed,
+    expense::Computed, Budgeter, BudgeterExt, ComputedSalary, DatamizeScheduledTransaction,
+    Expense, ExpenseCategorization, ExpenseType, ExternalExpense, PartiallyComputed, Uncomputed,
 };
 
 #[derive(Debug, Deserialize, Default, Copy, Clone)]
@@ -81,7 +80,7 @@ impl BudgetDetails {
 
     pub fn build(
         categories: Vec<Category>,
-        scheduled_transactions: Vec<ScheduledTransactionDetail>,
+        scheduled_transactions: Vec<DatamizeScheduledTransaction>,
         date: &DateTime<Local>,
         external_expenses: Vec<ExternalExpense>,
         expenses_categorization: Vec<ExpenseCategorization>,
@@ -146,104 +145,31 @@ impl BudgetDetails {
     }
 }
 
-fn build_category_to_scheduled_transaction_map(
-    scheduled_transactions: Vec<ScheduledTransactionDetail>,
+fn build_category_to_scheduled_transaction_map<T: Into<DatamizeScheduledTransaction>>(
+    scheduled_transactions: Vec<T>,
     date: &DateTime<Local>,
-) -> HashMap<Uuid, Vec<ScheduledTransactionDetail>> {
-    let mut hash_map: HashMap<Uuid, Vec<ScheduledTransactionDetail>> =
-        HashMap::with_capacity(scheduled_transactions.len());
+) -> HashMap<Uuid, Vec<DatamizeScheduledTransaction>> {
+    let scheduled_transactions: Vec<DatamizeScheduledTransaction> =
+        scheduled_transactions.into_iter().map(Into::into).collect();
 
-    let scheduled_transactions_filtered: Vec<ScheduledTransactionDetail> = scheduled_transactions
+    let scheduled_transactions: Vec<_> = scheduled_transactions
         .into_iter()
-        .filter(|st| st.category_id.is_some())
-        .filter(|st| !st.deleted)
-        .flat_map(|st| get_scheduled_transactions_within_month(&st, date))
+        .filter(|dst| !dst.deleted && dst.category_id.is_some())
+        .flat_map(|dst| dst.flatten())
+        .flat_map(|dst| dst.get_transactions_within_month(date))
         .collect();
 
-    for st in flatten_sub_transactions(scheduled_transactions_filtered) {
-        if let Some(category_id) = st.category_id {
+    let mut hash_map: HashMap<Uuid, Vec<DatamizeScheduledTransaction>> =
+        HashMap::with_capacity(scheduled_transactions.len());
+
+    for dst in scheduled_transactions {
+        if let Some(category_id) = dst.category_id {
             hash_map
                 .entry(category_id)
                 .or_insert_with(Vec::new)
-                .push(st);
+                .push(dst);
         }
     }
 
     hash_map
-}
-
-/// Method to find any transactions that was scheduled in current month, might it be from previous or future days.
-pub fn get_scheduled_transactions_within_month(
-    scheduled_transaction: &ScheduledTransactionDetail,
-    date: &DateTime<Local>,
-) -> Vec<ScheduledTransactionDetail> {
-    let mut scheduled_transactions = vec![];
-
-    if let Some(ref frequency) = scheduled_transaction.frequency {
-        let first_day_next_month = date.checked_add_months(Months::new(1)).unwrap();
-
-        if scheduled_transaction.date_first < first_day_next_month.date_naive() {
-            if let Some(rrule) = frequency.as_rfc5545_rule() {
-                let first_day_date_time = Tz::Local(Local)
-                    .from_local_datetime(&date.naive_local())
-                    .unwrap();
-
-                let first_date_time = Tz::Local(Local)
-                    .from_local_datetime(
-                        &scheduled_transaction
-                            .date_first
-                            .and_time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
-                    )
-                    .unwrap();
-
-                let first_day_next_month_date_time = Tz::Local(Local)
-                    .from_local_datetime(&first_day_next_month.naive_local())
-                    .unwrap();
-
-                let mut rrule = rrule.until(first_day_next_month_date_time);
-
-                if scheduled_transaction.date_first.day() == 31 {
-                    rrule = rrule.by_month_day(vec![-1]);
-                }
-
-                // Range is first day included but not last day
-                let rrule_set = rrule
-                    .build(first_date_time)
-                    .unwrap()
-                    .after(first_day_date_time);
-
-                rrule_set.all_unchecked().into_iter().for_each(|date| {
-                    let mut new_transaction = scheduled_transaction.clone();
-                    new_transaction.date_next = date.date_naive();
-                    scheduled_transactions.push(new_transaction);
-                });
-            }
-        }
-    }
-
-    scheduled_transactions
-}
-
-pub fn flatten_sub_transactions(
-    scheduled_transaction: Vec<ScheduledTransactionDetail>,
-) -> Vec<ScheduledTransactionDetail> {
-    scheduled_transaction
-        .into_iter()
-        .flat_map(|st| {
-            match st
-                .subtransactions
-                .iter()
-                .filter(|sub_st| !sub_st.deleted)
-                .count()
-            {
-                0 => vec![st],
-                _ => st
-                    .subtransactions
-                    .iter()
-                    .filter(|sub_st| !sub_st.deleted)
-                    .map(|sub_st| st.clone().from_subtransaction(sub_st))
-                    .collect(),
-            }
-        })
-        .collect()
 }

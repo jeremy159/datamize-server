@@ -3,9 +3,12 @@ use std::{fmt, str::FromStr};
 use chrono::Local;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use ynab::types::{Category, GoalType, ScheduledTransactionDetail};
+use ynab::types::{Category, GoalType};
 
-use super::{Budgeter, BudgeterExt, ComputedSalary, ExpenseCategorization, ExternalExpense};
+use super::{
+    Budgeter, BudgeterExt, ComputedSalary, DatamizeScheduledTransaction, ExpenseCategorization,
+    ExternalExpense,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Expense<S: ExpenseState> {
@@ -24,7 +27,7 @@ pub struct Expense<S: ExpenseState> {
     #[serde(skip)]
     category: Option<Category>,
     #[serde(skip)]
-    scheduled_transactions: Vec<ScheduledTransactionDetail>,
+    scheduled_transactions: Vec<DatamizeScheduledTransaction>,
     #[serde(flatten)]
     extra: S,
 }
@@ -54,7 +57,7 @@ impl<S: ExpenseState> Expense<S> {
         self.category.as_ref()
     }
 
-    pub fn scheduled_transactions(&self) -> &[ScheduledTransactionDetail] {
+    pub fn scheduled_transactions(&self) -> &[DatamizeScheduledTransaction] {
         &self.scheduled_transactions
     }
 
@@ -90,11 +93,11 @@ impl<S: ExpenseState> Expense<S> {
 pub struct Uncomputed;
 
 impl Expense<Uncomputed> {
-    pub fn with_scheduled_transactions(
+    pub fn with_scheduled_transactions<T: Into<DatamizeScheduledTransaction>>(
         mut self,
-        scheduled_transactions: Vec<ScheduledTransactionDetail>,
+        scheduled_transactions: Vec<T>,
     ) -> Self {
-        self.scheduled_transactions = scheduled_transactions;
+        self.scheduled_transactions = scheduled_transactions.into_iter().map(Into::into).collect();
         self
     }
 

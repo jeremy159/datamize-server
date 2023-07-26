@@ -109,7 +109,7 @@ async fn get_expenses_categorization<T: TryInto<ExpenseCategorization>>(
 
     let expenses_categorization = categories
         .into_iter()
-        .flat_map(|c| c.try_into())
+        .flat_map(TryInto::try_into)
         .collect::<Vec<_>>();
 
     for ec in expenses_categorization {

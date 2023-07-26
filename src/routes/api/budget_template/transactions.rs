@@ -3,17 +3,18 @@ use std::collections::HashMap;
 use anyhow::Context;
 use axum::{extract::State, Json};
 use futures::{stream::FuturesUnordered, StreamExt};
-use ynab::types::ScheduledTransactionDetail;
 
 use crate::{
     db::budget_providers::ynab::*,
     error::HttpJsonAppResult,
     get_redis_conn,
-    models::budget_template::{CategoryIdToNameMap, ScheduledTransactionsDistribution},
+    models::budget_template::{
+        CategoryIdToNameMap, DatamizeScheduledTransaction, ScheduledTransactionsDistribution,
+    },
     startup::AppState,
 };
 
-use super::common::{build_scheduled_transactions, get_latest_scheduled_transactions};
+use super::common::get_latest_scheduled_transactions;
 
 /// Returns a budget template transactions, i.e. all the scheduled transactions in the upcoming 30 days.
 pub async fn template_transactions(
@@ -55,18 +56,19 @@ pub async fn template_transactions(
         category_id_to_name_map.insert(category.id, category.name);
     }
 
-    let data = build_scheduled_transactions(saved_scheduled_transactions, &category_id_to_name_map)
-        .context("failed to compute scheduled transactions map")?;
+    let data = ScheduledTransactionsDistribution::builder(saved_scheduled_transactions)
+        .with_category_map(category_id_to_name_map)
+        .build();
 
     Ok(Json(data))
 }
 
 fn get_subtransactions_category_ids(
-    scheduled_transactions: &[ScheduledTransactionDetail],
+    scheduled_transactions: &[DatamizeScheduledTransaction],
 ) -> Vec<uuid::Uuid> {
     scheduled_transactions
         .iter()
         .flat_map(|st| &st.subtransactions)
-        .filter_map(|sub_st| sub_st.category_id.to_owned())
+        .filter_map(|sub_st| sub_st.category_id)
         .collect()
 }

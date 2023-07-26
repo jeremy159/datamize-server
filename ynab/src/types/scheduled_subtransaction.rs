@@ -159,25 +159,6 @@ pub struct ScheduledTransactionSummary {
     pub deleted: bool,
 }
 
-impl From<ScheduledTransactionDetail> for ScheduledTransactionSummary {
-    fn from(st: ScheduledTransactionDetail) -> Self {
-        Self {
-            id: st.id,
-            date_first: st.date_first,
-            date_next: st.date_next,
-            frequency: st.frequency,
-            amount: st.amount,
-            memo: st.memo,
-            flag_color: st.flag_color,
-            account_id: st.account_id,
-            payee_id: st.payee_id,
-            category_id: st.category_id,
-            transfer_account_id: st.transfer_account_id,
-            deleted: st.deleted,
-        }
-    }
-}
-
 #[cfg(not(feature = "sqlx-postgres"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Scheduled_Transactions/getScheduledTransactionById
@@ -220,22 +201,6 @@ pub struct ScheduledTransactionDetail {
     pub payee_name: Option<String>,
     pub category_name: Option<String>,
     pub subtransactions: Vec<SubTransaction>,
-}
-
-impl ScheduledTransactionDetail {
-    pub fn from_subtransaction(self, sub_t: &SubTransaction) -> Self {
-        Self {
-            subtransactions: vec![],
-            id: sub_t.id,
-            amount: sub_t.amount,
-            memo: sub_t.memo.clone(),
-            payee_id: sub_t.payee_id,
-            category_id: sub_t.category_id,
-            transfer_account_id: sub_t.transfer_account_id,
-            deleted: sub_t.deleted,
-            ..self
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

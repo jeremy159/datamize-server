@@ -6,7 +6,7 @@ mod expense;
 mod expense_categorization;
 mod external_expense;
 mod scheduled_transaction;
-mod utils;
+mod scheduled_transactions_distribution;
 
 pub use budget_details::*;
 pub use budget_summary::*;
@@ -16,4 +16,4 @@ pub use expense::*;
 pub use expense_categorization::*;
 pub use external_expense::*;
 pub use scheduled_transaction::*;
-pub use utils::*;
+pub use scheduled_transactions_distribution::*;

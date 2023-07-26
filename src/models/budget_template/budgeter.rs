@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use ynab::types::ScheduledTransactionDetail;
 
-use super::{expense, find_repeatable_transactions, BudgeterConfig, Expense};
+use super::{expense, BudgeterConfig, DatamizeScheduledTransaction, Expense};
 
 pub trait BudgeterExt {
     fn id(&self) -> Uuid;
@@ -86,7 +85,7 @@ impl From<BudgeterConfig> for Budgeter<Configured> {
 impl Budgeter<Configured> {
     pub fn compute_salary(
         self,
-        scheduled_transactions: &[ScheduledTransactionDetail],
+        scheduled_transactions: &[DatamizeScheduledTransaction],
     ) -> Budgeter<ComputedSalary> {
         let mut salary = 0;
         let salary_month = scheduled_transactions
@@ -98,7 +97,7 @@ impl Budgeter<Configured> {
             .map(|st| {
                 salary = st.amount;
                 st.amount
-                    + find_repeatable_transactions(st)
+                    + st.get_repeated_transactions()
                         .iter()
                         .map(|v| v.amount)
                         .sum::<i64>()
