@@ -109,42 +109,6 @@ impl BaseFinancialResource {
             external_account_ids,
         }
     }
-
-    pub fn new_asset(
-        name: String,
-        r_type: ResourceType,
-        editable: bool,
-        ynab_account_ids: Option<Vec<Uuid>>,
-        external_account_ids: Option<Vec<Uuid>>,
-    ) -> Self {
-        BaseFinancialResource {
-            id: Uuid::new_v4(),
-            name,
-            category: ResourceCategory::Asset,
-            r_type,
-            editable,
-            ynab_account_ids,
-            external_account_ids,
-        }
-    }
-
-    pub fn new_liability(
-        name: String,
-        r_type: ResourceType,
-        editable: bool,
-        ynab_account_ids: Option<Vec<Uuid>>,
-        external_account_ids: Option<Vec<Uuid>>,
-    ) -> Self {
-        BaseFinancialResource {
-            id: Uuid::new_v4(),
-            name,
-            category: ResourceCategory::Liability,
-            r_type,
-            editable,
-            ynab_account_ids,
-            external_account_ids,
-        }
-    }
 }
 
 /// A resource represented within a year. It has a BTreeMap of balance per months.
@@ -158,38 +122,6 @@ pub struct FinancialResourceYearly {
     pub balance_per_month: BTreeMap<MonthNum, i64>,
 }
 
-impl FinancialResourceYearly {
-    pub fn new(
-        name: String,
-        category: ResourceCategory,
-        r_type: ResourceType,
-        editable: bool,
-        year: i32,
-    ) -> Self {
-        FinancialResourceYearly {
-            base: BaseFinancialResource::new(name, category, r_type, editable, None, None),
-            year,
-            balance_per_month: BTreeMap::new(),
-        }
-    }
-
-    pub fn new_asset(name: String, r_type: ResourceType, editable: bool, year: i32) -> Self {
-        FinancialResourceYearly {
-            base: BaseFinancialResource::new_asset(name, r_type, editable, None, None),
-            year,
-            balance_per_month: BTreeMap::new(),
-        }
-    }
-
-    pub fn new_liability(name: String, r_type: ResourceType, editable: bool, year: i32) -> Self {
-        FinancialResourceYearly {
-            base: BaseFinancialResource::new_liability(name, r_type, editable, None, None),
-            year,
-            balance_per_month: BTreeMap::new(),
-        }
-    }
-}
-
 /// A resource represented with a month of a particular year. It has a single balance field.
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FinancialResourceMonthly {
@@ -201,54 +133,6 @@ pub struct FinancialResourceMonthly {
     pub year: i32,
     /// The balance of the resource in the month.
     pub balance: i64,
-}
-
-impl FinancialResourceMonthly {
-    pub fn new(
-        name: String,
-        category: ResourceCategory,
-        r_type: ResourceType,
-        editable: bool,
-        month: MonthNum,
-        year: i32,
-    ) -> Self {
-        FinancialResourceMonthly {
-            base: BaseFinancialResource::new(name, category, r_type, editable, None, None),
-            month,
-            year,
-            balance: 0,
-        }
-    }
-
-    pub fn new_asset(
-        name: String,
-        r_type: ResourceType,
-        editable: bool,
-        month: MonthNum,
-        year: i32,
-    ) -> Self {
-        FinancialResourceMonthly {
-            base: BaseFinancialResource::new_asset(name, r_type, editable, None, None),
-            month,
-            year,
-            balance: 0,
-        }
-    }
-
-    pub fn new_liability(
-        name: String,
-        r_type: ResourceType,
-        editable: bool,
-        month: MonthNum,
-        year: i32,
-    ) -> Self {
-        FinancialResourceMonthly {
-            base: BaseFinancialResource::new_liability(name, r_type, editable, None, None),
-            month,
-            year,
-            balance: 0,
-        }
-    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
