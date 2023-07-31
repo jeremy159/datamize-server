@@ -12,7 +12,7 @@ use axum::{
 };
 use futures::try_join;
 
-use crate::{error::HttpJsonAppResult, get_redis_conn, startup::AppState};
+use crate::{error::HttpJsonDatamizeResult, get_redis_conn, startup::AppState};
 
 /// Returns a budget template details
 /// Can specify the month to get details from.
@@ -22,7 +22,7 @@ use crate::{error::HttpJsonAppResult, get_redis_conn, startup::AppState};
 pub async fn template_details(
     State(app_state): State<AppState>,
     month: Option<Query<MonthQueryParam>>,
-) -> HttpJsonAppResult<BudgetDetails> {
+) -> HttpJsonDatamizeResult<BudgetDetails> {
     let ynab_client = app_state.ynab_client.as_ref();
     let db_conn_pool = app_state.db_conn_pool;
     let mut redis_conn = get_redis_conn(&app_state.redis_conn_pool)

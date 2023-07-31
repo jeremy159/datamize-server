@@ -6,7 +6,8 @@ use axum::{
 };
 use serde_json::json;
 
-pub type HttpJsonAppResult<T> = Result<Json<T>, AppError>;
+pub type DatamizeResult<T> = Result<T, AppError>;
+pub type HttpJsonDatamizeResult<T> = Result<Json<T>, AppError>;
 
 #[derive(thiserror::Error)]
 pub enum AppError {

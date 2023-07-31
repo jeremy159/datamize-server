@@ -10,12 +10,12 @@ use orion::kex::SecretKey;
 use redis::Connection;
 use sqlx::PgPool;
 
-use crate::{config, db, error::HttpJsonAppResult, startup::AppState};
+use crate::{config, db, error::HttpJsonDatamizeResult, startup::AppState};
 
 use self::account::{AccountType, WebScrapingAccount};
 
 #[tracing::instrument(name = "Get web scraper testing route", skip_all)]
-pub async fn get_web_scraper(State(_app_state): State<AppState>) -> HttpJsonAppResult<()> {
+pub async fn get_web_scraper(State(_app_state): State<AppState>) -> HttpJsonDatamizeResult<()> {
     // let db_conn_pool = app_state.db_conn_pool;
     // let mut redis_conn = get_redis_conn(&app_state.redis_conn_pool)
     //     .context("failed to get redis connection from pool")?;

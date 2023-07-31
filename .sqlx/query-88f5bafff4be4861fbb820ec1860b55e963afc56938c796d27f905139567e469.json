@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                id,\n                type AS \"net_type: NetTotalType\",\n                total,\n                percent_var,\n                balance_var\n            FROM balance_sheet_net_totals_years\n            WHERE year_id = $1;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "net_type: NetTotalType",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "total",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "percent_var",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 4,
+        "name": "balance_var",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "88f5bafff4be4861fbb820ec1860b55e963afc56938c796d27f905139567e469"
+}

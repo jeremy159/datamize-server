@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::{
     db::budget_template as db,
-    error::{AppError, HttpJsonAppResult, JsonError},
+    error::{AppError, HttpJsonDatamizeResult, JsonError},
     models::budget_template::ExpenseCategorization,
     startup::AppState,
 };
@@ -17,7 +17,7 @@ use crate::{
 pub async fn get_expense_categorization(
     Path(id): Path<Uuid>,
     State(app_state): State<AppState>,
-) -> HttpJsonAppResult<ExpenseCategorization> {
+) -> HttpJsonDatamizeResult<ExpenseCategorization> {
     let db_conn_pool = app_state.db_conn_pool;
 
     Ok(Json(
@@ -31,7 +31,7 @@ pub async fn update_expense_categorization(
     Path(_id): Path<Uuid>,
     State(app_state): State<AppState>,
     WithRejection(Json(body), _): WithRejection<Json<ExpenseCategorization>, JsonError>,
-) -> HttpJsonAppResult<ExpenseCategorization> {
+) -> HttpJsonDatamizeResult<ExpenseCategorization> {
     let db_conn_pool = app_state.db_conn_pool;
 
     let Ok(_) = db::get_expense_categorization(&db_conn_pool, body.id).await else {

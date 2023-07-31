@@ -7,7 +7,7 @@ use futures::try_join;
 
 use crate::{
     db::budget_template::{get_all_budgeters_config, get_all_external_expenses},
-    error::HttpJsonAppResult,
+    error::HttpJsonDatamizeResult,
     get_redis_conn,
     models::budget_template::{
         BudgetDetails, BudgetSummary, Budgeter, Configured, MonthQueryParam,
@@ -26,7 +26,7 @@ use crate::{
 pub async fn template_summary(
     State(app_state): State<AppState>,
     month: Option<Query<MonthQueryParam>>,
-) -> HttpJsonAppResult<BudgetSummary> {
+) -> HttpJsonDatamizeResult<BudgetSummary> {
     let ynab_client = app_state.ynab_client.as_ref();
     let db_conn_pool = app_state.db_conn_pool;
     let mut redis_conn = get_redis_conn(&app_state.redis_conn_pool)

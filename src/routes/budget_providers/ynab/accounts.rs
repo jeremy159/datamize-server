@@ -5,7 +5,7 @@ use ynab::types::Account;
 use crate::db::budget_providers::ynab::{
     get_accounts, get_accounts_delta, save_accounts, set_accounts_detla,
 };
-use crate::error::HttpJsonAppResult;
+use crate::error::HttpJsonDatamizeResult;
 use crate::get_redis_conn;
 use crate::startup::AppState;
 
@@ -13,7 +13,7 @@ use crate::startup::AppState;
 #[tracing::instrument(name = "Get all accounts from YNAB's API", skip_all)]
 pub async fn get_ynab_accounts(
     State(app_state): State<AppState>,
-) -> HttpJsonAppResult<Vec<Account>> {
+) -> HttpJsonDatamizeResult<Vec<Account>> {
     let ynab_client = app_state.ynab_client.as_ref();
     let db_conn_pool = app_state.db_conn_pool;
     let mut redis_conn = get_redis_conn(&app_state.redis_conn_pool)

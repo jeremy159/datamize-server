@@ -6,7 +6,7 @@ use futures::{stream::FuturesUnordered, StreamExt};
 
 use crate::{
     db::budget_providers::ynab::*,
-    error::HttpJsonAppResult,
+    error::HttpJsonDatamizeResult,
     get_redis_conn,
     models::budget_template::{
         CategoryIdToNameMap, DatamizeScheduledTransaction, ScheduledTransactionsDistribution,
@@ -19,7 +19,7 @@ use super::common::get_latest_scheduled_transactions;
 /// Returns a budget template transactions, i.e. all the scheduled transactions in the upcoming 30 days.
 pub async fn template_transactions(
     State(app_state): State<AppState>,
-) -> HttpJsonAppResult<ScheduledTransactionsDistribution> {
+) -> HttpJsonDatamizeResult<ScheduledTransactionsDistribution> {
     let ynab_client = app_state.ynab_client.as_ref();
     let db_conn_pool = app_state.db_conn_pool;
     let mut redis_conn = get_redis_conn(&app_state.redis_conn_pool)

@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::{
     db::budget_template::{delete_budgeter_config, get_budgeter_config, update_budgeter_config},
-    error::{AppError, HttpJsonAppResult, JsonError},
+    error::{AppError, HttpJsonDatamizeResult, JsonError},
     models::budget_template::BudgeterConfig,
     startup::AppState,
 };
@@ -17,7 +17,7 @@ use crate::{
 pub async fn get_budgeter(
     Path(id): Path<Uuid>,
     State(app_state): State<AppState>,
-) -> HttpJsonAppResult<BudgeterConfig> {
+) -> HttpJsonDatamizeResult<BudgeterConfig> {
     let db_conn_pool = app_state.db_conn_pool;
 
     Ok(Json(get_budgeter_config(&db_conn_pool, id).await?))
@@ -29,7 +29,7 @@ pub async fn update_budgeter(
     Path(_id): Path<Uuid>,
     State(app_state): State<AppState>,
     WithRejection(Json(body), _): WithRejection<Json<BudgeterConfig>, JsonError>,
-) -> HttpJsonAppResult<BudgeterConfig> {
+) -> HttpJsonDatamizeResult<BudgeterConfig> {
     let db_conn_pool = app_state.db_conn_pool;
 
     let Ok(_) = get_budgeter_config(&db_conn_pool, body.id).await else {
@@ -46,7 +46,7 @@ pub async fn update_budgeter(
 pub async fn delete_budgeter(
     Path(id): Path<Uuid>,
     State(app_state): State<AppState>,
-) -> HttpJsonAppResult<BudgeterConfig> {
+) -> HttpJsonDatamizeResult<BudgeterConfig> {
     let db_conn_pool = app_state.db_conn_pool;
 
     let Ok(budgeter_config) = get_budgeter_config(&db_conn_pool, id).await else {

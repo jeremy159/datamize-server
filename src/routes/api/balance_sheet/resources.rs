@@ -7,75 +7,37 @@ use axum::{
 use axum_extra::extract::WithRejection;
 
 use crate::{
-    db::balance_sheet::{
-        add_new_month, get_all_financial_resources_of_all_years, get_financial_resources_of_year,
-        get_month_data, update_financial_resource,
-    },
-    error::{AppError, HttpJsonAppResult, JsonError},
-    models::balance_sheet::{FinancialResourceYearly, Month, SaveResource},
-    startup::AppState,
+    error::{AppError, HttpJsonDatamizeResult, JsonError},
+    models::balance_sheet::{FinancialResourceYearly, SaveResource},
+    services::balance_sheet::FinResServiceExt,
 };
-
-use super::common::{update_month_net_totals, update_year_net_totals};
 
 /// Returns all resources of all years.
 #[tracing::instrument(name = "Get all resources from all years", skip_all)]
-pub async fn all_balance_sheet_resources(
-    State(app_state): State<AppState>,
-) -> HttpJsonAppResult<Vec<FinancialResourceYearly>> {
-    let db_conn_pool = app_state.db_conn_pool;
-
-    Ok(Json(
-        get_all_financial_resources_of_all_years(&db_conn_pool).await?,
-    ))
+pub async fn all_balance_sheet_resources<FRS: FinResServiceExt>(
+    State(fin_res_service): State<FRS>,
+) -> HttpJsonDatamizeResult<Vec<FinancialResourceYearly>> {
+    Ok(Json(fin_res_service.get_all_fin_res().await?))
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn create_balance_sheet_resource(
-    State(app_state): State<AppState>,
+pub async fn create_balance_sheet_resource<FRS: FinResServiceExt>(
+    State(fin_res_service): State<FRS>,
     WithRejection(Json(body), _): WithRejection<Json<SaveResource>, JsonError>,
 ) -> Result<impl IntoResponse, AppError> {
-    let db_conn_pool = app_state.db_conn_pool;
-    let resource: FinancialResourceYearly = body.into();
-
-    if !resource.balance_per_month.is_empty() {
-        for month in resource.balance_per_month.keys() {
-            if let Err(sqlx::Error::RowNotFound) =
-                get_month_data(&db_conn_pool, *month, resource.year).await
-            {
-                // If month doesn't exist, create it
-                let month = Month::new(*month, resource.year);
-                add_new_month(&db_conn_pool, &month, resource.year).await?;
-            }
-        }
-    }
-
-    update_financial_resource(&db_conn_pool, &resource).await?;
-
-    // If balance data was received, update month and year net totals
-    if !resource.balance_per_month.is_empty() {
-        update_month_net_totals(
-            &db_conn_pool,
-            *resource.balance_per_month.first_key_value().unwrap().0,
-            resource.year,
-        )
-        .await?;
-    }
-
-    update_year_net_totals(&db_conn_pool, resource.year).await?;
-
-    Ok((StatusCode::CREATED, Json(resource)))
+    Ok((
+        StatusCode::CREATED,
+        Json(fin_res_service.create_fin_res(body).await?),
+    ))
 }
 
 /// Endpoint to get all financial resources of a particular year.
 #[tracing::instrument(name = "Get all resources from a year", skip_all)]
-pub async fn balance_sheet_resources(
+pub async fn balance_sheet_resources<FRS: FinResServiceExt>(
     Path(year): Path<i32>,
-    State(app_state): State<AppState>,
-) -> HttpJsonAppResult<Vec<FinancialResourceYearly>> {
-    let db_conn_pool = app_state.db_conn_pool;
-
-    Ok(Json(
-        get_financial_resources_of_year(&db_conn_pool, year).await?,
-    ))
+    State(fin_res_service): State<FRS>,
+) -> HttpJsonDatamizeResult<Vec<FinancialResourceYearly>> {
+    Ok(Json(fin_res_service.get_all_fin_res_from_year(year).await?))
 }
+
+// TODO: Check this https://github.com/tokio-rs/axum/blob/main/examples/testing/src/main.rs to unit test routes directly.

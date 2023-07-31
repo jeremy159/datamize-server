@@ -5,52 +5,35 @@ use axum::{
 use axum_extra::extract::WithRejection;
 
 use crate::{
-    db::balance_sheet::{delete_year, update_saving_rates},
-    error::{HttpJsonAppResult, JsonError},
+    error::{HttpJsonDatamizeResult, JsonError},
     models::balance_sheet::{UpdateYear, YearDetail},
-    startup::AppState,
+    services::balance_sheet::YearServiceExt,
 };
-
-use super::common::get_year;
 
 /// Returns a detailed year with its balance sheet, its saving rates, its months and its financial resources.
 #[tracing::instrument(name = "Get a detailed year", skip_all)]
-pub async fn balance_sheet_year(
+pub async fn balance_sheet_year<YS: YearServiceExt>(
     Path(year): Path<i32>,
-    State(app_state): State<AppState>,
-) -> HttpJsonAppResult<YearDetail> {
-    let db_conn_pool = app_state.db_conn_pool;
-
-    Ok(Json(get_year(&db_conn_pool, year).await?))
+    State(year_service): State<YS>,
+) -> HttpJsonDatamizeResult<YearDetail> {
+    Ok(Json(year_service.get_year(year).await?))
 }
 
 /// Updates the saving rates of the received year.
 #[tracing::instrument(skip_all)]
-pub async fn update_balance_sheet_year(
+pub async fn update_balance_sheet_year<YS: YearServiceExt>(
     Path(year): Path<i32>,
-    State(app_state): State<AppState>,
+    State(year_service): State<YS>,
     WithRejection(Json(body), _): WithRejection<Json<UpdateYear>, JsonError>,
-) -> HttpJsonAppResult<YearDetail> {
-    let db_conn_pool = app_state.db_conn_pool;
-
-    let mut year = get_year(&db_conn_pool, year).await?;
-    year.update_saving_rates(body.saving_rates);
-
-    update_saving_rates(&db_conn_pool, &year).await?;
-
-    Ok(Json(year))
+) -> HttpJsonDatamizeResult<YearDetail> {
+    Ok(Json(year_service.update_year(year, body).await?))
 }
 
 /// Deletes the year and returns the entity.
 #[tracing::instrument(skip_all)]
-pub async fn delete_balance_sheet_year(
+pub async fn delete_balance_sheet_year<YS: YearServiceExt>(
     Path(year): Path<i32>,
-    State(app_state): State<AppState>,
-) -> HttpJsonAppResult<YearDetail> {
-    let db_conn_pool = app_state.db_conn_pool;
-
-    let year_detail = get_year(&db_conn_pool, year).await?;
-    delete_year(&db_conn_pool, year).await?;
-
-    Ok(Json(year_detail))
+    State(year_service): State<YS>,
+) -> HttpJsonDatamizeResult<YearDetail> {
+    Ok(Json(year_service.delete_year(year).await?))
 }

@@ -1,0 +1,68 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                m.id as month_id,\n                m.month,\n                n.id as net_total_id,\n                n.type,\n                n.total,\n                n.percent_var,\n                n.balance_var,\n                n.month_id as net_total_month_id,\n                y.year\n            FROM balance_sheet_months AS m\n            JOIN balance_sheet_net_totals_months AS n ON month_id = n.month_id\n            JOIN balance_sheet_years AS y ON y.id = m.year_id;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "month_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "month",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 2,
+        "name": "net_total_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "total",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "percent_var",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 6,
+        "name": "balance_var",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "net_total_month_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "year",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d9c3363569ec84979e168f22f324b1cd20915db963ec39c97b0fad9d19c4948c"
+}

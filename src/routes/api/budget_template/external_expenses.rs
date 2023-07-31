@@ -3,7 +3,7 @@ use axum_extra::extract::WithRejection;
 
 use crate::{
     db::budget_template as db,
-    error::{AppError, HttpJsonAppResult, JsonError},
+    error::{AppError, HttpJsonDatamizeResult, JsonError},
     models::budget_template::{ExternalExpense, SaveExternalExpense},
     startup::AppState,
 };
@@ -12,7 +12,7 @@ use crate::{
 #[tracing::instrument(skip_all)]
 pub async fn get_all_external_expenses(
     State(app_state): State<AppState>,
-) -> HttpJsonAppResult<Vec<ExternalExpense>> {
+) -> HttpJsonDatamizeResult<Vec<ExternalExpense>> {
     let db_conn_pool = app_state.db_conn_pool;
 
     Ok(Json(db::get_all_external_expenses(&db_conn_pool).await?))

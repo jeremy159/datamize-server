@@ -5,7 +5,7 @@ use crate::{
     db::budget_template::{
         get_all_budgeters_config, get_budgeter_config_by_name, update_budgeter_config,
     },
-    error::{AppError, HttpJsonAppResult, JsonError},
+    error::{AppError, HttpJsonDatamizeResult, JsonError},
     models::budget_template::{BudgeterConfig, SaveBudgeterConfig},
     startup::AppState,
 };
@@ -14,7 +14,7 @@ use crate::{
 #[tracing::instrument(skip_all)]
 pub async fn get_all_budgeters(
     State(app_state): State<AppState>,
-) -> HttpJsonAppResult<Vec<BudgeterConfig>> {
+) -> HttpJsonDatamizeResult<Vec<BudgeterConfig>> {
     let db_conn_pool = app_state.db_conn_pool;
 
     Ok(Json(get_all_budgeters_config(&db_conn_pool).await?))

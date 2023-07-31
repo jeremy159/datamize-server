@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                id,\n                name,\n                savings,\n                employer_contribution,\n                employee_contribution,\n                mortgage_capital,\n                incomes,\n                rate\n            FROM balance_sheet_saving_rates\n            WHERE year_id = $1;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "savings",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "employer_contribution",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "employee_contribution",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "mortgage_capital",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "incomes",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "rate",
+        "type_info": "Float4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b4c8ba51414f41d05244eef8b7f56a659bf21df1a204644ab4e709f3070aeea4"
+}
