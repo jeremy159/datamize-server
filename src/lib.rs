@@ -12,7 +12,6 @@ pub mod routes;
 pub mod services;
 pub mod startup;
 pub mod telemetry;
-pub mod web_scraper;
 
 pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
     PgPoolOptions::new()

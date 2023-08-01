@@ -16,7 +16,6 @@ use crate::{
     config::Settings,
     get_redis_connection_pool,
     routes::{get_api_routes, get_budget_providers_routes, health_check},
-    web_scraper::get_web_scraper,
 };
 
 #[derive(Clone)]
@@ -71,7 +70,6 @@ impl Application {
         let app = Router::new()
             .route("/", get(|| async { "Welcome to Datamize!" }))
             .route("/health_check", get(health_check))
-            .route("/web_scraper", get(get_web_scraper)) // TODO: To remove once done with tests...
             .nest("/api", api_routes)
             .nest("/budget_providers", budget_providers_routes)
             .layer(

@@ -1,8 +1,5 @@
 use async_trait::async_trait;
 use chrono::{Datelike, Local};
-use r2d2::PooledConnection;
-use redis::Client;
-use sqlx::PgPool;
 use uuid::Uuid;
 use ynab::Client as YnabClient;
 
@@ -10,8 +7,8 @@ use crate::{
     db::balance_sheet::{FinResRepo, MonthRepo, YearRepo},
     error::{AppError, DatamizeResult},
     models::balance_sheet::{FinancialResourceYearly, Month, MonthNum, SaveResource},
+    services::budget_providers::ExternalAccountServiceExt,
     telemetry::spawn_blocking_with_tracing,
-    web_scraper,
 };
 
 #[cfg_attr(test, mockall::automock)]
@@ -33,10 +30,9 @@ pub trait FinResServiceExt {
         new_fin_res: SaveResource,
     ) -> DatamizeResult<FinancialResourceYearly>;
     async fn delete_fin_res(&self, fin_res_id: Uuid) -> DatamizeResult<FinancialResourceYearly>;
-    async fn refresh_fin_res(
+    async fn refresh_fin_res<EAS: ExternalAccountServiceExt + Send + Sync + 'static>(
         &self,
-        db_conn_pool: PgPool,
-        redis_conn: PooledConnection<Client>,
+        mut external_acount_service: EAS,
         ynab_client: &YnabClient,
     ) -> DatamizeResult<Vec<Uuid>>;
 }
@@ -165,10 +161,9 @@ where
         Ok(resource)
     }
 
-    async fn refresh_fin_res(
+    async fn refresh_fin_res<EAS: ExternalAccountServiceExt + Send + Sync + 'static>(
         &self,
-        db_conn_pool: PgPool,
-        mut redis_conn: PooledConnection<Client>,
+        mut external_acount_service: EAS,
         ynab_client: &YnabClient,
     ) -> DatamizeResult<Vec<Uuid>> {
         let current_date = Local::now().date_naive();
@@ -191,7 +186,9 @@ where
 
         let accounts = ynab_client.get_accounts().await?;
         let external_accounts = spawn_blocking_with_tracing(move || async move {
-            web_scraper::get_external_accounts(&db_conn_pool, &mut redis_conn).await
+            external_acount_service
+                .refresh_all_web_scraping_accounts()
+                .await
         })
         .await
         .unwrap()

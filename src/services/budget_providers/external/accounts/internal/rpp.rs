@@ -5,9 +5,9 @@ use orion::{aead, kex::SecretKey};
 use secrecy::ExposeSecret;
 use tokio::time::sleep;
 
-use crate::web_scraper::parsing::parse_balance;
+use crate::models::budget_providers::WebScrapingAccount;
 
-use super::account::WebScrapingAccount;
+use super::parsing::parse_balance;
 
 // FIXME: Find a way for CSS selectors to locate elements inside custom web components...
 pub async fn get_rpp_canada_life_sandryne(

@@ -37,6 +37,18 @@ impl From<sqlx::Error> for AppError {
     }
 }
 
+impl From<redis::RedisError> for AppError {
+    fn from(value: redis::RedisError) -> Self {
+        AppError::InternalServerError(value.into())
+    }
+}
+
+impl From<config::ConfigError> for AppError {
+    fn from(value: config::ConfigError) -> Self {
+        AppError::InternalServerError(value.into())
+    }
+}
+
 impl From<ynab::Error> for AppError {
     fn from(value: ynab::Error) -> Self {
         Self::InternalServerError(value.into())

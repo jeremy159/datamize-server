@@ -2,17 +2,12 @@ use std::fmt;
 
 use anyhow::Context;
 use clap::{Args, Parser, Subcommand, ValueEnum};
-use datamize::web_scraper::account::{EncryptedPassword, WebScrapingAccount};
-use datamize::{
-    db::budget_providers::external::{
-        add_new_external_account, get_external_account_by_name, set_encryption_key,
-        update_external_account,
-    },
-    get_redis_conn, get_redis_connection_pool,
-    secrecy::Secret,
-    sqlx_error::Error,
-    PgPool, RedisConnection,
+use datamize::db::budget_providers::external::{
+    PostgresExternalAccountRepo, RedisEncryptionKeyRepo,
 };
+use datamize::models::budget_providers::{EncryptedPassword, WebScrapingAccount};
+use datamize::services::budget_providers::{ExternalAccountService, ExternalAccountServiceExt};
+use datamize::{get_redis_conn, get_redis_connection_pool, secrecy::Secret, sqlx_error::Error};
 use orion::aead;
 use orion::kex::SecretKey;
 use uuid::Uuid;
@@ -110,15 +105,20 @@ async fn main() -> anyhow::Result<()> {
     let db_conn_pool = datamize::get_connection_pool(&configuration.database);
     let redis_conn_pool = get_redis_connection_pool(&configuration.redis)
         .context("failed to get redis connection pool")?;
-    let mut redis_conn =
+    let redis_conn =
         get_redis_conn(&redis_conn_pool).context("failed to get redis connection from pool")?;
+
+    let mut external_account_service = ExternalAccountService {
+        external_account_repo: PostgresExternalAccountRepo { db_conn_pool },
+        encryption_key_repo: RedisEncryptionKeyRepo { redis_conn },
+    };
 
     match args.command {
         Commands::Create(create_args) => {
-            create_account(&mut redis_conn, &db_conn_pool, args.name, create_args).await?
+            create_account(&mut external_account_service, args.name, create_args).await?
         }
         Commands::Update(updated_args) => {
-            update_account(&mut redis_conn, &db_conn_pool, args.name, updated_args).await?
+            update_account(&mut external_account_service, args.name, updated_args).await?
         }
     }
 
@@ -126,12 +126,11 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn create_account(
-    redis_conn: &mut RedisConnection,
-    db_conn_pool: &PgPool,
+    external_account_service: &mut impl ExternalAccountServiceExt,
     name: String,
     args: CreateArgs,
 ) -> anyhow::Result<()> {
-    let encryption_key = get_encryption_key(redis_conn)?;
+    let encryption_key = get_encryption_key(external_account_service).await?;
     let encrypted_password = Secret::new(EncryptedPassword::new(aead::seal(
         &encryption_key,
         args.password.as_bytes(),
@@ -147,67 +146,74 @@ async fn create_account(
         deleted: false,
     };
 
-    add_new_external_account(db_conn_pool, &account).await?;
+    external_account_service
+        .create_external_account(&account)
+        .await?;
     println!("Successfully created {:?}", account.name);
 
     Ok(())
 }
 
 async fn update_account(
-    redis_conn: &mut RedisConnection,
-    db_conn_pool: &PgPool,
+    external_account_service: &mut impl ExternalAccountServiceExt,
     name: String,
     args: UpdateArgs,
 ) -> anyhow::Result<()> {
     // check if  account exists
-    let account = get_external_account_by_name(db_conn_pool, &name).await?;
-    if account.is_none() {
+    let Ok(mut account) = external_account_service
+        .get_external_account_by_name(&name)
+        .await else {
         return Err::<(), anyhow::Error>(Error::RowNotFound.into())
             .with_context(|| format!("Account {} does not exist", name));
-    }
+    };
 
-    let mut new_account = account.unwrap();
     if let Some(username) = args.username {
-        new_account.username = username;
+        account.username = username;
     }
     if let Some(password) = args.password {
-        let encryption_key = get_encryption_key(redis_conn)?;
+        let encryption_key = get_encryption_key(external_account_service).await?;
         let encrypted_password = Secret::new(EncryptedPassword::new(aead::seal(
             &encryption_key,
             password.as_bytes(),
         )?));
-        new_account.encrypted_password = encrypted_password;
+        account.encrypted_password = encrypted_password;
     }
     if let Some(account_type) = args.account_type {
-        new_account.account_type = account_type.to_string().parse().unwrap();
+        account.account_type = account_type.to_string().parse().unwrap();
     }
     if let Some(balance) = args.balance {
-        new_account.balance = (balance * 1000_f32) as i64;
+        account.balance = (balance * 1000_f32) as i64;
     }
 
-    update_external_account(db_conn_pool, &new_account).await?;
-    println!("Successfully updated {:?}", new_account.name);
+    external_account_service
+        .update_external_account(&account)
+        .await?;
+    println!("Successfully updated {:?}", account.name);
 
     Ok(())
 }
 
-fn get_encryption_key(redis_conn: &mut RedisConnection) -> anyhow::Result<SecretKey> {
-    Ok(
-        match datamize::db::budget_providers::external::get_encryption_key(redis_conn) {
-            Some(ref val) => {
-                if !val.is_empty() {
-                    SecretKey::from_slice(val).unwrap()
-                } else {
-                    let key = SecretKey::default();
-                    set_encryption_key(redis_conn, key.unprotected_as_bytes())?;
-                    key
-                }
-            }
-            None => {
+async fn get_encryption_key(
+    external_account_service: &mut impl ExternalAccountServiceExt,
+) -> anyhow::Result<SecretKey> {
+    Ok(match external_account_service.get_encryption_key().await {
+        Ok(ref val) => {
+            if !val.is_empty() {
+                SecretKey::from_slice(val).unwrap()
+            } else {
                 let key = SecretKey::default();
-                set_encryption_key(redis_conn, key.unprotected_as_bytes())?;
+                external_account_service
+                    .set_encryption_key(key.unprotected_as_bytes())
+                    .await?;
                 key
             }
-        },
-    )
+        }
+        Err(_) => {
+            let key = SecretKey::default();
+            external_account_service
+                .set_encryption_key(key.unprotected_as_bytes())
+                .await?;
+            key
+        }
+    })
 }

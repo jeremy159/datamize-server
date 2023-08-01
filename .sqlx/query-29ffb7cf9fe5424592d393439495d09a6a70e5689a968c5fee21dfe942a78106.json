@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT * FROM external_accounts\n        WHERE name = $1;\n        ",
+  "query": "\n            SELECT * FROM external_accounts\n            WHERE name = $1;\n            ",
   "describe": {
     "columns": [
       {
@@ -54,5 +54,5 @@
       false
     ]
   },
-  "hash": "7f64723de9c6c2488a455330b95780ff85e2cc4b6f06db6f97a4217d0d6a958d"
+  "hash": "29ffb7cf9fe5424592d393439495d09a6a70e5689a968c5fee21dfe942a78106"
 }

@@ -3,9 +3,9 @@ use orion::aead;
 use orion::kex::SecretKey;
 use secrecy::ExposeSecret;
 
-use crate::web_scraper::parsing::parse_balance;
+use crate::models::budget_providers::WebScrapingAccount;
 
-use super::account::WebScrapingAccount;
+use super::parsing::parse_balance;
 
 pub async fn get_tfsa(
     account: WebScrapingAccount,

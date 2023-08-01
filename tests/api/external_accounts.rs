@@ -1,3 +1,4 @@
+use datamize::models::budget_providers::ExternalAccount;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -58,8 +59,7 @@ async fn get_external_accounts_returns_a_200_if_database_returns_success(pool: P
 
     // Assert
     assert_eq!(response.status(), reqwest::StatusCode::OK);
-    let accounts: Vec<datamize::web_scraper::account::ExternalAccount> =
-        response.json().await.expect("Failed to parse JSON");
+    let accounts: Vec<ExternalAccount> = response.json().await.expect("Failed to parse JSON");
     assert_eq!(accounts.len(), 1);
     assert_eq!(accounts[0].id, id);
     assert_eq!(accounts[0].name, "test");

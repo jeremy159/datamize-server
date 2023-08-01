@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT * FROM external_accounts;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "balance",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "username",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "encrypted_password",
+        "type_info": "Bytea"
+      },
+      {
+        "ordinal": 6,
+        "name": "deleted",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8d7e3d6cc99ec14ffab612b44d9bb836608db4183789c2f0a860e06bd99e2ff3"
+}

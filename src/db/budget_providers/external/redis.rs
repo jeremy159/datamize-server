@@ -1,13 +1,23 @@
-use redis::{Commands, Connection, RedisResult};
+use async_trait::async_trait;
+use r2d2::PooledConnection;
+use redis::{Client, Commands};
 
-pub fn get_encryption_key(redis_conn: &mut Connection) -> Option<Vec<u8>> {
-    redis_conn.get("encryption_key").ok()
+use crate::error::DatamizeResult;
+
+use super::EncryptionKeyRepo;
+
+pub struct RedisEncryptionKeyRepo {
+    pub redis_conn: PooledConnection<Client>,
 }
 
-pub fn set_encryption_key(
-    redis_conn: &mut Connection,
-    encryption_key_str: &[u8],
-) -> RedisResult<()> {
-    redis_conn.set("encryption_key", encryption_key_str)?;
-    Ok(())
+#[async_trait]
+impl EncryptionKeyRepo for RedisEncryptionKeyRepo {
+    async fn get(&mut self) -> DatamizeResult<Vec<u8>> {
+        self.redis_conn.get("encryption_key").map_err(Into::into)
+    }
+
+    async fn set(&mut self, encryption_key_str: &[u8]) -> DatamizeResult<()> {
+        self.redis_conn.set("encryption_key", encryption_key_str)?;
+        Ok(())
+    }
 }
