@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n            id,\n            name,\n            type,\n            sub_type,\n            projected_amount\n        FROM external_expenses\n        ",
+  "query": "\n            SELECT\n                id,\n                name,\n                type AS \"expense_type: ExpenseType\",\n                sub_type AS \"sub_expense_type: SubExpenseType\",\n                projected_amount\n            FROM external_expenses\n            WHERE name = $1;\n            ",
   "describe": {
     "columns": [
       {
@@ -15,12 +15,12 @@
       },
       {
         "ordinal": 2,
-        "name": "type",
+        "name": "expense_type: ExpenseType",
         "type_info": "Varchar"
       },
       {
         "ordinal": 3,
-        "name": "sub_type",
+        "name": "sub_expense_type: SubExpenseType",
         "type_info": "Varchar"
       },
       {
@@ -30,7 +30,9 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Text"
+      ]
     },
     "nullable": [
       false,
@@ -40,5 +42,5 @@
       false
     ]
   },
-  "hash": "8cb477405caff7bd8bb63b7a8736fc04f1bbe6a66b27302f6f1b052eb4bff6fb"
+  "hash": "288b4cd5e8d34e94cd21aee9bd0e2c1cf5f881e895ca7d539adcde5e2ac673f6"
 }

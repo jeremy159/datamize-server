@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT \n            id,\n            date_first,\n            date_next,\n            frequency,\n            amount,\n            memo,\n            flag_color,\n            account_id,\n            payee_id,\n            category_id,\n            transfer_account_id,\n            deleted,\n            account_name,\n            payee_name,\n            category_name,\n            subtransactions\n        FROM scheduled_transactions\n        ",
+  "query": "\n            SELECT \n                id,\n                date_first,\n                date_next,\n                frequency,\n                amount,\n                memo,\n                flag_color,\n                account_id,\n                payee_id,\n                category_id,\n                transfer_account_id,\n                deleted,\n                account_name,\n                payee_name,\n                category_name,\n                subtransactions\n            FROM scheduled_transactions\n            ",
   "describe": {
     "columns": [
       {
@@ -106,5 +106,5 @@
       false
     ]
   },
-  "hash": "66fabff6eb284219c411e2a92d5eed0fa5e2dc0b8675f57d5193e4a4f6a8d10a"
+  "hash": "ce3d1995f0b1b0e99f53b91c98374c7561126e2923b1608346e25e03629cee91"
 }

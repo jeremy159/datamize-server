@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n            *\n        FROM budgeters_config\n        WHERE name = $1;\n        ",
+  "query": "\n            SELECT\n                *\n            FROM budgeters_config\n            ",
   "describe": {
     "columns": [
       {
@@ -20,9 +20,7 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Text"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -30,5 +28,5 @@
       false
     ]
   },
-  "hash": "70c470f3516a72446f06c406d23c8647bac0ba465c4d744531b6cdb7a7209cc8"
+  "hash": "e50fcd767ad5b5413487377774eb4be52e753e1c7cfb81406635da557a6a30db"
 }

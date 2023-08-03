@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    DELETE FROM scheduled_transactions\n                    WHERE id = $1\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "297d8f65b2decda8b04ccfcaa4e6a6371b999eddad43bf94da28fb700acf92f5"
+}

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT \n            id,\n            name,\n            transfer_account_id,\n            deleted\n        FROM payees\n        ",
+  "query": "\n            SELECT \n                id,\n                name,\n                transfer_account_id,\n                deleted\n            FROM payees\n            ",
   "describe": {
     "columns": [
       {
@@ -34,5 +34,5 @@
       false
     ]
   },
-  "hash": "af75fe0af6fb07bf5adbc123108f5ea6e9f4cf43140fa22539ecad9a673342d7"
+  "hash": "0ecb666228dee916b54a290fd2bb39de652ced34641b7d489ccab9a719b21677"
 }

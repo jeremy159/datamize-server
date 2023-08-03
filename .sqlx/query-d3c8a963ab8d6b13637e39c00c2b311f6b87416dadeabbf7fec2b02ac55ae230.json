@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n            id,\n            name,\n            type,\n            sub_type,\n            projected_amount\n        FROM external_expenses\n        WHERE id = $1;\n        ",
+  "query": "\n            SELECT\n                id,\n                name,\n                type,\n                sub_type\n            FROM expenses_categorization\n            ",
   "describe": {
     "columns": [
       {
@@ -22,25 +22,17 @@
         "ordinal": 3,
         "name": "sub_type",
         "type_info": "Varchar"
-      },
-      {
-        "ordinal": 4,
-        "name": "projected_amount",
-        "type_info": "Int8"
       }
     ],
     "parameters": {
-      "Left": [
-        "Uuid"
-      ]
+      "Left": []
     },
     "nullable": [
-      false,
       false,
       false,
       false,
       false
     ]
   },
-  "hash": "b5cdb7e4b63068351dbc37286a2c491bbf8156645f2bb56b392fabfa43c5efbc"
+  "hash": "d3c8a963ab8d6b13637e39c00c2b311f6b87416dadeabbf7fec2b02ac55ae230"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT \n            id,\n            category_group_id,\n            category_group_name,\n            name,\n            hidden,\n            original_category_group_id,\n            note,\n            budgeted,\n            activity,\n            balance,\n            goal_type AS \"goal_type?: GoalType\",\n            goal_creation_month,\n            goal_target,\n            goal_target_month,\n            goal_percentage_complete,\n            goal_months_to_budget,\n            goal_under_funded,\n            goal_overall_funded,\n            goal_overall_left,\n            deleted,\n            goal_day,\n            goal_cadence,\n            goal_cadence_frequency\n        FROM categories\n        ",
+  "query": "\n            SELECT \n                id,\n                category_group_id,\n                category_group_name,\n                name,\n                hidden,\n                original_category_group_id,\n                note,\n                budgeted,\n                activity,\n                balance,\n                goal_type AS \"goal_type?: GoalType\",\n                goal_creation_month,\n                goal_target,\n                goal_target_month,\n                goal_percentage_complete,\n                goal_months_to_budget,\n                goal_under_funded,\n                goal_overall_funded,\n                goal_overall_left,\n                deleted,\n                goal_day,\n                goal_cadence,\n                goal_cadence_frequency\n            FROM categories\n            ",
   "describe": {
     "columns": [
       {
@@ -148,5 +148,5 @@
       true
     ]
   },
-  "hash": "dcc7bf9152c3eeea8066c4a756457ab6d0a3ea6c97246454778fd8ae00d65a7c"
+  "hash": "bbbf1b9ebc3861fb67444b86fab54171aac6ffd375f87c3cdf9954d34a66e5a0"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n            id,\n            name,\n            type,\n            sub_type\n        FROM expenses_categorization\n        ",
+  "query": "\n            SELECT\n                id,\n                name,\n                type,\n                sub_type\n            FROM expenses_categorization\n            WHERE id = $1;\n            ",
   "describe": {
     "columns": [
       {
@@ -25,7 +25,9 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Uuid"
+      ]
     },
     "nullable": [
       false,
@@ -34,5 +36,5 @@
       false
     ]
   },
-  "hash": "c52ab30fd7fa4c958e34e415455f4b4e17fce90145d2636f9baad256b3950a24"
+  "hash": "877f788654649a07b7b95de02c0b137cbf9058e1f4d458b47631f8718c820091"
 }
