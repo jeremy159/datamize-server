@@ -49,6 +49,12 @@ impl From<config::ConfigError> for AppError {
     }
 }
 
+impl From<chrono::ParseError> for AppError {
+    fn from(value: chrono::ParseError) -> Self {
+        AppError::InternalServerError(value.into())
+    }
+}
+
 impl From<ynab::Error> for AppError {
     fn from(value: ynab::Error) -> Self {
         Self::InternalServerError(value.into())

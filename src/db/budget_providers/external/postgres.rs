@@ -4,7 +4,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    error::{AppError, DatamizeResult},
+    error::DatamizeResult,
     models::budget_providers::{EncryptedPassword, WebScrapingAccount},
 };
 
@@ -35,7 +35,7 @@ impl ExternalAccountRepo for PostgresExternalAccountRepo {
         })
         .fetch_all(&self.db_conn_pool)
         .await
-        .map_err(AppError::from_sqlx)
+        .map_err(Into::into)
     }
 
     #[tracing::instrument(skip(self))]
@@ -58,7 +58,7 @@ impl ExternalAccountRepo for PostgresExternalAccountRepo {
         })
         .fetch_one(&self.db_conn_pool)
         .await
-        .map_err(AppError::from_sqlx)
+        .map_err(Into::into)
     }
 
     #[tracing::instrument(skip(self))]
@@ -81,7 +81,7 @@ impl ExternalAccountRepo for PostgresExternalAccountRepo {
         })
         .fetch_one(&self.db_conn_pool)
         .await
-        .map_err(AppError::from_sqlx)
+        .map_err(Into::into)
     }
 
     #[tracing::instrument(skip_all)]

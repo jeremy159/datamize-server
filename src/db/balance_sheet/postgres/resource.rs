@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::{
     db::balance_sheet::FinResRepo,
-    error::AppError,
+    error::{AppError, DatamizeResult},
     models::balance_sheet::{
         BaseFinancialResource, FinancialResourceMonthly, FinancialResourceYearly, MonthNum,
     },
@@ -25,7 +25,8 @@ impl PostgresFinResRepo {
 
 #[async_trait]
 impl FinResRepo for PostgresFinResRepo {
-    async fn get_from_all_years(&self) -> Result<Vec<FinancialResourceYearly>, AppError> {
+    #[tracing::instrument(skip(self))]
+    async fn get_from_all_years(&self) -> DatamizeResult<Vec<FinancialResourceYearly>> {
         let mut resources: HashMap<Uuid, FinancialResourceYearly> = HashMap::new();
 
         let db_rows = sqlx::query!(
@@ -80,7 +81,8 @@ impl FinResRepo for PostgresFinResRepo {
         Ok(resources)
     }
 
-    async fn get_from_year(&self, year: i32) -> Result<Vec<FinancialResourceYearly>, AppError> {
+    #[tracing::instrument(skip(self))]
+    async fn get_from_year(&self, year: i32) -> DatamizeResult<Vec<FinancialResourceYearly>> {
         let mut resources: BTreeMap<Uuid, FinancialResourceYearly> = BTreeMap::new();
 
         let db_rows = sqlx::query!(
@@ -131,11 +133,12 @@ impl FinResRepo for PostgresFinResRepo {
         Ok(resources.into_values().collect())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get_from_month(
         &self,
         month: MonthNum,
         year: i32,
-    ) -> Result<Vec<FinancialResourceMonthly>, AppError> {
+    ) -> DatamizeResult<Vec<FinancialResourceMonthly>> {
         let mut resources: Vec<FinancialResourceMonthly> = vec![];
 
         let db_rows = sqlx::query!(
@@ -176,7 +179,8 @@ impl FinResRepo for PostgresFinResRepo {
         Ok(resources)
     }
 
-    async fn get(&self, resource_id: Uuid) -> Result<FinancialResourceYearly, AppError> {
+    #[tracing::instrument(skip(self))]
+    async fn get(&self, resource_id: Uuid) -> DatamizeResult<FinancialResourceYearly> {
         let db_rows = sqlx::query!(
             r#"
             SELECT
@@ -228,7 +232,8 @@ impl FinResRepo for PostgresFinResRepo {
         resource.ok_or(AppError::ResourceNotFound)
     }
 
-    async fn update(&self, resource: &FinancialResourceYearly) -> Result<(), AppError> {
+    #[tracing::instrument(skip_all)]
+    async fn update(&self, resource: &FinancialResourceYearly) -> DatamizeResult<()> {
         // First update the resource itself
         sqlx::query!(
             r#"
@@ -289,7 +294,8 @@ impl FinResRepo for PostgresFinResRepo {
         Ok(())
     }
 
-    async fn update_monthly(&self, resource: &FinancialResourceMonthly) -> Result<(), AppError> {
+    #[tracing::instrument(skip_all)]
+    async fn update_monthly(&self, resource: &FinancialResourceMonthly) -> DatamizeResult<()> {
         // First update the resource itself
         sqlx::query!(
             r#"
@@ -336,7 +342,8 @@ impl FinResRepo for PostgresFinResRepo {
         Ok(())
     }
 
-    async fn delete(&self, resource_id: Uuid) -> Result<(), AppError> {
+    #[tracing::instrument(skip(self))]
+    async fn delete(&self, resource_id: Uuid) -> DatamizeResult<()> {
         sqlx::query!(
             r#"
                 DELETE FROM balance_sheet_resources

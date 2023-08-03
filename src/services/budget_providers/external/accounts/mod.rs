@@ -40,6 +40,7 @@ where
     EAR: ExternalAccountRepo + Sync + Send,
     EKR: EncryptionKeyRepo + Sync + Send,
 {
+    #[tracing::instrument(skip(self))]
     async fn get_all_external_accounts(&self) -> DatamizeResult<Vec<ExternalAccount>> {
         Ok(self
             .external_account_repo
@@ -50,6 +51,7 @@ where
             .collect())
     }
 
+    #[tracing::instrument(skip(self))]
     async fn refresh_all_web_scraping_accounts(
         &mut self,
     ) -> DatamizeResult<Vec<WebScrapingAccount>> {
@@ -122,22 +124,27 @@ where
             .collect::<Vec<_>>())
     }
 
+    #[tracing::instrument(skip_all)]
     async fn create_external_account(&self, account: &WebScrapingAccount) -> DatamizeResult<()> {
         self.external_account_repo.add(account).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get_external_account_by_name(&self, name: &str) -> DatamizeResult<WebScrapingAccount> {
         self.external_account_repo.get_by_name(name).await
     }
 
+    #[tracing::instrument(skip_all)]
     async fn update_external_account(&self, account: &WebScrapingAccount) -> DatamizeResult<()> {
         self.external_account_repo.update(account).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get_encryption_key(&mut self) -> DatamizeResult<Vec<u8>> {
         self.encryption_key_repo.get().await
     }
 
+    #[tracing::instrument(skip_all)]
     async fn set_encryption_key(&mut self, key: &[u8]) -> DatamizeResult<()> {
         self.encryption_key_repo.set(key).await
     }

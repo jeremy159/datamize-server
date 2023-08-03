@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::{
     db::balance_sheet::{interface::MonthData, FinResRepo, MonthRepo, YearData},
-    error::AppError,
+    error::{AppError, DatamizeResult},
     models::balance_sheet::{Month, MonthNum, NetTotal, NetTotalType},
 };
 
@@ -27,12 +27,12 @@ impl PostgresMonthRepo {
         }
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self, net_totals))]
     async fn insert_net_totals(
         &self,
         month_id: Uuid,
         net_totals: [&NetTotal; 2],
-    ) -> Result<(), AppError> {
+    ) -> DatamizeResult<()> {
         for nt in net_totals {
             sqlx::query!(
                 r#"
@@ -62,7 +62,7 @@ impl PostgresMonthRepo {
 #[async_trait]
 impl MonthRepo for PostgresMonthRepo {
     #[tracing::instrument(skip(self))]
-    async fn get_year_data_by_number(&self, year: i32) -> Result<YearData, AppError> {
+    async fn get_year_data_by_number(&self, year: i32) -> DatamizeResult<YearData> {
         sqlx::query_as!(
             YearData,
             r#"
@@ -74,7 +74,7 @@ impl MonthRepo for PostgresMonthRepo {
         )
         .fetch_one(&self.db_conn_pool)
         .await
-        .map_err(AppError::from_sqlx)
+        .map_err(Into::into)
     }
 
     #[tracing::instrument(skip(self))]
@@ -82,7 +82,7 @@ impl MonthRepo for PostgresMonthRepo {
         &self,
         month: MonthNum,
         year: i32,
-    ) -> Result<MonthData, AppError> {
+    ) -> DatamizeResult<MonthData> {
         sqlx::query_as!(
             MonthData,
             r#"
@@ -98,11 +98,11 @@ impl MonthRepo for PostgresMonthRepo {
         )
         .fetch_one(&self.db_conn_pool)
         .await
-        .map_err(AppError::from_sqlx)
+        .map_err(Into::into)
     }
 
     #[tracing::instrument(skip(self))]
-    async fn get_months_of_year(&self, year: i32) -> Result<Vec<Month>, AppError> {
+    async fn get_months_of_year(&self, year: i32) -> DatamizeResult<Vec<Month>> {
         let mut months = HashMap::<Uuid, Month>::new();
 
         let db_rows = sqlx::query!(
@@ -185,7 +185,7 @@ impl MonthRepo for PostgresMonthRepo {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn get_months(&self) -> Result<Vec<Month>, AppError> {
+    async fn get_months(&self) -> DatamizeResult<Vec<Month>> {
         let mut months = HashMap::<Uuid, Month>::new();
 
         let db_rows = sqlx::query!(
@@ -271,7 +271,7 @@ impl MonthRepo for PostgresMonthRepo {
     }
 
     #[tracing::instrument(skip(self, month))]
-    async fn add(&self, month: &Month, year: i32) -> Result<(), AppError> {
+    async fn add(&self, month: &Month, year: i32) -> DatamizeResult<()> {
         let year_data = self.get_year_data_by_number(year).await?;
 
         sqlx::query!(
@@ -356,7 +356,7 @@ impl MonthRepo for PostgresMonthRepo {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn get_net_totals(&self, month_id: Uuid) -> Result<Vec<NetTotal>, AppError> {
+    async fn get_net_totals(&self, month_id: Uuid) -> DatamizeResult<Vec<NetTotal>> {
         sqlx::query_as!(
             NetTotal,
             r#"
@@ -373,16 +373,16 @@ impl MonthRepo for PostgresMonthRepo {
         )
         .fetch_all(&self.db_conn_pool)
         .await
-        .map_err(AppError::from)
+        .map_err(Into::into)
     }
 
     #[tracing::instrument(skip(self))]
-    async fn update_net_totals(&self, month_num: MonthNum, year: i32) -> Result<(), AppError> {
+    async fn update_net_totals(&self, month_num: MonthNum, year: i32) -> DatamizeResult<()> {
         update_month_net_totals(self, month_num, year).await
     }
 
     #[tracing::instrument(skip(self))]
-    async fn delete(&self, month_num: MonthNum, year: i32) -> Result<(), AppError> {
+    async fn delete(&self, month_num: MonthNum, year: i32) -> DatamizeResult<()> {
         sqlx::query!(
             r#"
                 DELETE FROM balance_sheet_months
@@ -405,7 +405,7 @@ async fn update_month_net_totals(
     month_repo: &PostgresMonthRepo,
     month_num: MonthNum,
     year: i32,
-) -> Result<(), AppError> {
+) -> DatamizeResult<()> {
     month_repo.get_month_data_by_number(month_num, year).await?;
 
     let mut month = month_repo.get(month_num, year).await?;

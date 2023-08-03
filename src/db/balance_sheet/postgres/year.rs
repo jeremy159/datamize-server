@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::{
     db::balance_sheet::{interface::YearData, FinResRepo, MonthRepo, YearRepo},
-    error::AppError,
+    error::DatamizeResult,
     models::balance_sheet::{
         NetTotal, NetTotalType, SavingRatesPerPerson, YearDetail, YearSummary,
     },
@@ -36,12 +36,12 @@ impl PostgresYearRepo {
         }
     }
 
-    #[tracing::instrument(skip(self))]
+    #[tracing::instrument(skip(self, net_totals))]
     async fn insert_net_totals(
         &self,
         year_id: Uuid,
         net_totals: [&NetTotal; 2],
-    ) -> Result<(), AppError> {
+    ) -> DatamizeResult<()> {
         for nt in net_totals {
             sqlx::query!(
                 r#"
@@ -71,7 +71,7 @@ impl PostgresYearRepo {
 #[async_trait]
 impl YearRepo for PostgresYearRepo {
     #[tracing::instrument(skip(self))]
-    async fn get_years_summary(&self) -> Result<Vec<YearSummary>, AppError> {
+    async fn get_years_summary(&self) -> DatamizeResult<Vec<YearSummary>> {
         let mut years = HashMap::<Uuid, YearSummary>::new();
 
         let db_rows = sqlx::query!(
@@ -144,7 +144,7 @@ impl YearRepo for PostgresYearRepo {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn get_year_data_by_number(&self, year: i32) -> Result<YearData, AppError> {
+    async fn get_year_data_by_number(&self, year: i32) -> DatamizeResult<YearData> {
         sqlx::query_as!(
             YearData,
             r#"
@@ -156,11 +156,11 @@ impl YearRepo for PostgresYearRepo {
         )
         .fetch_one(&self.db_conn_pool)
         .await
-        .map_err(AppError::from_sqlx)
+        .map_err(Into::into)
     }
 
     #[tracing::instrument(skip_all)]
-    async fn add(&self, year: &YearDetail) -> Result<(), AppError> {
+    async fn add(&self, year: &YearDetail) -> DatamizeResult<()> {
         sqlx::query!(
             r#"
             INSERT INTO balance_sheet_years (id, year, refreshed_at)
@@ -200,7 +200,7 @@ impl YearRepo for PostgresYearRepo {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn get(&self, year: i32) -> Result<YearDetail, AppError> {
+    async fn get(&self, year: i32) -> DatamizeResult<YearDetail> {
         let year_data = self.get_year_data_by_number(year).await?;
 
         let (net_totals, saving_rates, months, resources) = try_join!(
@@ -241,7 +241,7 @@ impl YearRepo for PostgresYearRepo {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn get_net_totals(&self, year_id: Uuid) -> Result<Vec<NetTotal>, AppError> {
+    async fn get_net_totals(&self, year_id: Uuid) -> DatamizeResult<Vec<NetTotal>> {
         sqlx::query_as!(
             NetTotal,
             r#"
@@ -258,16 +258,16 @@ impl YearRepo for PostgresYearRepo {
         )
         .fetch_all(&self.db_conn_pool)
         .await
-        .map_err(AppError::from_sqlx)
+        .map_err(Into::into)
     }
 
     #[tracing::instrument(skip(self))]
-    async fn update_net_totals(&self, year: i32) -> Result<(), AppError> {
+    async fn update_net_totals(&self, year: i32) -> DatamizeResult<()> {
         update_year_net_totals(self, year).await
     }
 
     #[tracing::instrument(skip(self))]
-    async fn get_saving_rates(&self, year_id: Uuid) -> Result<Vec<SavingRatesPerPerson>, AppError> {
+    async fn get_saving_rates(&self, year_id: Uuid) -> DatamizeResult<Vec<SavingRatesPerPerson>> {
         sqlx::query_as!(
             SavingRatesPerPerson,
             r#"
@@ -287,11 +287,11 @@ impl YearRepo for PostgresYearRepo {
         )
         .fetch_all(&self.db_conn_pool)
         .await
-        .map_err(AppError::from_sqlx)
+        .map_err(Into::into)
     }
 
     #[tracing::instrument(skip_all)]
-    async fn update_saving_rates(&self, year: &YearDetail) -> Result<(), AppError> {
+    async fn update_saving_rates(&self, year: &YearDetail) -> DatamizeResult<()> {
         for sr in &year.saving_rates {
             sqlx::query!(
                 r#"
@@ -324,7 +324,7 @@ impl YearRepo for PostgresYearRepo {
     }
 
     #[tracing::instrument(skip_all)]
-    async fn update_refreshed_at(&self, year: &YearData) -> Result<(), AppError> {
+    async fn update_refreshed_at(&self, year: &YearData) -> DatamizeResult<()> {
         sqlx::query!(
             r#"
             INSERT INTO balance_sheet_years (id, year, refreshed_at)
@@ -343,7 +343,7 @@ impl YearRepo for PostgresYearRepo {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn delete(&self, year: i32) -> Result<(), AppError> {
+    async fn delete(&self, year: i32) -> DatamizeResult<()> {
         sqlx::query!(
             r#"
                 DELETE FROM balance_sheet_years
@@ -360,7 +360,7 @@ impl YearRepo for PostgresYearRepo {
 
 #[tracing::instrument(skip(year_repo))]
 #[async_recursion]
-async fn update_year_net_totals(year_repo: &PostgresYearRepo, year: i32) -> Result<(), AppError> {
+async fn update_year_net_totals(year_repo: &PostgresYearRepo, year: i32) -> DatamizeResult<()> {
     let year_data = year_repo.get_year_data_by_number(year).await?;
 
     let (net_totals, saving_rates, months) = try_join!(

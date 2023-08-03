@@ -6,53 +6,43 @@ use axum_extra::extract::WithRejection;
 use uuid::Uuid;
 
 use crate::{
-    db::budget_template as db,
-    error::{AppError, HttpJsonDatamizeResult, JsonError},
+    error::{HttpJsonDatamizeResult, JsonError},
     models::budget_template::ExternalExpense,
-    startup::AppState,
+    services::budget_template::ExternalExpenseServiceExt,
 };
 
 /// Returns an external expense.
 #[tracing::instrument(skip_all)]
-pub async fn get_external_expense(
+pub async fn get_external_expense<EES: ExternalExpenseServiceExt>(
     Path(id): Path<Uuid>,
-    State(app_state): State<AppState>,
+    State(external_expense_service): State<EES>,
 ) -> HttpJsonDatamizeResult<ExternalExpense> {
-    let db_conn_pool = app_state.db_conn_pool;
-
-    Ok(Json(db::get_external_expense(&db_conn_pool, id).await?))
+    Ok(Json(
+        external_expense_service.get_external_expense(id).await?,
+    ))
 }
 
 /// Updates the external expense and returns the entity.
 #[tracing::instrument(skip_all)]
-pub async fn update_external_expense(
+pub async fn update_external_expense<EES: ExternalExpenseServiceExt>(
     Path(_id): Path<Uuid>,
-    State(app_state): State<AppState>,
+    State(external_expense_service): State<EES>,
     WithRejection(Json(body), _): WithRejection<Json<ExternalExpense>, JsonError>,
 ) -> HttpJsonDatamizeResult<ExternalExpense> {
-    let db_conn_pool = app_state.db_conn_pool;
-
-    let Ok(_) = db::get_external_expense(&db_conn_pool, body.id).await else {
-        return Err(AppError::ResourceNotFound);
-    };
-
-    db::update_external_expense(&db_conn_pool, &body).await?;
-
-    Ok(Json(body))
+    Ok(Json(
+        external_expense_service
+            .update_external_expense(body)
+            .await?,
+    ))
 }
 
 /// Deletes the external expense and returns the entity.
 #[tracing::instrument(skip_all)]
-pub async fn delete_external_expense(
+pub async fn delete_external_expense<EES: ExternalExpenseServiceExt>(
     Path(id): Path<Uuid>,
-    State(app_state): State<AppState>,
+    State(external_expense_service): State<EES>,
 ) -> HttpJsonDatamizeResult<ExternalExpense> {
-    let db_conn_pool = app_state.db_conn_pool;
-
-    let Ok(external_expense) = db::get_external_expense(&db_conn_pool, id).await else {
-        return Err(AppError::ResourceNotFound);
-    };
-    db::delete_external_expense(&db_conn_pool, id).await?;
-
-    Ok(Json(external_expense))
+    Ok(Json(
+        external_expense_service.delete_external_expense(id).await?,
+    ))
 }

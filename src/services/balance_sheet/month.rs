@@ -25,14 +25,17 @@ impl<MR> MonthServiceExt for MonthService<MR>
 where
     MR: MonthRepo + Sync + Send,
 {
+    #[tracing::instrument(skip(self))]
     async fn get_all_months(&self) -> DatamizeResult<Vec<Month>> {
         self.month_repo.get_months().await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get_all_months_from_year(&self, year: i32) -> DatamizeResult<Vec<Month>> {
         self.month_repo.get_months_of_year(year).await
     }
 
+    #[tracing::instrument(skip(self, new_month))]
     async fn create_month(&self, year: i32, new_month: SaveMonth) -> DatamizeResult<Month> {
         self.month_repo.get_year_data_by_number(year).await?;
 
@@ -52,10 +55,12 @@ where
         self.month_repo.get(new_month.month, year).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get_month(&self, month: MonthNum, year: i32) -> DatamizeResult<Month> {
         self.month_repo.get(month, year).await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn delete_month(&self, month: MonthNum, year: i32) -> DatamizeResult<Month> {
         let month_detail = self.month_repo.get(month, year).await?;
         self.month_repo.delete(month, year).await?;

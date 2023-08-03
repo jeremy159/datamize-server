@@ -50,10 +50,12 @@ where
     MR: MonthRepo + Sync + Send,
     YR: YearRepo + Sync + Send,
 {
+    #[tracing::instrument(skip(self))]
     async fn get_all_fin_res(&self) -> DatamizeResult<Vec<FinancialResourceYearly>> {
         self.fin_res_repo.get_from_all_years().await
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get_all_fin_res_from_year(
         &self,
         year: i32,
@@ -61,6 +63,7 @@ where
         self.fin_res_repo.get_from_year(year).await
     }
 
+    #[tracing::instrument(skip_all)]
     async fn create_fin_res(
         &self,
         new_fin_res: SaveResource,
@@ -98,10 +101,12 @@ where
         Ok(resource)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn get_fin_res(&self, fin_res_id: Uuid) -> DatamizeResult<FinancialResourceYearly> {
         self.fin_res_repo.get(fin_res_id).await
     }
 
+    #[tracing::instrument(skip(self, new_fin_res))]
     async fn update_fin_res(
         &self,
         fin_res_id: Uuid,
@@ -143,6 +148,7 @@ where
         Ok(resource)
     }
 
+    #[tracing::instrument(skip(self))]
     async fn delete_fin_res(&self, fin_res_id: Uuid) -> DatamizeResult<FinancialResourceYearly> {
         let resource = self.fin_res_repo.get(fin_res_id).await?;
         self.fin_res_repo.delete(fin_res_id).await?;
@@ -161,6 +167,7 @@ where
         Ok(resource)
     }
 
+    #[tracing::instrument(skip_all)]
     async fn refresh_fin_res<EAS: ExternalAccountServiceExt + Send + Sync + 'static>(
         &self,
         mut external_acount_service: EAS,

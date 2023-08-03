@@ -1,109 +1,39 @@
-use sqlx::PgPool;
+use async_trait::async_trait;
 use uuid::Uuid;
 
-use crate::models::budget_template::{BudgeterConfig, ExpenseCategorization, ExternalExpense};
+use crate::{
+    error::DatamizeResult,
+    models::budget_template::{BudgeterConfig, ExpenseCategorization, ExternalExpense},
+};
 
-use super::postgres;
-
-#[tracing::instrument(skip(db_conn_pool))]
-pub async fn get_all_budgeters_config(
-    db_conn_pool: &PgPool,
-) -> Result<Vec<BudgeterConfig>, sqlx::Error> {
-    postgres::get_all_budgeters_config(db_conn_pool).await
+#[cfg_attr(test, mockall::automock)]
+#[async_trait]
+pub trait BudgeterConfigRepo {
+    async fn get_all(&self) -> DatamizeResult<Vec<BudgeterConfig>>;
+    async fn get(&self, budgeter_id: Uuid) -> DatamizeResult<BudgeterConfig>;
+    async fn get_by_name(&self, name: &str) -> DatamizeResult<BudgeterConfig>;
+    async fn update(&self, budgeter: &BudgeterConfig) -> DatamizeResult<()>;
+    async fn delete(&self, budgeter_id: Uuid) -> DatamizeResult<()>;
 }
 
-#[tracing::instrument(skip(db_conn_pool))]
-pub async fn get_budgeter_config(
-    db_conn_pool: &PgPool,
-    id: Uuid,
-) -> Result<BudgeterConfig, sqlx::Error> {
-    postgres::get_budgeter_config(db_conn_pool, id).await
+#[cfg_attr(test, mockall::automock)]
+#[async_trait]
+pub trait ExternalExpenseRepo {
+    async fn get_all(&self) -> DatamizeResult<Vec<ExternalExpense>>;
+    async fn get(&self, expense_id: Uuid) -> DatamizeResult<ExternalExpense>;
+    async fn get_by_name(&self, name: &str) -> DatamizeResult<ExternalExpense>;
+    async fn update(&self, expense: &ExternalExpense) -> DatamizeResult<()>;
+    async fn delete(&self, expense_id: Uuid) -> DatamizeResult<()>;
 }
 
-#[tracing::instrument(skip(db_conn_pool))]
-pub async fn get_budgeter_config_by_name(
-    db_conn_pool: &PgPool,
-    name: &str,
-) -> Result<BudgeterConfig, sqlx::Error> {
-    postgres::get_budgeter_config_by_name(db_conn_pool, name).await
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn update_budgeter_config(
-    db_conn_pool: &PgPool,
-    budgeter_config: &BudgeterConfig,
-) -> Result<(), sqlx::Error> {
-    postgres::update_budgeter_config(db_conn_pool, budgeter_config).await
-}
-
-#[tracing::instrument(skip(db_conn_pool))]
-pub async fn delete_budgeter_config(db_conn_pool: &PgPool, id: Uuid) -> Result<(), sqlx::Error> {
-    postgres::delete_budgeter_config(db_conn_pool, id).await
-}
-
-#[tracing::instrument(skip(db_conn_pool))]
-pub async fn get_all_external_expenses(
-    db_conn_pool: &PgPool,
-) -> Result<Vec<ExternalExpense>, sqlx::Error> {
-    postgres::get_all_external_expenses(db_conn_pool).await
-}
-
-#[tracing::instrument(skip(db_conn_pool))]
-pub async fn get_external_expense(
-    db_conn_pool: &PgPool,
-    id: Uuid,
-) -> Result<ExternalExpense, sqlx::Error> {
-    postgres::get_external_expense(db_conn_pool, id).await
-}
-
-#[tracing::instrument(skip(db_conn_pool))]
-pub async fn get_external_expense_by_name(
-    db_conn_pool: &PgPool,
-    name: &str,
-) -> Result<ExternalExpense, sqlx::Error> {
-    postgres::get_external_expense_by_name(db_conn_pool, name).await
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn update_external_expense(
-    db_conn_pool: &PgPool,
-    external_expense: &ExternalExpense,
-) -> Result<(), sqlx::Error> {
-    postgres::update_external_expense(db_conn_pool, external_expense).await
-}
-
-#[tracing::instrument(skip(db_conn_pool))]
-pub async fn delete_external_expense(db_conn_pool: &PgPool, id: Uuid) -> Result<(), sqlx::Error> {
-    postgres::delete_external_expense(db_conn_pool, id).await
-}
-
-#[tracing::instrument(skip(db_conn_pool))]
-pub async fn get_all_expenses_categorization(
-    db_conn_pool: &PgPool,
-) -> Result<Vec<ExpenseCategorization>, sqlx::Error> {
-    postgres::get_all_expenses_categorization(db_conn_pool).await
-}
-
-#[tracing::instrument(skip(db_conn_pool))]
-pub async fn get_expense_categorization(
-    db_conn_pool: &PgPool,
-    id: Uuid,
-) -> Result<ExpenseCategorization, sqlx::Error> {
-    postgres::get_expense_categorization(db_conn_pool, id).await
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn update_all_expenses_categorization(
-    db_conn_pool: &PgPool,
-    expenses_categorization: &[ExpenseCategorization],
-) -> Result<(), sqlx::Error> {
-    postgres::update_all_expenses_categorization(db_conn_pool, expenses_categorization).await
-}
-
-#[tracing::instrument(skip_all)]
-pub async fn update_expense_categorization(
-    db_conn_pool: &PgPool,
-    expense_categorization: &ExpenseCategorization,
-) -> Result<(), sqlx::Error> {
-    postgres::update_expense_categorization(db_conn_pool, expense_categorization).await
+#[cfg_attr(test, mockall::automock)]
+#[async_trait]
+pub trait ExpenseCategorizationRepo {
+    async fn get_all(&self) -> DatamizeResult<Vec<ExpenseCategorization>>;
+    async fn get(&self, id: Uuid) -> DatamizeResult<ExpenseCategorization>;
+    async fn update_all(
+        &self,
+        expenses_categorization: &[ExpenseCategorization],
+    ) -> DatamizeResult<()>;
+    async fn update(&self, expense_categorization: &ExpenseCategorization) -> DatamizeResult<()>;
 }
