@@ -14,7 +14,7 @@ use tracing::error_span;
 
 use crate::{
     config::Settings,
-    get_redis_connection_pool,
+    get_redis_connection_manager,
     routes::{get_api_routes, get_budget_providers_routes, health_check},
 };
 
@@ -22,7 +22,7 @@ use crate::{
 pub struct AppState {
     pub ynab_client: Arc<ynab::Client>,
     pub db_conn_pool: Pool<Postgres>,
-    pub redis_conn_pool: r2d2::Pool<redis::Client>,
+    pub redis_conn: redis::aio::ConnectionManager,
 }
 
 pub struct Application {
@@ -33,14 +33,15 @@ pub struct Application {
 
 impl Application {
     pub async fn build(configuration: Settings, db_conn_pool: PgPool) -> Result<Self> {
-        let redis_conn_pool = get_redis_connection_pool(&configuration.redis)
-            .context("failed to get redis connection pool")?;
+        let redis_conn = get_redis_connection_manager(&configuration.redis)
+            .await
+            .context("failed to get redis connection manager")?;
         let ynab_client = Arc::new(configuration.ynab_client.client());
 
         let app_state = AppState {
             ynab_client,
             db_conn_pool,
-            redis_conn_pool,
+            redis_conn,
         };
 
         let address = format!(

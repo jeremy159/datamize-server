@@ -46,6 +46,11 @@ where
         {
             let last_saved_date: NaiveDate = last_saved.parse()?;
             if current_date.month() != last_saved_date.month() {
+                tracing::debug!(
+                    ?current_date,
+                    ?last_saved_date,
+                    "discarding knowledge_server",
+                );
                 // Discard knowledge_server when changing month.
                 self.ynab_scheduled_transaction_meta_repo
                     .del_delta()

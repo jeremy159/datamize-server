@@ -78,6 +78,11 @@ where
         if let Ok(last_saved) = self.ynab_category_meta_repo.get_last_saved().await {
             let last_saved_date: NaiveDate = last_saved.parse()?;
             if current_date.month() != last_saved_date.month() {
+                tracing::debug!(
+                    ?current_date,
+                    ?last_saved_date,
+                    "discarding knowledge_server",
+                );
                 // Discard knowledge_server when changing month.
                 self.ynab_category_meta_repo.del_delta().await?;
                 self.ynab_category_meta_repo

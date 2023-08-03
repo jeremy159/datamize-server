@@ -24,7 +24,7 @@ tokio = { workspace = true }
 tower = { version = "0.4.13" }
 sqlx = { version = "^0.7.0", features = ["runtime-tokio", "tls-rustls", "postgres", "macros", "uuid", "chrono", "migrate", "json"] }
 secrecy = { version = "0.8.0", features = ["serde"] }
-redis = { version = "0.23", features = ["tokio-comp", "r2d2"] }
+redis = { version = "0.23", features = ["tokio-comp", "r2d2", "aio", "connection-manager"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter", "registry"] }
 tower-http = { version = "^0.4.1", features = ["trace", "cors"] }

@@ -7,7 +7,7 @@ use datamize::db::budget_providers::external::{
 };
 use datamize::models::budget_providers::{EncryptedPassword, WebScrapingAccount};
 use datamize::services::budget_providers::{ExternalAccountService, ExternalAccountServiceExt};
-use datamize::{get_redis_conn, get_redis_connection_pool, secrecy::Secret, sqlx_error::Error};
+use datamize::{get_redis_connection_manager, secrecy::Secret, sqlx_error::Error};
 use orion::aead;
 use orion::kex::SecretKey;
 use uuid::Uuid;
@@ -103,10 +103,9 @@ async fn main() -> anyhow::Result<()> {
 
     let configuration = datamize::config::Settings::build()?;
     let db_conn_pool = datamize::get_connection_pool(&configuration.database);
-    let redis_conn_pool = get_redis_connection_pool(&configuration.redis)
-        .context("failed to get redis connection pool")?;
-    let redis_conn =
-        get_redis_conn(&redis_conn_pool).context("failed to get redis connection from pool")?;
+    let redis_conn = get_redis_connection_manager(&configuration.redis)
+        .await
+        .context("failed to get redis connection manager")?;
 
     let mut external_account_service = ExternalAccountService {
         external_account_repo: PostgresExternalAccountRepo { db_conn_pool },

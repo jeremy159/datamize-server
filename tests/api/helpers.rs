@@ -2,12 +2,13 @@ use std::fmt::Display;
 
 use chrono::{Datelike, NaiveDate, Utc};
 use datamize::{
-    config, get_redis_connection_pool,
+    config, get_redis_connection_manager,
     startup::Application,
     telemetry::{get_subscriber, init_subscriber},
 };
 use fake::{faker::chrono::en::Date, Fake, Faker};
 use once_cell::sync::Lazy;
+use redis::aio::ConnectionManager;
 use serde::Serialize;
 use sqlx::PgPool;
 use uuid::Uuid;
@@ -35,7 +36,7 @@ pub struct TestApp {
     pub address: String,
     pub port: u16,
     pub db_pool: PgPool,
-    pub redis_pool: r2d2::Pool<redis::Client>,
+    pub redis_pool: ConnectionManager,
     pub api_client: reqwest::Client,
     pub ynab_server: MockServer,
     pub ynab_client: ynab::Client,
@@ -537,16 +538,15 @@ pub async fn spawn_app(db_pool: PgPool) -> TestApp {
         .build()
         .unwrap();
 
-    let test_app = TestApp {
+    TestApp {
         address: format!("http://localhost:{}", application_port),
         port: application_port,
         db_pool,
-        redis_pool: get_redis_connection_pool(&configuration.redis)
+        redis_pool: get_redis_connection_manager(&configuration.redis)
+            .await
             .expect("Failed to start connection to redis."),
         api_client: client,
         ynab_server,
         ynab_client: configuration.ynab_client.client(),
-    };
-
-    test_app
+    }
 }

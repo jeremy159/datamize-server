@@ -34,7 +34,6 @@ use crate::{
             PostgresExternalExpenseRepo,
         },
     },
-    get_redis_conn,
     services::budget_template::{
         BudgeterService, CategoryService, ExpenseCategorizationService, ExternalExpenseService,
         ScheduledTransactionService, TemplateDetailService, TemplateSummaryService,
@@ -47,11 +46,6 @@ impl FromRef<AppState>
     for TemplateDetailService<PostgresBudgeterConfigRepo, PostgresExternalExpenseRepo>
 {
     fn from_ref(state: &AppState) -> Self {
-        let redis_conn_1 = get_redis_conn(&state.redis_conn_pool)
-            .expect("failed to get redis connection from pool");
-        let redis_conn_2 = get_redis_conn(&state.redis_conn_pool)
-            .expect("failed to get redis connection from pool");
-
         Self {
             budgeter_config_repo: PostgresBudgeterConfigRepo {
                 db_conn_pool: state.db_conn_pool.clone(),
@@ -64,7 +58,7 @@ impl FromRef<AppState>
                     db_conn_pool: state.db_conn_pool.clone(),
                 },
                 ynab_category_meta_repo: RedisYnabCategoryMetaRepo {
-                    redis_conn: redis_conn_1,
+                    redis_conn: state.redis_conn.clone(),
                 },
                 expense_categorization_repo: PostgresExpenseCategorizationRepo {
                     db_conn_pool: state.db_conn_pool.clone(),
@@ -76,7 +70,7 @@ impl FromRef<AppState>
                     db_conn_pool: state.db_conn_pool.clone(),
                 },
                 ynab_scheduled_transaction_meta_repo: RedisYnabScheduledTransactionMetaRepo {
-                    redis_conn: redis_conn_2,
+                    redis_conn: state.redis_conn.clone(),
                 },
                 ynab_client: state.ynab_client.clone(),
             }),
@@ -89,11 +83,6 @@ impl FromRef<AppState>
     for TemplateSummaryService<PostgresBudgeterConfigRepo, PostgresExternalExpenseRepo>
 {
     fn from_ref(state: &AppState) -> Self {
-        let redis_conn_1 = get_redis_conn(&state.redis_conn_pool)
-            .expect("failed to get redis connection from pool");
-        let redis_conn_2 = get_redis_conn(&state.redis_conn_pool)
-            .expect("failed to get redis connection from pool");
-
         Self {
             budgeter_config_repo: PostgresBudgeterConfigRepo {
                 db_conn_pool: state.db_conn_pool.clone(),
@@ -106,7 +95,7 @@ impl FromRef<AppState>
                     db_conn_pool: state.db_conn_pool.clone(),
                 },
                 ynab_category_meta_repo: RedisYnabCategoryMetaRepo {
-                    redis_conn: redis_conn_1,
+                    redis_conn: state.redis_conn.clone(),
                 },
                 expense_categorization_repo: PostgresExpenseCategorizationRepo {
                     db_conn_pool: state.db_conn_pool.clone(),
@@ -118,7 +107,7 @@ impl FromRef<AppState>
                     db_conn_pool: state.db_conn_pool.clone(),
                 },
                 ynab_scheduled_transaction_meta_repo: RedisYnabScheduledTransactionMetaRepo {
-                    redis_conn: redis_conn_2,
+                    redis_conn: state.redis_conn.clone(),
                 },
                 ynab_client: state.ynab_client.clone(),
             }),
@@ -129,16 +118,13 @@ impl FromRef<AppState>
 
 impl FromRef<AppState> for TemplateTransactionService<PostgresYnabCategoryRepo> {
     fn from_ref(state: &AppState) -> Self {
-        let redis_conn = get_redis_conn(&state.redis_conn_pool)
-            .expect("failed to get redis connection from pool");
-
         Self {
             scheduled_transaction_service: Box::new(ScheduledTransactionService {
                 ynab_scheduled_transaction_repo: PostgresYnabScheduledTransactionRepo {
                     db_conn_pool: state.db_conn_pool.clone(),
                 },
                 ynab_scheduled_transaction_meta_repo: RedisYnabScheduledTransactionMetaRepo {
-                    redis_conn,
+                    redis_conn: state.redis_conn.clone(),
                 },
                 ynab_client: state.ynab_client.clone(),
             }),
