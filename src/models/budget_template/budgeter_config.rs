@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[cfg_attr(test, derive(fake::Dummy))]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, PartialEq, Eq)]
 pub struct BudgeterConfig {
     pub id: Uuid,
     pub name: String,
@@ -24,6 +25,7 @@ impl From<SaveBudgeterConfig> for BudgeterConfig {
     }
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SaveBudgeterConfig {
     pub name: String,
