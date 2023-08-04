@@ -83,3 +83,149 @@ where
         Ok(external_expense)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use fake::{Fake, Faker};
+
+    use super::*;
+    use crate::db::budget_template::MockExternalExpenseRepo;
+
+    #[tokio::test]
+    async fn create_external_expense_success() {
+        let mut external_expense_repo = MockExternalExpenseRepo::new();
+        external_expense_repo
+            .expect_get_by_name()
+            .once()
+            .returning(|_| Err(AppError::ResourceNotFound));
+        external_expense_repo
+            .expect_update()
+            .once()
+            .returning(|_| Ok(()));
+
+        let external_expense_service = ExternalExpenseService {
+            external_expense_repo,
+        };
+
+        let new_external_expense: SaveExternalExpense = Faker.fake();
+
+        let expected: ExternalExpense = new_external_expense.clone().into();
+        let actual = external_expense_service
+            .create_external_expense(new_external_expense)
+            .await
+            .unwrap();
+        assert_eq!(expected.name, actual.name);
+        assert_eq!(expected.expense_type, actual.expense_type);
+        assert_eq!(expected.sub_expense_type, actual.sub_expense_type);
+        assert_eq!(expected.projected_amount, actual.projected_amount);
+    }
+
+    #[tokio::test]
+    async fn create_external_expense_failure_already_exist() {
+        let mut external_expense_repo = MockExternalExpenseRepo::new();
+        external_expense_repo
+            .expect_get_by_name()
+            .once()
+            .returning(|_| Ok(Faker.fake::<ExternalExpense>()));
+        external_expense_repo.expect_update().never();
+
+        let external_expense_service = ExternalExpenseService {
+            external_expense_repo,
+        };
+
+        let new_external_expense: SaveExternalExpense = Faker.fake();
+
+        let actual = external_expense_service
+            .create_external_expense(new_external_expense)
+            .await;
+        assert!(matches!(actual, Err(AppError::ResourceAlreadyExist)));
+    }
+
+    #[tokio::test]
+    async fn update_external_expense_success() {
+        let external_expense = Faker.fake::<ExternalExpense>();
+        let new_external_expense = external_expense.clone();
+        let mut external_expense_repo = MockExternalExpenseRepo::new();
+        external_expense_repo
+            .expect_get()
+            .return_once(|_| Ok(new_external_expense));
+        external_expense_repo
+            .expect_update()
+            .once()
+            .returning(|_| Ok(()));
+
+        let external_expense_service = ExternalExpenseService {
+            external_expense_repo,
+        };
+
+        let actual = external_expense_service
+            .update_external_expense(external_expense.clone())
+            .await
+            .unwrap();
+        assert_eq!(external_expense, actual);
+    }
+
+    #[tokio::test]
+    async fn update_external_expense_failure_does_not_exist() {
+        let external_expense = Faker.fake::<ExternalExpense>();
+        let mut external_expense_repo = MockExternalExpenseRepo::new();
+        external_expense_repo
+            .expect_get()
+            .return_once(|_| Err(AppError::ResourceNotFound));
+        external_expense_repo.expect_update().never();
+
+        let external_expense_service = ExternalExpenseService {
+            external_expense_repo,
+        };
+
+        let actual = external_expense_service
+            .update_external_expense(external_expense.clone())
+            .await;
+        assert!(matches!(actual, Err(AppError::ResourceNotFound)));
+    }
+
+    #[tokio::test]
+    async fn delete_external_expense_success() {
+        let external_expense = Faker.fake::<ExternalExpense>();
+        let new_external_expense = external_expense.clone();
+        let external_expense_id = external_expense.id;
+        let mut external_expense_repo = MockExternalExpenseRepo::new();
+        external_expense_repo
+            .expect_get()
+            .return_once(|_| Ok(new_external_expense));
+        external_expense_repo
+            .expect_delete()
+            .once()
+            .returning(|_| Ok(()));
+
+        let external_expense_service = ExternalExpenseService {
+            external_expense_repo,
+        };
+
+        let actual = external_expense_service
+            .delete_external_expense(external_expense_id)
+            .await
+            .unwrap();
+        assert_eq!(external_expense, actual);
+    }
+
+    #[tokio::test]
+    async fn delete_external_expense_failure_does_not_exist() {
+        let external_expense = Faker.fake::<ExternalExpense>();
+        let external_expense_id = external_expense.id;
+        let mut external_expense_repo = MockExternalExpenseRepo::new();
+        external_expense_repo
+            .expect_get()
+            .return_once(|_| Err(AppError::ResourceNotFound));
+        external_expense_repo.expect_delete().never();
+
+        let external_expense_service = ExternalExpenseService {
+            external_expense_repo,
+        };
+
+        let actual = external_expense_service
+            .delete_external_expense(external_expense_id)
+            .await;
+        assert!(matches!(actual, Err(AppError::ResourceNotFound)));
+    }
+}

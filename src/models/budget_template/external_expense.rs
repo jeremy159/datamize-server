@@ -3,7 +3,8 @@ use uuid::Uuid;
 
 use super::{ExpenseType, SubExpenseType};
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[cfg_attr(test, derive(fake::Dummy))]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow, PartialEq, Eq)]
 pub struct ExternalExpense {
     pub id: Uuid,
     pub name: String,
@@ -36,6 +37,7 @@ impl ExternalExpense {
     }
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SaveExternalExpense {
     pub name: String,
