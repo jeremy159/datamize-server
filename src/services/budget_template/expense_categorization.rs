@@ -77,3 +77,55 @@ where
         Ok(new_expense_categorization)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use fake::{Fake, Faker};
+
+    use super::*;
+    use crate::db::budget_template::MockExpenseCategorizationRepo;
+
+    #[tokio::test]
+    async fn update_expense_categorization_success() {
+        let expense_categorization = Faker.fake::<ExpenseCategorization>();
+        let new_expense_categorization = expense_categorization.clone();
+        let mut expense_categorization_repo = MockExpenseCategorizationRepo::new();
+        expense_categorization_repo
+            .expect_get()
+            .once()
+            .return_once(|_| Ok(new_expense_categorization));
+        expense_categorization_repo
+            .expect_update()
+            .once()
+            .returning(|_| Ok(()));
+
+        let expense_categorization_service = ExpenseCategorizationService {
+            expense_categorization_repo,
+        };
+
+        let actual = expense_categorization_service
+            .update_expense_categorization(expense_categorization.clone())
+            .await
+            .unwrap();
+        assert_eq!(expense_categorization, actual);
+    }
+
+    #[tokio::test]
+    async fn update_expense_categorization_failure_does_not_exist() {
+        let expense_categorization = Faker.fake::<ExpenseCategorization>();
+        let mut expense_categorization_repo = MockExpenseCategorizationRepo::new();
+        expense_categorization_repo
+            .expect_get()
+            .return_once(|_| Err(AppError::ResourceNotFound));
+        expense_categorization_repo.expect_update().never();
+
+        let expense_categorization_service = ExpenseCategorizationService {
+            expense_categorization_repo,
+        };
+
+        let actual = expense_categorization_service
+            .update_expense_categorization(expense_categorization.clone())
+            .await;
+        assert!(matches!(actual, Err(AppError::ResourceNotFound)));
+    }
+}

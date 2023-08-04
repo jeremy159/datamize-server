@@ -4,6 +4,7 @@ use ynab::types::{Category, CategoryGroup, CategoryGroupWithCategories};
 
 use super::{ExpenseType, SubExpenseType};
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Serialize, Deserialize, Clone, Default, sqlx::FromRow, PartialEq, Eq, Hash)]
 pub struct ExpenseCategorization {
     pub id: Uuid,

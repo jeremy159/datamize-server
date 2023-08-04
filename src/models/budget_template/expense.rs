@@ -285,6 +285,7 @@ impl From<ExternalExpense> for Expense<PartiallyComputed> {
     }
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(
     Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Clone, Serialize, Deserialize, Default, sqlx::Type,
 )]
@@ -331,6 +332,7 @@ impl FromStr for ExpenseType {
     }
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(
     Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Default, Hash, sqlx::Type,
 )]
