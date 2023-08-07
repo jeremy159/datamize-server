@@ -3,6 +3,7 @@ use std::{fmt, str::FromStr};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(not(feature = "sqlx-postgres"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Accounts/getAccountById
@@ -23,6 +24,7 @@ pub struct Account {
     pub deleted: bool,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 /// See https://api.youneedabudget.com/v1#/Accounts/getAccountById
@@ -44,12 +46,14 @@ pub struct Account {
     pub deleted: bool,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccountsDelta {
     pub accounts: Vec<Account>,
     pub server_knowledge: i64,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(not(feature = "sqlx-postgres"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
@@ -66,6 +70,7 @@ pub enum AccountType {
     StudentLoan,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
@@ -124,6 +129,7 @@ impl FromStr for AccountType {
     }
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Accounts/createAccount
 pub struct SaveAccount {

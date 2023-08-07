@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
 use uuid::Uuid;
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(not(feature = "sqlx-postgres"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Categories/getCategoryById
@@ -30,6 +31,7 @@ pub struct Category {
     pub deleted: bool,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 /// See https://api.youneedabudget.com/v1#/Categories/getCategoryById
@@ -59,6 +61,7 @@ pub struct Category {
     pub deleted: bool,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(not(feature = "sqlx-postgres"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum GoalType {
@@ -74,6 +77,7 @@ pub enum GoalType {
     Debt,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "goal_type")]
@@ -125,12 +129,14 @@ impl FromStr for GoalType {
     }
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Categories/updateMonthCategory
 pub struct SaveMonthCategory {
     pub budgeted: i64,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CategoryGroup {
     pub id: Uuid,
@@ -139,6 +145,7 @@ pub struct CategoryGroup {
     pub deleted: bool,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CategoryGroupWithCategories {
     pub id: Uuid,
@@ -148,6 +155,7 @@ pub struct CategoryGroupWithCategories {
     pub categories: Vec<Category>,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CategoryGroupWithCategoriesDelta {
     pub category_groups: Vec<CategoryGroupWithCategories>,

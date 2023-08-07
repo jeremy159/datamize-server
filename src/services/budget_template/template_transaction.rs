@@ -3,7 +3,7 @@ use std::{collections::HashMap, sync::Arc};
 use anyhow::Context;
 use async_trait::async_trait;
 use futures::{stream::FuturesUnordered, StreamExt};
-use ynab::Client;
+use ynab::CategoryRequests;
 
 use crate::{
     db::budget_providers::ynab::YnabCategoryRepo,
@@ -26,7 +26,7 @@ pub trait TemplateTransactionServiceExt {
 pub struct TemplateTransactionService<YCR: YnabCategoryRepo> {
     pub scheduled_transaction_service: Box<dyn ScheduledTransactionServiceExt + Sync + Send>,
     pub ynab_category_repo: YCR,
-    pub ynab_client: Arc<Client>,
+    pub ynab_client: Arc<dyn CategoryRequests + Sync + Send>,
 }
 
 #[async_trait]

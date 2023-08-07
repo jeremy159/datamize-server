@@ -1,7 +1,9 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use chrono::{Datelike, Local};
 use uuid::Uuid;
-use ynab::Client as YnabClient;
+use ynab::AccountRequests;
 
 use crate::{
     db::balance_sheet::{FinResRepo, MonthRepo, YearRepo},
@@ -33,7 +35,7 @@ pub trait FinResServiceExt {
     async fn refresh_fin_res<EAS: ExternalAccountServiceExt + Send + Sync + 'static>(
         &self,
         mut external_acount_service: EAS,
-        ynab_client: &YnabClient,
+        ynab_client: Arc<dyn AccountRequests + Send + Sync>,
     ) -> DatamizeResult<Vec<Uuid>>;
 }
 
@@ -171,7 +173,7 @@ where
     async fn refresh_fin_res<EAS: ExternalAccountServiceExt + Send + Sync + 'static>(
         &self,
         mut external_acount_service: EAS,
-        ynab_client: &YnabClient,
+        ynab_client: Arc<dyn AccountRequests + Send + Sync>,
     ) -> DatamizeResult<Vec<Uuid>> {
         let current_date = Local::now().date_naive();
         let current_year = current_date.year();

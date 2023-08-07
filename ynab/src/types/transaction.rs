@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
 use uuid::Uuid;
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(not(feature = "sqlx-postgres"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Transactions/getTransactionById
@@ -23,6 +24,7 @@ pub struct TransactionSummary {
     pub deleted: bool,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 /// See https://api.youneedabudget.com/v1#/Transactions/getTransactionById
@@ -44,6 +46,7 @@ pub struct TransactionSummary {
     pub deleted: bool,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(not(feature = "sqlx-postgres"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BaseTransactionDetail {
@@ -67,6 +70,7 @@ pub struct BaseTransactionDetail {
     pub category_name: String,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct BaseTransactionDetail {
@@ -90,6 +94,7 @@ pub struct BaseTransactionDetail {
     pub category_name: String,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(not(feature = "sqlx-postgres"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
@@ -99,6 +104,7 @@ pub enum ClearedType {
     Reconciled,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
@@ -136,6 +142,7 @@ impl FromStr for ClearedType {
     }
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(not(feature = "sqlx-postgres"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Budgets/getBudgetById
@@ -144,6 +151,7 @@ pub struct HybridTransaction {
     pub base: BaseTransactionDetail,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 /// See https://api.youneedabudget.com/v1#/Budgets/getBudgetById
@@ -159,6 +167,14 @@ impl AsRef<BaseTransactionDetail> for HybridTransaction {
     }
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HybridTransationsDelta {
+    pub transactions: Vec<HybridTransaction>,
+    pub server_knowledge: i64,
+}
+
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(not(feature = "sqlx-postgres"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Transactions/getTransactionById
@@ -168,6 +184,7 @@ pub struct TransactionDetail {
     pub subtransactions: Vec<SubTransaction>,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 /// See https://api.youneedabudget.com/v1#/Transactions/getTransactionById
@@ -184,12 +201,14 @@ impl AsRef<BaseTransactionDetail> for TransactionDetail {
     }
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TransationsDetailDelta<T: AsRef<BaseTransactionDetail>> {
-    pub transactions: Vec<T>,
+pub struct TransationsDetailDelta {
+    pub transactions: Vec<TransactionDetail>,
     pub server_knowledge: i64,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Transactions/createTransaction
 pub struct SaveTransaction {
@@ -207,6 +226,7 @@ pub struct SaveTransaction {
     pub subtransactions: Option<Vec<SaveSubTransaction>>,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Transactions/updateTransactions
 pub struct UpdateTransaction {
@@ -225,7 +245,8 @@ pub struct UpdateTransaction {
     pub subtransactions: Option<Vec<SaveSubTransaction>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(test, derive(fake::Dummy))]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SubTransaction {
     pub id: Uuid,
     pub scheduled_transaction_id: Option<Uuid>,
@@ -237,7 +258,8 @@ pub struct SubTransaction {
     pub deleted: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(test, derive(fake::Dummy))]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 /// See https://api.youneedabudget.com/v1#/Transactions/createTransaction
 pub struct SaveSubTransaction {
     pub amount: i64,

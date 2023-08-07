@@ -25,7 +25,7 @@ pub async fn refresh_balance_sheet_resources<FRS: FinResServiceExt>(
             redis_conn: app_state.redis_conn,
         },
     };
-    let ynab_client = app_state.ynab_client.as_ref();
+    let ynab_client = app_state.ynab_client;
 
     Ok(Json(
         fin_res_service

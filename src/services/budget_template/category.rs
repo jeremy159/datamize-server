@@ -3,7 +3,7 @@ use std::{collections::HashSet, sync::Arc};
 use anyhow::Context;
 use async_trait::async_trait;
 use chrono::{DateTime, Datelike, Local, NaiveDate};
-use ynab::{Category, CategoryGroup, Client};
+use ynab::{Category, CategoryGroup, CategoryRequests, MonthRequests};
 
 use crate::{
     db::{
@@ -27,19 +27,21 @@ pub struct CategoryService<
     YCR: YnabCategoryRepo,
     YCMR: YnabCategoryMetaRepo,
     ECR: ExpenseCategorizationRepo,
+    YC: CategoryRequests + MonthRequests,
 > {
     pub ynab_category_repo: YCR,
     pub ynab_category_meta_repo: YCMR,
     pub expense_categorization_repo: ECR,
-    pub ynab_client: Arc<Client>,
+    pub ynab_client: Arc<YC>,
 }
 
 #[async_trait]
-impl<YCR, YCMR, ECR> CategoryServiceExt for CategoryService<YCR, YCMR, ECR>
+impl<YCR, YCMR, ECR, YC> CategoryServiceExt for CategoryService<YCR, YCMR, ECR, YC>
 where
     YCR: YnabCategoryRepo + Sync + Send,
     YCMR: YnabCategoryMetaRepo + Sync + Send,
     ECR: ExpenseCategorizationRepo + Sync + Send,
+    YC: CategoryRequests + MonthRequests + Sync + Send,
 {
     #[tracing::instrument(skip(self))]
     async fn get_categories_of_month(
@@ -65,11 +67,12 @@ where
     }
 }
 
-impl<YCR, YCMR, ECR> CategoryService<YCR, YCMR, ECR>
+impl<YCR, YCMR, ECR, YC> CategoryService<YCR, YCMR, ECR, YC>
 where
     YCR: YnabCategoryRepo + Sync + Send,
     YCMR: YnabCategoryMetaRepo + Sync + Send,
     ECR: ExpenseCategorizationRepo + Sync + Send,
+    YC: CategoryRequests + MonthRequests + Sync + Send,
 {
     async fn get_latest_categories(
         &mut self,

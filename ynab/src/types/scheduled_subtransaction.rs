@@ -5,8 +5,9 @@ use uuid::Uuid;
 
 use crate::SubTransaction;
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(not(feature = "sqlx-postgres"))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum RecurFrequency {
     Never,
@@ -24,8 +25,9 @@ pub enum RecurFrequency {
     EveryOtherYear,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 #[sqlx(type_name = "frequency")]
 #[sqlx(rename_all = "camelCase")]
@@ -123,8 +125,9 @@ impl FromStr for RecurFrequency {
     }
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(not(feature = "sqlx-postgres"))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 /// See https://api.youneedabudget.com/v1#/Scheduled_Transactions/getScheduledTransactionById
 pub struct ScheduledTransactionSummary {
     pub id: Uuid,
@@ -141,8 +144,9 @@ pub struct ScheduledTransactionSummary {
     pub deleted: bool,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, PartialEq, Eq)]
 /// See https://api.youneedabudget.com/v1#/Scheduled_Transactions/getScheduledTransactionById
 pub struct ScheduledTransactionSummary {
     pub id: Uuid,
@@ -159,8 +163,9 @@ pub struct ScheduledTransactionSummary {
     pub deleted: bool,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(not(feature = "sqlx-postgres"))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 /// See https://api.youneedabudget.com/v1#/Scheduled_Transactions/getScheduledTransactionById
 pub struct ScheduledTransactionDetail {
     pub id: Uuid,
@@ -181,8 +186,9 @@ pub struct ScheduledTransactionDetail {
     pub subtransactions: Vec<SubTransaction>,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, PartialEq, Eq)]
 /// See https://api.youneedabudget.com/v1#/Scheduled_Transactions/getScheduledTransactionById
 pub struct ScheduledTransactionDetail {
     pub id: Uuid,
@@ -203,6 +209,7 @@ pub struct ScheduledTransactionDetail {
     pub subtransactions: Vec<SubTransaction>,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScheduledTransactionsDetailDelta {
     pub scheduled_transactions: Vec<ScheduledTransactionDetail>,

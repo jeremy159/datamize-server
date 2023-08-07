@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::Category;
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(not(feature = "sqlx-postgres"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Months/getBudgetMonth
@@ -16,6 +17,7 @@ pub struct MonthSummary {
     pub deleted: bool,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 /// See https://api.youneedabudget.com/v1#/Months/getBudgetMonth
@@ -30,12 +32,14 @@ pub struct MonthSummary {
     pub deleted: bool,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MonthSummaryDelta {
     pub months: Vec<MonthSummary>,
     pub server_knowledge: i64,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(not(feature = "sqlx-postgres"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Months/getBudgetMonth
@@ -51,6 +55,7 @@ pub struct MonthDetail {
     pub categories: Vec<Category>,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 /// See https://api.youneedabudget.com/v1#/Months/getBudgetMonth

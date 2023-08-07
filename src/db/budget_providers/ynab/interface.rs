@@ -39,6 +39,7 @@ pub trait YnabPayeeRepo {
     async fn update_all(&self, payees: &[Payee]) -> DatamizeResult<()>;
 }
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait YnabCategoryMetaRepo {
     async fn get_delta(&mut self) -> DatamizeResult<i64>;
@@ -48,6 +49,7 @@ pub trait YnabCategoryMetaRepo {
     async fn set_last_saved(&mut self, last_saved: String) -> DatamizeResult<()>;
 }
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait YnabScheduledTransactionMetaRepo {
     async fn get_delta(&mut self) -> DatamizeResult<i64>;
@@ -57,12 +59,14 @@ pub trait YnabScheduledTransactionMetaRepo {
     async fn set_last_saved(&mut self, last_saved: String) -> DatamizeResult<()>;
 }
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait YnabAccountMetaRepo {
     async fn get_delta(&mut self) -> DatamizeResult<i64>;
     async fn set_delta(&mut self, server_knowledge: i64) -> DatamizeResult<()>;
 }
 
+#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait YnabPayeeMetaRepo {
     async fn get_delta(&mut self) -> DatamizeResult<i64>;

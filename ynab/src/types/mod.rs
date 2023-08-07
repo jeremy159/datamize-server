@@ -24,6 +24,7 @@ pub struct User {
     pub id: Uuid,
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Clone, Copy, Serialize)]
 pub enum TransactionType {
     Unapproved,
@@ -49,6 +50,7 @@ pub enum TransactionsParentPath<T: AsRef<str>> {
     Payees(T),
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Serialize, Default)]
 pub struct TransactionsRequestQuery {
     pub last_knowledge_of_server: Option<i64>,

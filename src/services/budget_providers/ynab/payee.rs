@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use async_trait::async_trait;
-use ynab::{Client, Payee};
+use ynab::{Payee, PayeeRequests};
 
 use crate::{
     db::budget_providers::ynab::{YnabPayeeMetaRepo, YnabPayeeRepo},
@@ -18,7 +18,7 @@ pub trait YnabPayeeServiceExt {
 pub struct YnabPayeeService<YPR: YnabPayeeRepo, YPMR: YnabPayeeMetaRepo> {
     pub ynab_payee_repo: YPR,
     pub ynab_payee_meta_repo: YPMR,
-    pub ynab_client: Arc<Client>,
+    pub ynab_client: Arc<dyn PayeeRequests + Send + Sync>,
 }
 
 #[async_trait]
