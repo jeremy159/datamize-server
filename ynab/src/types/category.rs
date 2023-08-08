@@ -33,7 +33,7 @@ pub struct Category {
 
 #[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, PartialEq, Eq)]
 /// See https://api.youneedabudget.com/v1#/Categories/getCategoryById
 pub struct Category {
     pub id: Uuid,
@@ -63,7 +63,7 @@ pub struct Category {
 
 #[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(not(feature = "sqlx-postgres"))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum GoalType {
     #[serde(rename = "TB")]
     TargetBalance,
@@ -79,7 +79,7 @@ pub enum GoalType {
 
 #[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq, Eq)]
 #[sqlx(type_name = "goal_type")]
 pub enum GoalType {
     #[serde(rename = "TB")]
@@ -137,7 +137,7 @@ pub struct SaveMonthCategory {
 }
 
 #[cfg_attr(test, derive(fake::Dummy))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CategoryGroup {
     pub id: Uuid,
     pub name: String,
@@ -146,7 +146,7 @@ pub struct CategoryGroup {
 }
 
 #[cfg_attr(test, derive(fake::Dummy))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CategoryGroupWithCategories {
     pub id: Uuid,
     pub name: String,
