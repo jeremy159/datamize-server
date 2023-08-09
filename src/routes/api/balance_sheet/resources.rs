@@ -9,20 +9,20 @@ use axum_extra::extract::WithRejection;
 use crate::{
     error::{AppError, HttpJsonDatamizeResult, JsonError},
     models::balance_sheet::{FinancialResourceYearly, SaveResource},
-    services::balance_sheet::FinResServiceExt,
+    services::balance_sheet::{FinResService, FinResServiceExt},
 };
 
 /// Returns all resources of all years.
 #[tracing::instrument(name = "Get all resources from all years", skip_all)]
-pub async fn all_balance_sheet_resources<FRS: FinResServiceExt>(
-    State(fin_res_service): State<FRS>,
+pub async fn all_balance_sheet_resources(
+    State(fin_res_service): State<FinResService>,
 ) -> HttpJsonDatamizeResult<Vec<FinancialResourceYearly>> {
     Ok(Json(fin_res_service.get_all_fin_res().await?))
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn create_balance_sheet_resource<FRS: FinResServiceExt>(
-    State(fin_res_service): State<FRS>,
+pub async fn create_balance_sheet_resource(
+    State(fin_res_service): State<FinResService>,
     WithRejection(Json(body), _): WithRejection<Json<SaveResource>, JsonError>,
 ) -> Result<impl IntoResponse, AppError> {
     Ok((
@@ -33,9 +33,9 @@ pub async fn create_balance_sheet_resource<FRS: FinResServiceExt>(
 
 /// Endpoint to get all financial resources of a particular year.
 #[tracing::instrument(name = "Get all resources from a year", skip_all)]
-pub async fn balance_sheet_resources<FRS: FinResServiceExt>(
+pub async fn balance_sheet_resources(
     Path(year): Path<i32>,
-    State(fin_res_service): State<FRS>,
+    State(fin_res_service): State<FinResService>,
 ) -> HttpJsonDatamizeResult<Vec<FinancialResourceYearly>> {
     Ok(Json(fin_res_service.get_all_fin_res_from_year(year).await?))
 }

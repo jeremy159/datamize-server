@@ -23,17 +23,14 @@ pub trait TemplateTransactionServiceExt {
     ) -> DatamizeResult<ScheduledTransactionsDistribution>;
 }
 
-pub struct TemplateTransactionService<YCR: YnabCategoryRepo> {
+pub struct TemplateTransactionService {
     pub scheduled_transaction_service: Box<dyn ScheduledTransactionServiceExt + Sync + Send>,
-    pub ynab_category_repo: YCR,
+    pub ynab_category_repo: Box<dyn YnabCategoryRepo + Sync + Send>,
     pub ynab_client: Arc<dyn CategoryRequests + Sync + Send>,
 }
 
 #[async_trait]
-impl<YCR> TemplateTransactionServiceExt for TemplateTransactionService<YCR>
-where
-    YCR: YnabCategoryRepo + Sync + Send,
-{
+impl TemplateTransactionServiceExt for TemplateTransactionService {
     #[tracing::instrument(skip(self))]
     async fn get_template_transactions(
         &mut self,
@@ -43,7 +40,7 @@ where
             .get_latest_scheduled_transactions()
             .await?;
 
-        let category_ids = TemplateTransactionService::<YCR>::get_subtransactions_category_ids(
+        let category_ids = TemplateTransactionService::get_subtransactions_category_ids(
             &saved_scheduled_transactions,
         );
 
@@ -82,7 +79,7 @@ where
     }
 }
 
-impl<YCR: YnabCategoryRepo> TemplateTransactionService<YCR> {
+impl TemplateTransactionService {
     fn get_subtransactions_category_ids(
         scheduled_transactions: &[DatamizeScheduledTransaction],
     ) -> Vec<uuid::Uuid> {
@@ -135,9 +132,9 @@ mod tests {
 
     #[tokio::test]
     async fn get_template_transactions_should_return_all_scheduled_transactions() {
-        let mut scheduled_transaction_service = MockScheduledTransactionServiceExt::new();
-        let mut ynab_category_repo = MockYnabCategoryRepo::new();
-        let ynab_client = MockYnabClient::new();
+        let mut scheduled_transaction_service = Box::new(MockScheduledTransactionServiceExt::new());
+        let mut ynab_category_repo = Box::new(MockYnabCategoryRepo::new());
+        let ynab_client = Arc::new(MockYnabClient::new());
 
         scheduled_transaction_service
             .expect_get_latest_scheduled_transactions()
@@ -192,9 +189,9 @@ mod tests {
         });
 
         let mut template_transaction_service = TemplateTransactionService {
-            scheduled_transaction_service: Box::new(scheduled_transaction_service),
+            scheduled_transaction_service,
             ynab_category_repo,
-            ynab_client: Arc::new(ynab_client),
+            ynab_client,
         };
 
         template_transaction_service
@@ -205,8 +202,8 @@ mod tests {
 
     #[tokio::test]
     async fn get_template_transactions_should_reach_ynab_if_cat_not_in_db() {
-        let mut scheduled_transaction_service = MockScheduledTransactionServiceExt::new();
-        let mut ynab_category_repo = MockYnabCategoryRepo::new();
+        let mut scheduled_transaction_service = Box::new(MockScheduledTransactionServiceExt::new());
+        let mut ynab_category_repo = Box::new(MockYnabCategoryRepo::new());
         let mut ynab_client = MockYnabClient::new();
 
         scheduled_transaction_service
@@ -266,7 +263,7 @@ mod tests {
         });
 
         let mut template_transaction_service = TemplateTransactionService {
-            scheduled_transaction_service: Box::new(scheduled_transaction_service),
+            scheduled_transaction_service,
             ynab_category_repo,
             ynab_client: Arc::new(ynab_client),
         };

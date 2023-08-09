@@ -9,22 +9,22 @@ use axum_extra::extract::WithRejection;
 use crate::{
     error::{AppError, HttpJsonDatamizeResult, JsonError},
     models::balance_sheet::{Month, SaveMonth},
-    services::balance_sheet::MonthServiceExt,
+    services::balance_sheet::{MonthService, MonthServiceExt},
 };
 
 /// Returns all months of all years.
 #[tracing::instrument(name = "Get all months from all years", skip_all)]
-pub async fn all_balance_sheet_months<MS: MonthServiceExt>(
-    State(month_service): State<MS>,
+pub async fn all_balance_sheet_months(
+    State(month_service): State<MonthService>,
 ) -> HttpJsonDatamizeResult<Vec<Month>> {
     Ok(Json(month_service.get_all_months().await?))
 }
 
 /// Returns all the months within a year with balance sheets.
 #[tracing::instrument(name = "Get all months from a year", skip_all)]
-pub async fn balance_sheet_months<MS: MonthServiceExt>(
+pub async fn balance_sheet_months(
     Path(year): Path<i32>,
-    State(month_service): State<MS>,
+    State(month_service): State<MonthService>,
 ) -> HttpJsonDatamizeResult<Vec<Month>> {
     Ok(Json(month_service.get_all_months_from_year(year).await?))
 }
@@ -32,9 +32,9 @@ pub async fn balance_sheet_months<MS: MonthServiceExt>(
 /// Creates a new month if it doesn't already exist and returns the newly created entity.
 /// Will also update net totals for this month compared to previous one if any.
 #[tracing::instrument(skip_all)]
-pub async fn create_balance_sheet_month<MS: MonthServiceExt>(
+pub async fn create_balance_sheet_month(
     Path(year): Path<i32>,
-    State(month_service): State<MS>,
+    State(month_service): State<MonthService>,
     WithRejection(Json(body), _): WithRejection<Json<SaveMonth>, JsonError>,
 ) -> impl IntoResponse {
     Ok::<_, AppError>((

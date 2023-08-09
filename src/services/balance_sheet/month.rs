@@ -16,15 +16,12 @@ pub trait MonthServiceExt {
     async fn delete_month(&self, month: MonthNum, year: i32) -> DatamizeResult<Month>;
 }
 
-pub struct MonthService<MR: MonthRepo> {
-    pub month_repo: MR,
+pub struct MonthService {
+    pub month_repo: Box<dyn MonthRepo + Sync + Send>,
 }
 
 #[async_trait]
-impl<MR> MonthServiceExt for MonthService<MR>
-where
-    MR: MonthRepo + Sync + Send,
-{
+impl MonthServiceExt for MonthService {
     #[tracing::instrument(skip(self))]
     async fn get_all_months(&self) -> DatamizeResult<Vec<Month>> {
         self.month_repo.get_months().await

@@ -14,29 +14,29 @@ use crate::{
     startup::AppState,
 };
 
-impl FromRef<AppState> for YnabAccountService<PostgresYnabAccountRepo, RedisYnabAccountMetaRepo> {
+impl FromRef<AppState> for YnabAccountService {
     fn from_ref(state: &AppState) -> Self {
         Self {
-            ynab_account_repo: PostgresYnabAccountRepo {
+            ynab_account_repo: Box::new(PostgresYnabAccountRepo {
                 db_conn_pool: state.db_conn_pool.clone(),
-            },
-            ynab_account_meta_repo: RedisYnabAccountMetaRepo {
+            }),
+            ynab_account_meta_repo: Box::new(RedisYnabAccountMetaRepo {
                 redis_conn: state.redis_conn.clone(),
-            },
+            }),
             ynab_client: state.ynab_client.clone(),
         }
     }
 }
 
-impl FromRef<AppState> for YnabPayeeService<PostgresYnabPayeeRepo, RedisYnabPayeeMetaRepo> {
+impl FromRef<AppState> for YnabPayeeService {
     fn from_ref(state: &AppState) -> Self {
         Self {
-            ynab_payee_repo: PostgresYnabPayeeRepo {
+            ynab_payee_repo: Box::new(PostgresYnabPayeeRepo {
                 db_conn_pool: state.db_conn_pool.clone(),
-            },
-            ynab_payee_meta_repo: RedisYnabPayeeMetaRepo {
+            }),
+            ynab_payee_meta_repo: Box::new(RedisYnabPayeeMetaRepo {
                 redis_conn: state.redis_conn.clone(),
-            },
+            }),
             ynab_client: state.ynab_client.clone(),
         }
     }
@@ -44,14 +44,6 @@ impl FromRef<AppState> for YnabPayeeService<PostgresYnabPayeeRepo, RedisYnabPaye
 
 pub fn get_ynab_routes() -> Router<AppState> {
     Router::new()
-        .route(
-            "/accounts",
-            get(get_ynab_accounts::<
-                YnabAccountService<PostgresYnabAccountRepo, RedisYnabAccountMetaRepo>,
-            >),
-        )
-        .route(
-            "/payees",
-            get(get_ynab_payees::<YnabPayeeService<PostgresYnabPayeeRepo, RedisYnabPayeeMetaRepo>>),
-        )
+        .route("/accounts", get(get_ynab_accounts))
+        .route("/payees", get(get_ynab_payees))
 }

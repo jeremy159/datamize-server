@@ -16,15 +16,12 @@ pub trait YearServiceExt {
     async fn delete_year(&self, year: i32) -> DatamizeResult<YearDetail>;
 }
 
-pub struct YearService<YR: YearRepo> {
-    pub year_repo: YR,
+pub struct YearService {
+    pub year_repo: Box<dyn YearRepo + Sync + Send>,
 }
 
 #[async_trait]
-impl<YR> YearServiceExt for YearService<YR>
-where
-    YR: YearRepo + Sync + Send,
-{
+impl YearServiceExt for YearService {
     #[tracing::instrument(skip(self))]
     async fn get_all_years(&self) -> DatamizeResult<Vec<YearSummary>> {
         self.year_repo.get_years_summary().await

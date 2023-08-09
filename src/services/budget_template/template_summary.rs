@@ -14,19 +14,15 @@ pub trait TemplateSummaryServiceExt {
     async fn get_template_summary(&mut self, month: MonthTarget) -> DatamizeResult<BudgetSummary>;
 }
 
-pub struct TemplateSummaryService<BCR: BudgeterConfigRepo, EER: ExternalExpenseRepo> {
+pub struct TemplateSummaryService {
     pub category_service: Box<dyn CategoryServiceExt + Sync + Send>,
     pub scheduled_transaction_service: Box<dyn ScheduledTransactionServiceExt + Sync + Send>,
-    pub budgeter_config_repo: BCR,
-    pub external_expense_repo: EER,
+    pub budgeter_config_repo: Box<dyn BudgeterConfigRepo + Sync + Send>,
+    pub external_expense_repo: Box<dyn ExternalExpenseRepo + Sync + Send>,
 }
 
 #[async_trait]
-impl<BCR, EER> TemplateSummaryServiceExt for TemplateSummaryService<BCR, EER>
-where
-    BCR: BudgeterConfigRepo + Sync + Send,
-    EER: ExternalExpenseRepo + Sync + Send,
-{
+impl TemplateSummaryServiceExt for TemplateSummaryService {
     #[tracing::instrument(skip(self))]
     async fn get_template_summary(&mut self, month: MonthTarget) -> DatamizeResult<BudgetSummary> {
         let (saved_categories, expenses_categorization) =
@@ -73,10 +69,10 @@ mod tests {
 
     #[tokio::test]
     async fn get_template_summary_should_return_all_scheduled_transactions() {
-        let mut category_service = MockCategoryServiceExt::new();
-        let mut scheduled_transaction_service = MockScheduledTransactionServiceExt::new();
-        let mut budgeter_config_repo = MockBudgeterConfigRepo::new();
-        let mut external_expense_repo = MockExternalExpenseRepo::new();
+        let mut category_service = Box::new(MockCategoryServiceExt::new());
+        let mut scheduled_transaction_service = Box::new(MockScheduledTransactionServiceExt::new());
+        let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepo::new());
+        let mut external_expense_repo = Box::new(MockExternalExpenseRepo::new());
 
         category_service
             .expect_get_categories_of_month()
@@ -145,8 +141,8 @@ mod tests {
             .return_once(|| Ok(vec![Faker.fake(), Faker.fake()]));
 
         let mut template_summary_service = TemplateSummaryService {
-            category_service: Box::new(category_service),
-            scheduled_transaction_service: Box::new(scheduled_transaction_service),
+            category_service,
+            scheduled_transaction_service,
             budgeter_config_repo,
             external_expense_repo,
         };

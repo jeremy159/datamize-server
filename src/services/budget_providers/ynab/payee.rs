@@ -15,18 +15,14 @@ pub trait YnabPayeeServiceExt {
     async fn get_all_ynab_payees(&mut self) -> DatamizeResult<Vec<Payee>>;
 }
 
-pub struct YnabPayeeService<YPR: YnabPayeeRepo, YPMR: YnabPayeeMetaRepo> {
-    pub ynab_payee_repo: YPR,
-    pub ynab_payee_meta_repo: YPMR,
+pub struct YnabPayeeService {
+    pub ynab_payee_repo: Box<dyn YnabPayeeRepo + Sync + Send>,
+    pub ynab_payee_meta_repo: Box<dyn YnabPayeeMetaRepo + Sync + Send>,
     pub ynab_client: Arc<dyn PayeeRequests + Send + Sync>,
 }
 
 #[async_trait]
-impl<YPR, YPMR> YnabPayeeServiceExt for YnabPayeeService<YPR, YPMR>
-where
-    YPR: YnabPayeeRepo + Sync + Send,
-    YPMR: YnabPayeeMetaRepo + Sync + Send,
-{
+impl YnabPayeeServiceExt for YnabPayeeService {
     #[tracing::instrument(skip(self))]
     async fn get_all_ynab_payees(&mut self) -> DatamizeResult<Vec<Payee>> {
         let saved_payees_delta = self.ynab_payee_meta_repo.get_delta().await.ok();
@@ -90,8 +86,8 @@ mod tests {
 
     #[tokio::test]
     async fn get_all_ynab_payees_success() {
-        let mut ynab_payee_repo = MockYnabPayeeRepo::new();
-        let mut ynab_payee_meta_repo = MockYnabPayeeMetaRepo::new();
+        let mut ynab_payee_repo = Box::new(MockYnabPayeeRepo::new());
+        let mut ynab_payee_meta_repo = Box::new(MockYnabPayeeMetaRepo::new());
         let mut ynab_client = MockYnabClient::new();
 
         ynab_payee_meta_repo
@@ -151,8 +147,8 @@ mod tests {
 
     #[tokio::test]
     async fn get_all_ynab_payees_issue_with_db_should_not_update_saved_delta() {
-        let mut ynab_payee_repo = MockYnabPayeeRepo::new();
-        let mut ynab_payee_meta_repo = MockYnabPayeeMetaRepo::new();
+        let mut ynab_payee_repo = Box::new(MockYnabPayeeRepo::new());
+        let mut ynab_payee_meta_repo = Box::new(MockYnabPayeeMetaRepo::new());
         let mut ynab_client = MockYnabClient::new();
 
         ynab_payee_meta_repo

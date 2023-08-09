@@ -25,15 +25,12 @@ pub trait ExpenseCategorizationServiceExt {
     ) -> DatamizeResult<ExpenseCategorization>;
 }
 
-pub struct ExpenseCategorizationService<ECR: ExpenseCategorizationRepo> {
-    pub expense_categorization_repo: ECR,
+pub struct ExpenseCategorizationService {
+    pub expense_categorization_repo: Box<dyn ExpenseCategorizationRepo + Sync + Send>,
 }
 
 #[async_trait]
-impl<ECR> ExpenseCategorizationServiceExt for ExpenseCategorizationService<ECR>
-where
-    ECR: ExpenseCategorizationRepo + Sync + Send,
-{
+impl ExpenseCategorizationServiceExt for ExpenseCategorizationService {
     #[tracing::instrument(skip(self))]
     async fn get_all_expenses_categorization(&self) -> DatamizeResult<Vec<ExpenseCategorization>> {
         self.expense_categorization_repo.get_all().await
@@ -89,7 +86,7 @@ mod tests {
     async fn update_expense_categorization_success() {
         let expense_categorization = Faker.fake::<ExpenseCategorization>();
         let new_expense_categorization = expense_categorization.clone();
-        let mut expense_categorization_repo = MockExpenseCategorizationRepo::new();
+        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepo::new());
         expense_categorization_repo
             .expect_get()
             .once()
@@ -113,7 +110,7 @@ mod tests {
     #[tokio::test]
     async fn update_expense_categorization_failure_does_not_exist() {
         let expense_categorization = Faker.fake::<ExpenseCategorization>();
-        let mut expense_categorization_repo = MockExpenseCategorizationRepo::new();
+        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepo::new());
         expense_categorization_repo
             .expect_get()
             .return_once(|_| Err(AppError::ResourceNotFound));

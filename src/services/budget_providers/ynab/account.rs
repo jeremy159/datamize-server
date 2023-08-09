@@ -15,18 +15,14 @@ pub trait YnabAccountServiceExt {
     async fn get_all_ynab_accounts(&mut self) -> DatamizeResult<Vec<Account>>;
 }
 
-pub struct YnabAccountService<YAR: YnabAccountRepo, YAMR: YnabAccountMetaRepo> {
-    pub ynab_account_repo: YAR,
-    pub ynab_account_meta_repo: YAMR,
+pub struct YnabAccountService {
+    pub ynab_account_repo: Box<dyn YnabAccountRepo + Sync + Send>,
+    pub ynab_account_meta_repo: Box<dyn YnabAccountMetaRepo + Sync + Send>,
     pub ynab_client: Arc<dyn AccountRequests + Send + Sync>,
 }
 
 #[async_trait]
-impl<YAR, YAMR> YnabAccountServiceExt for YnabAccountService<YAR, YAMR>
-where
-    YAR: YnabAccountRepo + Sync + Send,
-    YAMR: YnabAccountMetaRepo + Sync + Send,
-{
+impl YnabAccountServiceExt for YnabAccountService {
     #[tracing::instrument(skip(self))]
     async fn get_all_ynab_accounts(&mut self) -> DatamizeResult<Vec<Account>> {
         let saved_accounts_delta = self.ynab_account_meta_repo.get_delta().await.ok();
@@ -91,8 +87,8 @@ mod tests {
 
     #[tokio::test]
     async fn get_all_ynab_accounts_success() {
-        let mut ynab_account_repo = MockYnabAccountRepo::new();
-        let mut ynab_account_meta_repo = MockYnabAccountMetaRepo::new();
+        let mut ynab_account_repo = Box::new(MockYnabAccountRepo::new());
+        let mut ynab_account_meta_repo = Box::new(MockYnabAccountMetaRepo::new());
         let mut ynab_client = MockYnabClient::new();
 
         ynab_account_meta_repo
@@ -170,8 +166,8 @@ mod tests {
 
     #[tokio::test]
     async fn get_all_ynab_accounts_issue_with_db_should_not_update_saved_delta() {
-        let mut ynab_account_repo = MockYnabAccountRepo::new();
-        let mut ynab_account_meta_repo = MockYnabAccountMetaRepo::new();
+        let mut ynab_account_repo = Box::new(MockYnabAccountRepo::new());
+        let mut ynab_account_meta_repo = Box::new(MockYnabAccountMetaRepo::new());
         let mut ynab_client = MockYnabClient::new();
 
         ynab_account_meta_repo

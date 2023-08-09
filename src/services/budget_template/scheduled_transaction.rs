@@ -19,21 +19,15 @@ pub trait ScheduledTransactionServiceExt {
     ) -> DatamizeResult<Vec<DatamizeScheduledTransaction>>;
 }
 
-pub struct ScheduledTransactionService<
-    YSTR: YnabScheduledTransactionRepo,
-    YSTMR: YnabScheduledTransactionMetaRepo,
-> {
-    pub ynab_scheduled_transaction_repo: YSTR,
-    pub ynab_scheduled_transaction_meta_repo: YSTMR,
+pub struct ScheduledTransactionService {
+    pub ynab_scheduled_transaction_repo: Box<dyn YnabScheduledTransactionRepo + Sync + Send>,
+    pub ynab_scheduled_transaction_meta_repo:
+        Box<dyn YnabScheduledTransactionMetaRepo + Sync + Send>,
     pub ynab_client: Arc<dyn ScheduledTransactionRequests + Send + Sync>,
 }
 
 #[async_trait]
-impl<YSTR, YSTMR> ScheduledTransactionServiceExt for ScheduledTransactionService<YSTR, YSTMR>
-where
-    YSTR: YnabScheduledTransactionRepo + Sync + Send,
-    YSTMR: YnabScheduledTransactionMetaRepo + Sync + Send,
-{
+impl ScheduledTransactionServiceExt for ScheduledTransactionService {
     #[tracing::instrument(skip(self))]
     async fn get_latest_scheduled_transactions(
         &mut self,
@@ -74,11 +68,7 @@ where
     }
 }
 
-impl<YSTR, YSTMR> ScheduledTransactionService<YSTR, YSTMR>
-where
-    YSTR: YnabScheduledTransactionRepo + Sync + Send,
-    YSTMR: YnabScheduledTransactionMetaRepo + Sync + Send,
-{
+impl ScheduledTransactionService {
     async fn check_last_saved(&mut self) -> DatamizeResult<()> {
         let current_date = Local::now().date_naive();
         if let Ok(last_saved) = self
@@ -143,8 +133,9 @@ mod tests {
 
     #[tokio::test]
     async fn check_last_saved_when_nothing_currently_saved_should_update_last_saved() {
-        let ynab_scheduled_transaction_repo = MockYnabScheduledTransactionRepo::new();
-        let mut ynab_scheduled_transaction_meta_repo = MockYnabScheduledTransactionMetaRepo::new();
+        let ynab_scheduled_transaction_repo = Box::new(MockYnabScheduledTransactionRepo::new());
+        let mut ynab_scheduled_transaction_meta_repo =
+            Box::new(MockYnabScheduledTransactionMetaRepo::new());
 
         ynab_scheduled_transaction_meta_repo
             .expect_get_last_saved()
@@ -173,8 +164,9 @@ mod tests {
     #[tokio::test]
     async fn check_last_saved_when_saved_date_is_the_same_month_as_current_should_not_update_last_saved(
     ) {
-        let ynab_scheduled_transaction_repo = MockYnabScheduledTransactionRepo::new();
-        let mut ynab_scheduled_transaction_meta_repo = MockYnabScheduledTransactionMetaRepo::new();
+        let ynab_scheduled_transaction_repo = Box::new(MockYnabScheduledTransactionRepo::new());
+        let mut ynab_scheduled_transaction_meta_repo =
+            Box::new(MockYnabScheduledTransactionMetaRepo::new());
 
         let saved_date = Local::now().date_naive();
         ynab_scheduled_transaction_meta_repo
@@ -201,8 +193,9 @@ mod tests {
     #[tokio::test]
     async fn check_last_saved_when_saved_date_is_not_the_same_month_as_current_should_update_last_saved_and_delete_delta(
     ) {
-        let ynab_scheduled_transaction_repo = MockYnabScheduledTransactionRepo::new();
-        let mut ynab_scheduled_transaction_meta_repo = MockYnabScheduledTransactionMetaRepo::new();
+        let ynab_scheduled_transaction_repo = Box::new(MockYnabScheduledTransactionRepo::new());
+        let mut ynab_scheduled_transaction_meta_repo =
+            Box::new(MockYnabScheduledTransactionMetaRepo::new());
 
         let saved_date = Local::now()
             .date_naive()
@@ -239,8 +232,9 @@ mod tests {
 
     #[tokio::test]
     async fn get_latest_scheduled_transactions_should_return_all_scheduled_transactions() {
-        let mut ynab_scheduled_transaction_repo = MockYnabScheduledTransactionRepo::new();
-        let mut ynab_scheduled_transaction_meta_repo = MockYnabScheduledTransactionMetaRepo::new();
+        let mut ynab_scheduled_transaction_repo = Box::new(MockYnabScheduledTransactionRepo::new());
+        let mut ynab_scheduled_transaction_meta_repo =
+            Box::new(MockYnabScheduledTransactionMetaRepo::new());
         let mut ynab_client = MockYnabClient::new();
 
         let saved_date = Local::now().date_naive();

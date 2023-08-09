@@ -42,196 +42,157 @@ use crate::{
     startup::AppState,
 };
 
-impl FromRef<AppState>
-    for TemplateDetailService<PostgresBudgeterConfigRepo, PostgresExternalExpenseRepo>
-{
+impl FromRef<AppState> for TemplateDetailService {
     fn from_ref(state: &AppState) -> Self {
         Self {
-            budgeter_config_repo: PostgresBudgeterConfigRepo {
+            budgeter_config_repo: Box::new(PostgresBudgeterConfigRepo {
                 db_conn_pool: state.db_conn_pool.clone(),
-            },
-            external_expense_repo: PostgresExternalExpenseRepo {
+            }),
+            external_expense_repo: Box::new(PostgresExternalExpenseRepo {
                 db_conn_pool: state.db_conn_pool.clone(),
-            },
+            }),
             category_service: Box::new(CategoryService {
-                ynab_category_repo: PostgresYnabCategoryRepo {
+                ynab_category_repo: Box::new(PostgresYnabCategoryRepo {
                     db_conn_pool: state.db_conn_pool.clone(),
-                },
-                ynab_category_meta_repo: RedisYnabCategoryMetaRepo {
+                }),
+                ynab_category_meta_repo: Box::new(RedisYnabCategoryMetaRepo {
                     redis_conn: state.redis_conn.clone(),
-                },
-                expense_categorization_repo: PostgresExpenseCategorizationRepo {
+                }),
+                expense_categorization_repo: Box::new(PostgresExpenseCategorizationRepo {
                     db_conn_pool: state.db_conn_pool.clone(),
-                },
+                }),
                 ynab_client: state.ynab_client.clone(),
             }),
             scheduled_transaction_service: Box::new(ScheduledTransactionService {
-                ynab_scheduled_transaction_repo: PostgresYnabScheduledTransactionRepo {
+                ynab_scheduled_transaction_repo: Box::new(PostgresYnabScheduledTransactionRepo {
                     db_conn_pool: state.db_conn_pool.clone(),
-                },
-                ynab_scheduled_transaction_meta_repo: RedisYnabScheduledTransactionMetaRepo {
-                    redis_conn: state.redis_conn.clone(),
-                },
+                }),
+                ynab_scheduled_transaction_meta_repo: Box::new(
+                    RedisYnabScheduledTransactionMetaRepo {
+                        redis_conn: state.redis_conn.clone(),
+                    },
+                ),
                 ynab_client: state.ynab_client.clone(),
             }),
         }
     }
 }
 
-impl FromRef<AppState>
-    for TemplateSummaryService<PostgresBudgeterConfigRepo, PostgresExternalExpenseRepo>
-{
+impl FromRef<AppState> for TemplateSummaryService {
     fn from_ref(state: &AppState) -> Self {
         Self {
-            budgeter_config_repo: PostgresBudgeterConfigRepo {
+            budgeter_config_repo: Box::new(PostgresBudgeterConfigRepo {
                 db_conn_pool: state.db_conn_pool.clone(),
-            },
-            external_expense_repo: PostgresExternalExpenseRepo {
+            }),
+            external_expense_repo: Box::new(PostgresExternalExpenseRepo {
                 db_conn_pool: state.db_conn_pool.clone(),
-            },
+            }),
             category_service: Box::new(CategoryService {
-                ynab_category_repo: PostgresYnabCategoryRepo {
+                ynab_category_repo: Box::new(PostgresYnabCategoryRepo {
                     db_conn_pool: state.db_conn_pool.clone(),
-                },
-                ynab_category_meta_repo: RedisYnabCategoryMetaRepo {
+                }),
+                ynab_category_meta_repo: Box::new(RedisYnabCategoryMetaRepo {
                     redis_conn: state.redis_conn.clone(),
-                },
-                expense_categorization_repo: PostgresExpenseCategorizationRepo {
+                }),
+                expense_categorization_repo: Box::new(PostgresExpenseCategorizationRepo {
                     db_conn_pool: state.db_conn_pool.clone(),
-                },
+                }),
                 ynab_client: state.ynab_client.clone(),
             }),
             scheduled_transaction_service: Box::new(ScheduledTransactionService {
-                ynab_scheduled_transaction_repo: PostgresYnabScheduledTransactionRepo {
+                ynab_scheduled_transaction_repo: Box::new(PostgresYnabScheduledTransactionRepo {
                     db_conn_pool: state.db_conn_pool.clone(),
-                },
-                ynab_scheduled_transaction_meta_repo: RedisYnabScheduledTransactionMetaRepo {
-                    redis_conn: state.redis_conn.clone(),
-                },
+                }),
+                ynab_scheduled_transaction_meta_repo: Box::new(
+                    RedisYnabScheduledTransactionMetaRepo {
+                        redis_conn: state.redis_conn.clone(),
+                    },
+                ),
                 ynab_client: state.ynab_client.clone(),
             }),
         }
     }
 }
 
-impl FromRef<AppState> for TemplateTransactionService<PostgresYnabCategoryRepo> {
+impl FromRef<AppState> for TemplateTransactionService {
     fn from_ref(state: &AppState) -> Self {
         Self {
             scheduled_transaction_service: Box::new(ScheduledTransactionService {
-                ynab_scheduled_transaction_repo: PostgresYnabScheduledTransactionRepo {
+                ynab_scheduled_transaction_repo: Box::new(PostgresYnabScheduledTransactionRepo {
                     db_conn_pool: state.db_conn_pool.clone(),
-                },
-                ynab_scheduled_transaction_meta_repo: RedisYnabScheduledTransactionMetaRepo {
-                    redis_conn: state.redis_conn.clone(),
-                },
+                }),
+                ynab_scheduled_transaction_meta_repo: Box::new(
+                    RedisYnabScheduledTransactionMetaRepo {
+                        redis_conn: state.redis_conn.clone(),
+                    },
+                ),
                 ynab_client: state.ynab_client.clone(),
             }),
-            ynab_category_repo: PostgresYnabCategoryRepo {
+            ynab_category_repo: Box::new(PostgresYnabCategoryRepo {
                 db_conn_pool: state.db_conn_pool.clone(),
-            },
+            }),
             ynab_client: state.ynab_client.clone(),
         }
     }
 }
 
-impl FromRef<AppState> for BudgeterService<PostgresBudgeterConfigRepo> {
+impl FromRef<AppState> for BudgeterService {
     fn from_ref(state: &AppState) -> Self {
         Self {
-            budgeter_config_repo: PostgresBudgeterConfigRepo {
+            budgeter_config_repo: Box::new(PostgresBudgeterConfigRepo {
                 db_conn_pool: state.db_conn_pool.clone(),
-            },
+            }),
         }
     }
 }
 
-impl FromRef<AppState> for ExternalExpenseService<PostgresExternalExpenseRepo> {
+impl FromRef<AppState> for ExternalExpenseService {
     fn from_ref(state: &AppState) -> Self {
         Self {
-            external_expense_repo: PostgresExternalExpenseRepo {
+            external_expense_repo: Box::new(PostgresExternalExpenseRepo {
                 db_conn_pool: state.db_conn_pool.clone(),
-            },
+            }),
         }
     }
 }
 
-impl FromRef<AppState> for ExpenseCategorizationService<PostgresExpenseCategorizationRepo> {
+impl FromRef<AppState> for ExpenseCategorizationService {
     fn from_ref(state: &AppState) -> Self {
         Self {
-            expense_categorization_repo: PostgresExpenseCategorizationRepo {
+            expense_categorization_repo: Box::new(PostgresExpenseCategorizationRepo {
                 db_conn_pool: state.db_conn_pool.clone(),
-            },
+            }),
         }
     }
 }
 
 pub fn get_budget_template_routes() -> Router<AppState> {
     Router::new()
-        .route(
-            "/details",
-            get(template_details::<
-                TemplateDetailService<PostgresBudgeterConfigRepo, PostgresExternalExpenseRepo>,
-            >),
-        )
-        .route(
-            "/summary",
-            get(template_summary::<
-                TemplateSummaryService<PostgresBudgeterConfigRepo, PostgresExternalExpenseRepo>,
-            >),
-        )
-        .route(
-            "/transactions",
-            get(template_transactions::<TemplateTransactionService<PostgresYnabCategoryRepo>>),
-        )
-        .route(
-            "/budgeters",
-            get(get_all_budgeters::<BudgeterService<PostgresBudgeterConfigRepo>>),
-        )
-        .route(
-            "/budgeter",
-            post(create_budgeter::<BudgeterService<PostgresBudgeterConfigRepo>>),
-        )
+        .route("/details", get(template_details))
+        .route("/summary", get(template_summary))
+        .route("/transactions", get(template_transactions))
+        .route("/budgeters", get(get_all_budgeters))
+        .route("/budgeter", post(create_budgeter))
         .route(
             "/budgeter/:budgeter_id",
-            get(get_budgeter::<BudgeterService<PostgresBudgeterConfigRepo>>)
-                .put(update_budgeter::<BudgeterService<PostgresBudgeterConfigRepo>>)
-                .delete(delete_budgeter::<BudgeterService<PostgresBudgeterConfigRepo>>),
+            get(get_budgeter)
+                .put(update_budgeter)
+                .delete(delete_budgeter),
         )
-        .route(
-            "/external_expenses",
-            get(get_all_external_expenses::<ExternalExpenseService<PostgresExternalExpenseRepo>>),
-        )
-        .route(
-            "/external_expense",
-            post(create_external_expense::<ExternalExpenseService<PostgresExternalExpenseRepo>>),
-        )
+        .route("/external_expenses", get(get_all_external_expenses))
+        .route("/external_expense", post(create_external_expense))
         .route(
             "/external_expense/:external_expense_id",
-            get(get_external_expense::<ExternalExpenseService<PostgresExternalExpenseRepo>>)
-                .put(update_external_expense::<ExternalExpenseService<PostgresExternalExpenseRepo>>)
-                .delete(
-                    delete_external_expense::<ExternalExpenseService<PostgresExternalExpenseRepo>>,
-                ),
+            get(get_external_expense)
+                .put(update_external_expense)
+                .delete(delete_external_expense),
         )
         .route(
             "/expenses_categorization",
-            get(get_all_expenses_categorization::<
-                ExpenseCategorizationService<PostgresExpenseCategorizationRepo>,
-            >)
-            .put(
-                update_all_expenses_categorization::<
-                    ExpenseCategorizationService<PostgresExpenseCategorizationRepo>,
-                >,
-            ),
+            get(get_all_expenses_categorization).put(update_all_expenses_categorization),
         )
         .route(
             "/expense_categorization/:expense_categorization_id",
-            get(get_expense_categorization::<
-                ExpenseCategorizationService<PostgresExpenseCategorizationRepo>,
-            >)
-            .put(
-                update_expense_categorization::<
-                    ExpenseCategorizationService<PostgresExpenseCategorizationRepo>,
-                >,
-            ),
+            get(get_expense_categorization).put(update_expense_categorization),
         )
 }

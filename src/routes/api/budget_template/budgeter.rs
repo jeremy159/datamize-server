@@ -8,23 +8,23 @@ use uuid::Uuid;
 use crate::{
     error::{HttpJsonDatamizeResult, JsonError},
     models::budget_template::BudgeterConfig,
-    services::budget_template::BudgeterServiceExt,
+    services::budget_template::{BudgeterService, BudgeterServiceExt},
 };
 
 /// Returns a budgeter's config.
 #[tracing::instrument(skip_all)]
-pub async fn get_budgeter<BS: BudgeterServiceExt>(
+pub async fn get_budgeter(
     Path(id): Path<Uuid>,
-    State(budgeter_service): State<BS>,
+    State(budgeter_service): State<BudgeterService>,
 ) -> HttpJsonDatamizeResult<BudgeterConfig> {
     Ok(Json(budgeter_service.get_budgeter(id).await?))
 }
 
 /// Updates the budgeter's name and payee_ids.
 #[tracing::instrument(skip_all)]
-pub async fn update_budgeter<BS: BudgeterServiceExt>(
+pub async fn update_budgeter(
     Path(_id): Path<Uuid>,
-    State(budgeter_service): State<BS>,
+    State(budgeter_service): State<BudgeterService>,
     WithRejection(Json(body), _): WithRejection<Json<BudgeterConfig>, JsonError>,
 ) -> HttpJsonDatamizeResult<BudgeterConfig> {
     Ok(Json(budgeter_service.update_budgeter(body).await?))
@@ -32,9 +32,9 @@ pub async fn update_budgeter<BS: BudgeterServiceExt>(
 
 /// Deletes the budgeter and returns the entity.
 #[tracing::instrument(skip_all)]
-pub async fn delete_budgeter<BS: BudgeterServiceExt>(
+pub async fn delete_budgeter(
     Path(id): Path<Uuid>,
-    State(budgeter_service): State<BS>,
+    State(budgeter_service): State<BudgeterService>,
 ) -> HttpJsonDatamizeResult<BudgeterConfig> {
     Ok(Json(budgeter_service.delete_budgeter(id).await?))
 }

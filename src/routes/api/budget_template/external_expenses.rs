@@ -4,13 +4,13 @@ use axum_extra::extract::WithRejection;
 use crate::{
     error::{DatamizeResult, HttpJsonDatamizeResult, JsonError},
     models::budget_template::{ExternalExpense, SaveExternalExpense},
-    services::budget_template::ExternalExpenseServiceExt,
+    services::budget_template::{ExternalExpenseService, ExternalExpenseServiceExt},
 };
 
 /// Returns all external_expenses.
 #[tracing::instrument(skip_all)]
-pub async fn get_all_external_expenses<EES: ExternalExpenseServiceExt>(
-    State(external_expense_service): State<EES>,
+pub async fn get_all_external_expenses(
+    State(external_expense_service): State<ExternalExpenseService>,
 ) -> HttpJsonDatamizeResult<Vec<ExternalExpense>> {
     Ok(Json(
         external_expense_service.get_all_external_expenses().await?,
@@ -19,8 +19,8 @@ pub async fn get_all_external_expenses<EES: ExternalExpenseServiceExt>(
 
 /// Creates a new budgeter if it doesn't already exist and returns the newly created entity.
 #[tracing::instrument(skip_all)]
-pub async fn create_external_expense<EES: ExternalExpenseServiceExt>(
-    State(external_expense_service): State<EES>,
+pub async fn create_external_expense(
+    State(external_expense_service): State<ExternalExpenseService>,
     WithRejection(Json(body), _): WithRejection<Json<SaveExternalExpense>, JsonError>,
 ) -> DatamizeResult<impl IntoResponse> {
     Ok((

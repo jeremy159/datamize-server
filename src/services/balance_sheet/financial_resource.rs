@@ -39,19 +39,14 @@ pub trait FinResServiceExt {
     ) -> DatamizeResult<Vec<Uuid>>;
 }
 
-pub struct FinResService<FRR: FinResRepo, MR: MonthRepo, YR: YearRepo> {
-    pub fin_res_repo: FRR,
-    pub month_repo: MR,
-    pub year_repo: YR,
+pub struct FinResService {
+    pub fin_res_repo: Box<dyn FinResRepo + Sync + Send>,
+    pub month_repo: Box<dyn MonthRepo + Sync + Send>,
+    pub year_repo: Box<dyn YearRepo + Sync + Send>,
 }
 
 #[async_trait]
-impl<FRR, MR, YR> FinResServiceExt for FinResService<FRR, MR, YR>
-where
-    FRR: FinResRepo + Sync + Send,
-    MR: MonthRepo + Sync + Send,
-    YR: YearRepo + Sync + Send,
-{
+impl FinResServiceExt for FinResService {
     #[tracing::instrument(skip(self))]
     async fn get_all_fin_res(&self) -> DatamizeResult<Vec<FinancialResourceYearly>> {
         self.fin_res_repo.get_from_all_years().await

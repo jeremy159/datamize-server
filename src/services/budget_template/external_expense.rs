@@ -23,15 +23,12 @@ pub trait ExternalExpenseServiceExt {
     async fn delete_external_expense(&self, expense_id: Uuid) -> DatamizeResult<ExternalExpense>;
 }
 
-pub struct ExternalExpenseService<EER: ExternalExpenseRepo> {
-    pub external_expense_repo: EER,
+pub struct ExternalExpenseService {
+    pub external_expense_repo: Box<dyn ExternalExpenseRepo + Sync + Send>,
 }
 
 #[async_trait]
-impl<EER> ExternalExpenseServiceExt for ExternalExpenseService<EER>
-where
-    EER: ExternalExpenseRepo + Sync + Send,
-{
+impl ExternalExpenseServiceExt for ExternalExpenseService {
     #[tracing::instrument(skip(self))]
     async fn get_all_external_expenses(&self) -> DatamizeResult<Vec<ExternalExpense>> {
         self.external_expense_repo.get_all().await
@@ -93,7 +90,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_external_expense_success() {
-        let mut external_expense_repo = MockExternalExpenseRepo::new();
+        let mut external_expense_repo = Box::new(MockExternalExpenseRepo::new());
         external_expense_repo
             .expect_get_by_name()
             .once()
@@ -122,7 +119,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_external_expense_failure_already_exist() {
-        let mut external_expense_repo = MockExternalExpenseRepo::new();
+        let mut external_expense_repo = Box::new(MockExternalExpenseRepo::new());
         external_expense_repo
             .expect_get_by_name()
             .once()
@@ -145,7 +142,7 @@ mod tests {
     async fn update_external_expense_success() {
         let external_expense = Faker.fake::<ExternalExpense>();
         let new_external_expense = external_expense.clone();
-        let mut external_expense_repo = MockExternalExpenseRepo::new();
+        let mut external_expense_repo = Box::new(MockExternalExpenseRepo::new());
         external_expense_repo
             .expect_get()
             .return_once(|_| Ok(new_external_expense));
@@ -168,7 +165,7 @@ mod tests {
     #[tokio::test]
     async fn update_external_expense_failure_does_not_exist() {
         let external_expense = Faker.fake::<ExternalExpense>();
-        let mut external_expense_repo = MockExternalExpenseRepo::new();
+        let mut external_expense_repo = Box::new(MockExternalExpenseRepo::new());
         external_expense_repo
             .expect_get()
             .return_once(|_| Err(AppError::ResourceNotFound));
@@ -189,7 +186,7 @@ mod tests {
         let external_expense = Faker.fake::<ExternalExpense>();
         let new_external_expense = external_expense.clone();
         let external_expense_id = external_expense.id;
-        let mut external_expense_repo = MockExternalExpenseRepo::new();
+        let mut external_expense_repo = Box::new(MockExternalExpenseRepo::new());
         external_expense_repo
             .expect_get()
             .return_once(|_| Ok(new_external_expense));
@@ -213,7 +210,7 @@ mod tests {
     async fn delete_external_expense_failure_does_not_exist() {
         let external_expense = Faker.fake::<ExternalExpense>();
         let external_expense_id = external_expense.id;
-        let mut external_expense_repo = MockExternalExpenseRepo::new();
+        let mut external_expense_repo = Box::new(MockExternalExpenseRepo::new());
         external_expense_repo
             .expect_get()
             .return_once(|_| Err(AppError::ResourceNotFound));

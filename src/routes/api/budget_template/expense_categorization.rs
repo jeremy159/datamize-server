@@ -8,14 +8,14 @@ use uuid::Uuid;
 use crate::{
     error::{HttpJsonDatamizeResult, JsonError},
     models::budget_template::ExpenseCategorization,
-    services::budget_template::ExpenseCategorizationServiceExt,
+    services::budget_template::{ExpenseCategorizationService, ExpenseCategorizationServiceExt},
 };
 
 /// Returns an expense categorization.
 #[tracing::instrument(skip_all)]
-pub async fn get_expense_categorization<ECS: ExpenseCategorizationServiceExt>(
+pub async fn get_expense_categorization(
     Path(id): Path<Uuid>,
-    State(expense_categorization_service): State<ECS>,
+    State(expense_categorization_service): State<ExpenseCategorizationService>,
 ) -> HttpJsonDatamizeResult<ExpenseCategorization> {
     Ok(Json(
         expense_categorization_service
@@ -26,9 +26,9 @@ pub async fn get_expense_categorization<ECS: ExpenseCategorizationServiceExt>(
 
 /// Updates the expense categorization and returns the entity.
 #[tracing::instrument(skip_all)]
-pub async fn update_expense_categorization<ECS: ExpenseCategorizationServiceExt>(
+pub async fn update_expense_categorization(
     Path(_id): Path<Uuid>,
-    State(expense_categorization_service): State<ECS>,
+    State(expense_categorization_service): State<ExpenseCategorizationService>,
     WithRejection(Json(body), _): WithRejection<Json<ExpenseCategorization>, JsonError>,
 ) -> HttpJsonDatamizeResult<ExpenseCategorization> {
     Ok(Json(

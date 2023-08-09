@@ -10,26 +10,19 @@ mod accounts;
 
 use accounts::*;
 
-impl FromRef<AppState>
-    for ExternalAccountService<PostgresExternalAccountRepo, RedisEncryptionKeyRepo>
-{
+impl FromRef<AppState> for ExternalAccountService {
     fn from_ref(state: &AppState) -> Self {
         Self {
-            external_account_repo: PostgresExternalAccountRepo {
+            external_account_repo: Box::new(PostgresExternalAccountRepo {
                 db_conn_pool: state.db_conn_pool.clone(),
-            },
-            encryption_key_repo: RedisEncryptionKeyRepo {
+            }),
+            encryption_key_repo: Box::new(RedisEncryptionKeyRepo {
                 redis_conn: state.redis_conn.clone(),
-            },
+            }),
         }
     }
 }
 
 pub fn get_external_routes() -> Router<AppState> {
-    Router::new().route(
-        "/accounts",
-        get(get_external_accounts::<
-            ExternalAccountService<PostgresExternalAccountRepo, RedisEncryptionKeyRepo>,
-        >),
-    )
+    Router::new().route("/accounts", get(get_external_accounts))
 }

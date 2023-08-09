@@ -8,14 +8,14 @@ use uuid::Uuid;
 use crate::{
     error::{HttpJsonDatamizeResult, JsonError},
     models::budget_template::ExternalExpense,
-    services::budget_template::ExternalExpenseServiceExt,
+    services::budget_template::{ExternalExpenseService, ExternalExpenseServiceExt},
 };
 
 /// Returns an external expense.
 #[tracing::instrument(skip_all)]
-pub async fn get_external_expense<EES: ExternalExpenseServiceExt>(
+pub async fn get_external_expense(
     Path(id): Path<Uuid>,
-    State(external_expense_service): State<EES>,
+    State(external_expense_service): State<ExternalExpenseService>,
 ) -> HttpJsonDatamizeResult<ExternalExpense> {
     Ok(Json(
         external_expense_service.get_external_expense(id).await?,
@@ -24,9 +24,9 @@ pub async fn get_external_expense<EES: ExternalExpenseServiceExt>(
 
 /// Updates the external expense and returns the entity.
 #[tracing::instrument(skip_all)]
-pub async fn update_external_expense<EES: ExternalExpenseServiceExt>(
+pub async fn update_external_expense(
     Path(_id): Path<Uuid>,
-    State(external_expense_service): State<EES>,
+    State(external_expense_service): State<ExternalExpenseService>,
     WithRejection(Json(body), _): WithRejection<Json<ExternalExpense>, JsonError>,
 ) -> HttpJsonDatamizeResult<ExternalExpense> {
     Ok(Json(
@@ -38,9 +38,9 @@ pub async fn update_external_expense<EES: ExternalExpenseServiceExt>(
 
 /// Deletes the external expense and returns the entity.
 #[tracing::instrument(skip_all)]
-pub async fn delete_external_expense<EES: ExternalExpenseServiceExt>(
+pub async fn delete_external_expense(
     Path(id): Path<Uuid>,
-    State(external_expense_service): State<EES>,
+    State(external_expense_service): State<ExternalExpenseService>,
 ) -> HttpJsonDatamizeResult<ExternalExpense> {
     Ok(Json(
         external_expense_service.delete_external_expense(id).await?,

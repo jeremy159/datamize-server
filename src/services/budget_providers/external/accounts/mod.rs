@@ -29,17 +29,13 @@ pub trait ExternalAccountServiceExt {
     async fn set_encryption_key(&mut self, key: &[u8]) -> DatamizeResult<()>;
 }
 
-pub struct ExternalAccountService<EAR: ExternalAccountRepo, EKR: EncryptionKeyRepo> {
-    pub external_account_repo: EAR,
-    pub encryption_key_repo: EKR,
+pub struct ExternalAccountService {
+    pub external_account_repo: Box<dyn ExternalAccountRepo + Sync + Send>,
+    pub encryption_key_repo: Box<dyn EncryptionKeyRepo + Sync + Send>,
 }
 
 #[async_trait]
-impl<EAR, EKR> ExternalAccountServiceExt for ExternalAccountService<EAR, EKR>
-where
-    EAR: ExternalAccountRepo + Sync + Send,
-    EKR: EncryptionKeyRepo + Sync + Send,
-{
+impl ExternalAccountServiceExt for ExternalAccountService {
     #[tracing::instrument(skip(self))]
     async fn get_all_external_accounts(&self) -> DatamizeResult<Vec<ExternalAccount>> {
         Ok(self

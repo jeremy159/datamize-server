@@ -1,6 +1,6 @@
 use crate::{
     models::budget_template::{BudgetDetails, MonthQueryParam},
-    services::budget_template::TemplateDetailServiceExt,
+    services::budget_template::{TemplateDetailService, TemplateDetailServiceExt},
 };
 use axum::{
     extract::{Query, State},
@@ -14,8 +14,8 @@ use crate::error::HttpJsonDatamizeResult;
 /// /template/details?month=previous
 /// Possible values to pass in query params are `previous` and `next`. If nothing is specified,
 /// the current month will be used.
-pub async fn template_details<TDS: TemplateDetailServiceExt>(
-    State(mut template_detail_service): State<TDS>,
+pub async fn template_details(
+    State(mut template_detail_service): State<TemplateDetailService>,
     month: Option<Query<MonthQueryParam>>,
 ) -> HttpJsonDatamizeResult<BudgetDetails> {
     let Query(MonthQueryParam(month)) = month.unwrap_or_default();
