@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 #[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(not(feature = "sqlx-postgres"))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 /// See https://api.youneedabudget.com/v1#/Accounts/getAccountById
 pub struct Account {
     pub id: Uuid,
@@ -26,7 +26,7 @@ pub struct Account {
 
 #[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, PartialEq, Eq)]
 /// See https://api.youneedabudget.com/v1#/Accounts/getAccountById
 pub struct Account {
     pub id: Uuid,
@@ -55,7 +55,7 @@ pub struct AccountsDelta {
 
 #[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(not(feature = "sqlx-postgres"))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub enum AccountType {
     Checking,
@@ -72,7 +72,7 @@ pub enum AccountType {
 
 #[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq, Eq)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 #[sqlx(type_name = "account_type")]
 #[sqlx(rename_all = "camelCase")]

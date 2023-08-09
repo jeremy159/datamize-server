@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 #[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(not(feature = "sqlx-postgres"))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 /// See https://api.youneedabudget.com/v1#/Payees/getPayeeById
 pub struct Payee {
     pub id: Uuid,
@@ -14,7 +14,7 @@ pub struct Payee {
 
 #[cfg_attr(test, derive(fake::Dummy))]
 #[cfg(feature = "sqlx-postgres")]
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, PartialEq, Eq)]
 /// See https://api.youneedabudget.com/v1#/Payees/getPayeeById
 pub struct Payee {
     pub id: Uuid,
