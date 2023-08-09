@@ -10,6 +10,7 @@ use super::{
     Expense, ExpenseCategorization, ExpenseType, ExternalExpense, PartiallyComputed, Uncomputed,
 };
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Deserialize, Default, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum MonthTarget {

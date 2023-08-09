@@ -74,7 +74,6 @@ impl FromRef<AppState>
                 },
                 ynab_client: state.ynab_client.clone(),
             }),
-            ynab_client: state.ynab_client.clone(),
         }
     }
 }
@@ -111,7 +110,6 @@ impl FromRef<AppState>
                 },
                 ynab_client: state.ynab_client.clone(),
             }),
-            ynab_client: state.ynab_client.clone(),
         }
     }
 }
