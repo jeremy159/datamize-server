@@ -10,7 +10,7 @@ use super::{
     ExternalExpense,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct Expense<S: ExpenseState> {
     id: Uuid,
     name: String,
@@ -89,7 +89,7 @@ impl<S: ExpenseState> Expense<S> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct Uncomputed;
 
 impl Expense<Uncomputed> {
@@ -188,7 +188,7 @@ impl Expense<Uncomputed> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct PartiallyComputed {
     /// Will either be the goal_under_funded, the goal_target for the month or the amount of the linked scheduled transaction coming in the month.
     projected_amount: i64,
@@ -228,7 +228,7 @@ impl Expense<PartiallyComputed> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Computed {
     #[serde(flatten)]
     partially_computed: PartiallyComputed,

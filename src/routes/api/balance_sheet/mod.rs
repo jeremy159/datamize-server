@@ -67,7 +67,7 @@ impl FromRef<AppState> for FinResService {
     }
 }
 
-pub fn get_balance_sheets_routes() -> Router<AppState> {
+pub fn get_balance_sheets_routes(app_state: &AppState) -> Router<AppState> {
     Router::new()
         .route(
             "/years",

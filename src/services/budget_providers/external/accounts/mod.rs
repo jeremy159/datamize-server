@@ -1,21 +1,26 @@
 mod internal;
 
+use dyn_clone::{clone_trait_object, DynClone};
 use futures::{future::BoxFuture, stream::FuturesOrdered, StreamExt};
 use internal::*;
 
 use async_trait::async_trait;
 use orion::kex::SecretKey;
+use redis::aio::ConnectionManager;
+use sqlx::PgPool;
 
 use crate::{
     config,
-    db::budget_providers::external::{EncryptionKeyRepo, ExternalAccountRepo},
+    db::budget_providers::external::{
+        DynEncryptionKeyRepo, DynExternalAccountRepo, PostgresExternalAccountRepo,
+        RedisEncryptionKeyRepo,
+    },
     error::DatamizeResult,
     models::budget_providers::{AccountType, ExternalAccount, WebScrapingAccount},
 };
 
-#[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait ExternalAccountServiceExt {
+pub trait ExternalAccountServiceExt: DynClone {
     async fn get_all_external_accounts(&self) -> DatamizeResult<Vec<ExternalAccount>>;
     async fn refresh_all_web_scraping_accounts(
         &mut self,
@@ -29,9 +34,38 @@ pub trait ExternalAccountServiceExt {
     async fn set_encryption_key(&mut self, key: &[u8]) -> DatamizeResult<()>;
 }
 
+clone_trait_object!(ExternalAccountServiceExt);
+
+pub type DynExternalAccountService = Box<dyn ExternalAccountServiceExt + Send + Sync>;
+
+#[cfg(test)]
+mockall::mock! {
+    pub ExternalAccountService {}
+
+    impl Clone for ExternalAccountService {
+        fn clone(&self) -> Self;
+    }
+
+    #[async_trait]
+    impl ExternalAccountServiceExt for ExternalAccountService {
+        async fn get_all_external_accounts(&self) -> DatamizeResult<Vec<ExternalAccount>>;
+        async fn refresh_all_web_scraping_accounts(
+            &mut self,
+        ) -> DatamizeResult<Vec<WebScrapingAccount>>;
+
+        async fn create_external_account(&self, account: &WebScrapingAccount) -> DatamizeResult<()>;
+        async fn get_external_account_by_name(&self, name: &str) -> DatamizeResult<WebScrapingAccount>;
+        async fn update_external_account(&self, account: &WebScrapingAccount) -> DatamizeResult<()>;
+
+        async fn get_encryption_key(&mut self) -> DatamizeResult<Vec<u8>>;
+        async fn set_encryption_key(&mut self, key: &[u8]) -> DatamizeResult<()>;
+    }
+}
+
+#[derive(Clone)]
 pub struct ExternalAccountService {
-    pub external_account_repo: Box<dyn ExternalAccountRepo + Sync + Send>,
-    pub encryption_key_repo: Box<dyn EncryptionKeyRepo + Sync + Send>,
+    pub external_account_repo: DynExternalAccountRepo,
+    pub encryption_key_repo: DynEncryptionKeyRepo,
 }
 
 #[async_trait]
@@ -143,5 +177,14 @@ impl ExternalAccountServiceExt for ExternalAccountService {
     #[tracing::instrument(skip_all)]
     async fn set_encryption_key(&mut self, key: &[u8]) -> DatamizeResult<()> {
         self.encryption_key_repo.set(key).await
+    }
+}
+
+impl ExternalAccountService {
+    pub fn new_boxed(db_conn_pool: PgPool, redis_conn: ConnectionManager) -> Box<Self> {
+        Box::new(Self {
+            external_account_repo: Box::new(PostgresExternalAccountRepo { db_conn_pool }),
+            encryption_key_repo: Box::new(RedisEncryptionKeyRepo { redis_conn }),
+        })
     }
 }

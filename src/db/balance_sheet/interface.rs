@@ -50,7 +50,7 @@ pub trait MonthRepo {
     async fn delete(&self, month_num: MonthNum, year: i32) -> DatamizeResult<()>;
 }
 
-#[derive(sqlx::FromRow, Debug)]
+#[derive(Debug, Clone, sqlx::FromRow)]
 pub struct MonthData {
     pub id: Uuid,
     pub month: i16,

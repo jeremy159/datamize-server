@@ -34,19 +34,19 @@ pub trait BudgeterExt {
 }
 
 /// A Budgeter represents someone that has income and expenses for the month.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Budgeter<S: BudgeterState> {
     #[serde(flatten)]
     extra: S,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct TotalBudgeter<S: BudgeterState> {
     #[serde(flatten)]
     extra: S,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Empty;
 
 impl TotalBudgeter<Empty> {
@@ -61,7 +61,7 @@ impl TotalBudgeter<Empty> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Configured {
     id: Uuid,
     /// Name of the Person to use.
@@ -157,7 +157,7 @@ impl BudgeterExt for TotalBudgeter<Configured> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct ComputedSalary {
     #[serde(flatten)]
     configured: Configured,
@@ -291,7 +291,7 @@ impl BudgeterExt for TotalBudgeter<ComputedSalary> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct ComputedExpenses {
     #[serde(flatten)]
     compuded_salary: ComputedSalary,

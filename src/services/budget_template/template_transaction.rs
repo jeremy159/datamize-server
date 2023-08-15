@@ -2,30 +2,37 @@ use std::{collections::HashMap, sync::Arc};
 
 use anyhow::Context;
 use async_trait::async_trait;
+use dyn_clone::{clone_trait_object, DynClone};
 use futures::{stream::FuturesUnordered, StreamExt};
-use ynab::CategoryRequests;
+use redis::aio::ConnectionManager;
+use sqlx::PgPool;
+use ynab::{CategoryRequests, ScheduledTransactionRequests};
 
 use crate::{
-    db::budget_providers::ynab::YnabCategoryRepo,
+    db::budget_providers::ynab::{DynYnabCategoryRepo, PostgresYnabCategoryRepo},
     error::DatamizeResult,
     models::budget_template::{
         CategoryIdToNameMap, DatamizeScheduledTransaction, ScheduledTransactionsDistribution,
     },
 };
 
-use super::ScheduledTransactionServiceExt;
+use super::{DynScheduledTransactionService, ScheduledTransactionService};
 
-#[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait TemplateTransactionServiceExt {
+pub trait TemplateTransactionServiceExt: DynClone {
     async fn get_template_transactions(
         &mut self,
     ) -> DatamizeResult<ScheduledTransactionsDistribution>;
 }
 
+clone_trait_object!(TemplateTransactionServiceExt);
+
+pub type DynTemplateTransactionService = Box<dyn TemplateTransactionServiceExt + Send + Sync>;
+
+#[derive(Clone)]
 pub struct TemplateTransactionService {
-    pub scheduled_transaction_service: Box<dyn ScheduledTransactionServiceExt + Sync + Send>,
-    pub ynab_category_repo: Box<dyn YnabCategoryRepo + Sync + Send>,
+    pub scheduled_transaction_service: DynScheduledTransactionService,
+    pub ynab_category_repo: DynYnabCategoryRepo,
     pub ynab_client: Arc<dyn CategoryRequests + Sync + Send>,
 }
 
@@ -80,6 +87,24 @@ impl TemplateTransactionServiceExt for TemplateTransactionService {
 }
 
 impl TemplateTransactionService {
+    pub fn new_boxed<
+        YC: CategoryRequests + ScheduledTransactionRequests + Send + Sync + 'static,
+    >(
+        db_conn_pool: PgPool,
+        redis_conn: ConnectionManager,
+        ynab_client: Arc<YC>,
+    ) -> Box<Self> {
+        Box::new(TemplateTransactionService {
+            scheduled_transaction_service: ScheduledTransactionService::new_boxed(
+                db_conn_pool.clone(),
+                redis_conn,
+                ynab_client.clone(),
+            ),
+            ynab_category_repo: Box::new(PostgresYnabCategoryRepo { db_conn_pool }),
+            ynab_client,
+        })
+    }
+
     fn get_subtransactions_category_ids(
         scheduled_transactions: &[DatamizeScheduledTransaction],
     ) -> Vec<uuid::Uuid> {
@@ -102,8 +127,8 @@ mod tests {
 
     use super::*;
     use crate::{
-        db::budget_providers::ynab::MockYnabCategoryRepo, error::AppError,
-        services::budget_template::scheduled_transaction::MockScheduledTransactionServiceExt,
+        db::budget_providers::ynab::MockYnabCategoryRepoImpl, error::AppError,
+        services::budget_template::ScheduledTransactionServiceExt,
     };
 
     mock! {
@@ -132,14 +157,13 @@ mod tests {
 
     #[tokio::test]
     async fn get_template_transactions_should_return_all_scheduled_transactions() {
-        let mut scheduled_transaction_service = Box::new(MockScheduledTransactionServiceExt::new());
-        let mut ynab_category_repo = Box::new(MockYnabCategoryRepo::new());
-        let ynab_client = Arc::new(MockYnabClient::new());
-
-        scheduled_transaction_service
-            .expect_get_latest_scheduled_transactions()
-            .once()
-            .returning(|| {
+        #[derive(Clone)]
+        struct MockScheduledTransactionService {}
+        #[async_trait]
+        impl ScheduledTransactionServiceExt for MockScheduledTransactionService {
+            async fn get_latest_scheduled_transactions(
+                &mut self,
+            ) -> DatamizeResult<Vec<DatamizeScheduledTransaction>> {
                 Ok(vec![Into::into(ScheduledTransactionDetail {
                     id: Faker.fake(),
                     date_first: Faker.fake(),
@@ -158,7 +182,12 @@ mod tests {
                     category_name: Faker.fake(),
                     subtransactions: vec![],
                 })])
-            });
+            }
+        }
+
+        let scheduled_transaction_service = Box::new(MockScheduledTransactionService {});
+        let mut ynab_category_repo = Box::new(MockYnabCategoryRepoImpl::new());
+        let ynab_client = Arc::new(MockYnabClient::new());
 
         ynab_category_repo.expect_get().returning(|_| {
             Ok(Category {
@@ -202,14 +231,13 @@ mod tests {
 
     #[tokio::test]
     async fn get_template_transactions_should_reach_ynab_if_cat_not_in_db() {
-        let mut scheduled_transaction_service = Box::new(MockScheduledTransactionServiceExt::new());
-        let mut ynab_category_repo = Box::new(MockYnabCategoryRepo::new());
-        let mut ynab_client = MockYnabClient::new();
-
-        scheduled_transaction_service
-            .expect_get_latest_scheduled_transactions()
-            .once()
-            .returning(|| {
+        #[derive(Clone)]
+        struct MockScheduledTransactionService {}
+        #[async_trait]
+        impl ScheduledTransactionServiceExt for MockScheduledTransactionService {
+            async fn get_latest_scheduled_transactions(
+                &mut self,
+            ) -> DatamizeResult<Vec<DatamizeScheduledTransaction>> {
                 Ok(vec![Into::into(ScheduledTransactionDetail {
                     id: Faker.fake(),
                     date_first: Faker.fake(),
@@ -228,7 +256,12 @@ mod tests {
                     category_name: Faker.fake(),
                     subtransactions: vec![],
                 })])
-            });
+            }
+        }
+
+        let scheduled_transaction_service = Box::new(MockScheduledTransactionService {});
+        let mut ynab_category_repo = Box::new(MockYnabCategoryRepoImpl::new());
+        let mut ynab_client = MockYnabClient::new();
 
         ynab_category_repo
             .expect_get()

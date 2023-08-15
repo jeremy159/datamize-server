@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use ynab::types::{RecurFrequency, ScheduledTransactionDetail, SubTransaction};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DatamizeScheduledTransaction {
     pub id: Uuid,
     pub date_first: chrono::NaiveDate,

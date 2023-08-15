@@ -8,7 +8,7 @@ pub type CategoryIdToNameMap = HashMap<uuid::Uuid, String>;
 
 pub type ScheduledTransactionsDistributionMap = HashMap<String, Vec<DatamizeScheduledTransaction>>;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct ScheduledTransactionsDistribution {
     #[serde(serialize_with = "ordered_map", flatten)]
     map: ScheduledTransactionsDistributionMap,

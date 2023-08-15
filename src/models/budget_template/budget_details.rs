@@ -11,7 +11,7 @@ use super::{
 };
 
 #[cfg_attr(test, derive(fake::Dummy))]
-#[derive(Debug, Deserialize, Default, Copy, Clone)]
+#[derive(Debug, Deserialize, Default, Copy, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum MonthTarget {
     Previous,
@@ -19,9 +19,6 @@ pub enum MonthTarget {
     Current,
     Next,
 }
-
-#[derive(Debug, Deserialize, Default)]
-pub struct MonthQueryParam(pub MonthTarget);
 
 impl From<MonthTarget> for DateTime<Local> {
     fn from(value: MonthTarget) -> Self {
@@ -35,7 +32,12 @@ impl From<MonthTarget> for DateTime<Local> {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Default)]
+pub struct TemplateParams {
+    pub month: Option<MonthTarget>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct GlobalMetadata {
     /// Salary related incomes
     pub monthly_income: i64,
@@ -64,7 +66,7 @@ impl Default for GlobalMetadata {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct BudgetDetails {
     global: GlobalMetadata,
     expenses: Vec<Expense<Computed>>,

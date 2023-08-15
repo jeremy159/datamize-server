@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    db::budget_template::BudgeterConfigRepo,
+    db::budget_template::{BudgeterConfigRepo, PostgresBudgeterConfigRepo},
     error::{AppError, DatamizeResult},
     models::budget_template::{BudgeterConfig, SaveBudgeterConfig},
 };
@@ -20,6 +23,8 @@ pub trait BudgeterServiceExt {
         -> DatamizeResult<BudgeterConfig>;
     async fn delete_budgeter(&self, budgeter_id: Uuid) -> DatamizeResult<BudgeterConfig>;
 }
+
+pub type DynBudgeterService = Arc<dyn BudgeterServiceExt + Send + Sync>;
 
 pub struct BudgeterService {
     pub budgeter_config_repo: Box<dyn BudgeterConfigRepo + Send + Sync>,
@@ -79,16 +84,24 @@ impl BudgeterServiceExt for BudgeterService {
     }
 }
 
+impl BudgeterService {
+    pub fn new_arced(db_conn_pool: PgPool) -> Arc<Self> {
+        Arc::new(Self {
+            budgeter_config_repo: Box::new(PostgresBudgeterConfigRepo { db_conn_pool }),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
 
     use super::*;
-    use crate::db::budget_template::MockBudgeterConfigRepo;
+    use crate::db::budget_template::MockBudgeterConfigRepoImpl;
 
     #[tokio::test]
     async fn create_budgeter_success() {
-        let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepo::new());
+        let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepoImpl::new());
         budgeter_config_repo
             .expect_get_by_name()
             .once()
@@ -115,7 +128,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_budgeter_failure_already_exist() {
-        let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepo::new());
+        let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepoImpl::new());
         budgeter_config_repo
             .expect_get_by_name()
             .once()
@@ -136,7 +149,7 @@ mod tests {
     async fn update_budgeter_success() {
         let budgeter_config = Faker.fake::<BudgeterConfig>();
         let new_budgeter = budgeter_config.clone();
-        let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepo::new());
+        let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepoImpl::new());
         budgeter_config_repo
             .expect_get()
             .return_once(|_| Ok(new_budgeter));
@@ -159,7 +172,7 @@ mod tests {
     #[tokio::test]
     async fn update_budgeter_failure_does_not_exist() {
         let budgeter_config = Faker.fake::<BudgeterConfig>();
-        let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepo::new());
+        let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepoImpl::new());
         budgeter_config_repo
             .expect_get()
             .return_once(|_| Err(AppError::ResourceNotFound));
@@ -180,7 +193,7 @@ mod tests {
         let budgeter_config = Faker.fake::<BudgeterConfig>();
         let new_budgeter = budgeter_config.clone();
         let budgeter_config_id = budgeter_config.id;
-        let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepo::new());
+        let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepoImpl::new());
         budgeter_config_repo
             .expect_get()
             .return_once(|_| Ok(new_budgeter));
@@ -204,7 +217,7 @@ mod tests {
     async fn delete_budgeter_failure_does_not_exist() {
         let budgeter_config = Faker.fake::<BudgeterConfig>();
         let budgeter_config_id = budgeter_config.id;
-        let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepo::new());
+        let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepoImpl::new());
         budgeter_config_repo
             .expect_get()
             .return_once(|_| Err(AppError::ResourceNotFound));

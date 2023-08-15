@@ -1,24 +1,40 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
+use dyn_clone::{clone_trait_object, DynClone};
+use redis::aio::ConnectionManager;
+use sqlx::PgPool;
+use ynab::{CategoryRequests, MonthRequests, ScheduledTransactionRequests};
 
 use crate::{
-    db::budget_template::{BudgeterConfigRepo, ExternalExpenseRepo},
+    db::budget_template::{
+        DynBudgeterConfigRepo, DynExternalExpenseRepo, PostgresBudgeterConfigRepo,
+        PostgresExternalExpenseRepo,
+    },
     error::DatamizeResult,
     models::budget_template::{BudgetDetails, BudgetSummary, Budgeter, Configured, MonthTarget},
 };
 
-use super::{CategoryServiceExt, ScheduledTransactionServiceExt};
+use super::{
+    CategoryService, DynCategoryService, DynScheduledTransactionService,
+    ScheduledTransactionService,
+};
 
-#[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait TemplateSummaryServiceExt {
+pub trait TemplateSummaryServiceExt: DynClone {
     async fn get_template_summary(&mut self, month: MonthTarget) -> DatamizeResult<BudgetSummary>;
 }
 
+clone_trait_object!(TemplateSummaryServiceExt);
+
+pub type DynTemplateSummaryService = Box<dyn TemplateSummaryServiceExt + Send + Sync>;
+
+#[derive(Clone)]
 pub struct TemplateSummaryService {
-    pub category_service: Box<dyn CategoryServiceExt + Sync + Send>,
-    pub scheduled_transaction_service: Box<dyn ScheduledTransactionServiceExt + Sync + Send>,
-    pub budgeter_config_repo: Box<dyn BudgeterConfigRepo + Sync + Send>,
-    pub external_expense_repo: Box<dyn ExternalExpenseRepo + Sync + Send>,
+    pub category_service: DynCategoryService,
+    pub scheduled_transaction_service: DynScheduledTransactionService,
+    pub budgeter_config_repo: DynBudgeterConfigRepo,
+    pub external_expense_repo: DynExternalExpenseRepo,
 }
 
 #[async_trait]
@@ -53,6 +69,33 @@ impl TemplateSummaryServiceExt for TemplateSummaryService {
     }
 }
 
+impl TemplateSummaryService {
+    pub fn new_boxed<
+        YC: CategoryRequests + ScheduledTransactionRequests + MonthRequests + Send + Sync + 'static,
+    >(
+        db_conn_pool: PgPool,
+        redis_conn: ConnectionManager,
+        ynab_client: Arc<YC>,
+    ) -> Box<Self> {
+        Box::new(TemplateSummaryService {
+            category_service: CategoryService::new_boxed(
+                db_conn_pool.clone(),
+                redis_conn.clone(),
+                ynab_client.clone(),
+            ),
+            scheduled_transaction_service: ScheduledTransactionService::new_boxed(
+                db_conn_pool.clone(),
+                redis_conn,
+                ynab_client,
+            ),
+            budgeter_config_repo: Box::new(PostgresBudgeterConfigRepo {
+                db_conn_pool: db_conn_pool.clone(),
+            }),
+            external_expense_repo: Box::new(PostgresExternalExpenseRepo { db_conn_pool }),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
@@ -60,24 +103,23 @@ mod tests {
 
     use super::*;
     use crate::{
-        db::budget_template::{MockBudgeterConfigRepo, MockExternalExpenseRepo},
+        db::budget_template::{MockBudgeterConfigRepoImpl, MockExternalExpenseRepoImpl},
+        models::budget_template::{DatamizeScheduledTransaction, ExpenseCategorization},
         services::budget_template::{
-            category::MockCategoryServiceExt,
-            scheduled_transaction::MockScheduledTransactionServiceExt,
+            category::CategoryServiceExt, scheduled_transaction::ScheduledTransactionServiceExt,
         },
     };
 
     #[tokio::test]
     async fn get_template_summary_should_return_all_scheduled_transactions() {
-        let mut category_service = Box::new(MockCategoryServiceExt::new());
-        let mut scheduled_transaction_service = Box::new(MockScheduledTransactionServiceExt::new());
-        let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepo::new());
-        let mut external_expense_repo = Box::new(MockExternalExpenseRepo::new());
-
-        category_service
-            .expect_get_categories_of_month()
-            .once()
-            .returning(|_| {
+        #[derive(Clone)]
+        struct MockCategoryService {}
+        #[async_trait]
+        impl CategoryServiceExt for MockCategoryService {
+            async fn get_categories_of_month(
+                &mut self,
+                _month: MonthTarget,
+            ) -> DatamizeResult<(Vec<Category>, Vec<ExpenseCategorization>)> {
                 Ok((
                     vec![Category {
                         id: Faker.fake(),
@@ -106,12 +148,17 @@ mod tests {
                     }],
                     vec![Faker.fake()],
                 ))
-            });
+            }
+        }
 
-        scheduled_transaction_service
-            .expect_get_latest_scheduled_transactions()
-            .once()
-            .returning(|| {
+        let category_service = Box::new(MockCategoryService {});
+        #[derive(Clone)]
+        struct MockScheduledTransactionService {}
+        #[async_trait]
+        impl ScheduledTransactionServiceExt for MockScheduledTransactionService {
+            async fn get_latest_scheduled_transactions(
+                &mut self,
+            ) -> DatamizeResult<Vec<DatamizeScheduledTransaction>> {
                 Ok(vec![Into::into(ScheduledTransactionDetail {
                     id: Faker.fake(),
                     date_first: Faker.fake(),
@@ -130,7 +177,12 @@ mod tests {
                     category_name: Faker.fake(),
                     subtransactions: vec![],
                 })])
-            });
+            }
+        }
+
+        let scheduled_transaction_service = Box::new(MockScheduledTransactionService {});
+        let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepoImpl::new());
+        let mut external_expense_repo = Box::new(MockExternalExpenseRepoImpl::new());
 
         external_expense_repo
             .expect_get_all()

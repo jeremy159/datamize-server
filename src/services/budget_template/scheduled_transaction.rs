@@ -3,26 +3,35 @@ use std::sync::Arc;
 use anyhow::Context;
 use async_trait::async_trait;
 use chrono::{Datelike, Local, NaiveDate};
+use dyn_clone::{clone_trait_object, DynClone};
+use redis::aio::ConnectionManager;
+use sqlx::PgPool;
 use ynab::ScheduledTransactionRequests;
 
 use crate::{
-    db::budget_providers::ynab::{YnabScheduledTransactionMetaRepo, YnabScheduledTransactionRepo},
+    db::budget_providers::ynab::{
+        DynYnabScheduledTransactionMetaRepo, DynYnabScheduledTransactionRepo,
+        PostgresYnabScheduledTransactionRepo, RedisYnabScheduledTransactionMetaRepo,
+    },
     error::DatamizeResult,
     models::budget_template::DatamizeScheduledTransaction,
 };
 
-#[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait ScheduledTransactionServiceExt {
+pub trait ScheduledTransactionServiceExt: DynClone {
     async fn get_latest_scheduled_transactions(
         &mut self,
     ) -> DatamizeResult<Vec<DatamizeScheduledTransaction>>;
 }
 
+clone_trait_object!(ScheduledTransactionServiceExt);
+
+pub type DynScheduledTransactionService = Box<dyn ScheduledTransactionServiceExt + Send + Sync>;
+
+#[derive(Clone)]
 pub struct ScheduledTransactionService {
-    pub ynab_scheduled_transaction_repo: Box<dyn YnabScheduledTransactionRepo + Sync + Send>,
-    pub ynab_scheduled_transaction_meta_repo:
-        Box<dyn YnabScheduledTransactionMetaRepo + Sync + Send>,
+    pub ynab_scheduled_transaction_repo: DynYnabScheduledTransactionRepo,
+    pub ynab_scheduled_transaction_meta_repo: DynYnabScheduledTransactionMetaRepo,
     pub ynab_client: Arc<dyn ScheduledTransactionRequests + Send + Sync>,
 }
 
@@ -69,6 +78,22 @@ impl ScheduledTransactionServiceExt for ScheduledTransactionService {
 }
 
 impl ScheduledTransactionService {
+    pub fn new_boxed(
+        db_conn_pool: PgPool,
+        redis_conn: ConnectionManager,
+        ynab_client: Arc<dyn ScheduledTransactionRequests + Send + Sync>,
+    ) -> Box<Self> {
+        Box::new(ScheduledTransactionService {
+            ynab_scheduled_transaction_repo: Box::new(PostgresYnabScheduledTransactionRepo {
+                db_conn_pool,
+            }),
+            ynab_scheduled_transaction_meta_repo: Box::new(RedisYnabScheduledTransactionMetaRepo {
+                redis_conn,
+            }),
+            ynab_client,
+        })
+    }
+
     async fn check_last_saved(&mut self) -> DatamizeResult<()> {
         let current_date = Local::now().date_naive();
         if let Ok(last_saved) = self
@@ -111,7 +136,7 @@ mod tests {
     use super::*;
     use crate::{
         db::budget_providers::ynab::{
-            MockYnabScheduledTransactionMetaRepo, MockYnabScheduledTransactionRepo,
+            MockYnabScheduledTransactionMetaRepoImpl, MockYnabScheduledTransactionRepoImpl,
         },
         error::AppError,
     };
@@ -133,9 +158,9 @@ mod tests {
 
     #[tokio::test]
     async fn check_last_saved_when_nothing_currently_saved_should_update_last_saved() {
-        let ynab_scheduled_transaction_repo = Box::new(MockYnabScheduledTransactionRepo::new());
+        let ynab_scheduled_transaction_repo = Box::new(MockYnabScheduledTransactionRepoImpl::new());
         let mut ynab_scheduled_transaction_meta_repo =
-            Box::new(MockYnabScheduledTransactionMetaRepo::new());
+            Box::new(MockYnabScheduledTransactionMetaRepoImpl::new());
 
         ynab_scheduled_transaction_meta_repo
             .expect_get_last_saved()
@@ -164,9 +189,9 @@ mod tests {
     #[tokio::test]
     async fn check_last_saved_when_saved_date_is_the_same_month_as_current_should_not_update_last_saved(
     ) {
-        let ynab_scheduled_transaction_repo = Box::new(MockYnabScheduledTransactionRepo::new());
+        let ynab_scheduled_transaction_repo = Box::new(MockYnabScheduledTransactionRepoImpl::new());
         let mut ynab_scheduled_transaction_meta_repo =
-            Box::new(MockYnabScheduledTransactionMetaRepo::new());
+            Box::new(MockYnabScheduledTransactionMetaRepoImpl::new());
 
         let saved_date = Local::now().date_naive();
         ynab_scheduled_transaction_meta_repo
@@ -193,9 +218,9 @@ mod tests {
     #[tokio::test]
     async fn check_last_saved_when_saved_date_is_not_the_same_month_as_current_should_update_last_saved_and_delete_delta(
     ) {
-        let ynab_scheduled_transaction_repo = Box::new(MockYnabScheduledTransactionRepo::new());
+        let ynab_scheduled_transaction_repo = Box::new(MockYnabScheduledTransactionRepoImpl::new());
         let mut ynab_scheduled_transaction_meta_repo =
-            Box::new(MockYnabScheduledTransactionMetaRepo::new());
+            Box::new(MockYnabScheduledTransactionMetaRepoImpl::new());
 
         let saved_date = Local::now()
             .date_naive()
@@ -232,9 +257,10 @@ mod tests {
 
     #[tokio::test]
     async fn get_latest_scheduled_transactions_should_return_all_scheduled_transactions() {
-        let mut ynab_scheduled_transaction_repo = Box::new(MockYnabScheduledTransactionRepo::new());
+        let mut ynab_scheduled_transaction_repo =
+            Box::new(MockYnabScheduledTransactionRepoImpl::new());
         let mut ynab_scheduled_transaction_meta_repo =
-            Box::new(MockYnabScheduledTransactionMetaRepo::new());
+            Box::new(MockYnabScheduledTransactionMetaRepoImpl::new());
         let mut ynab_client = MockYnabClient::new();
 
         let saved_date = Local::now().date_naive();

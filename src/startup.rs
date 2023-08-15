@@ -56,8 +56,8 @@ impl Application {
         ))?;
         let port = socket_addr.port();
 
-        let api_routes = get_api_routes();
-        let budget_providers_routes = get_budget_providers_routes();
+        let api_routes = get_api_routes(&app_state);
+        let budget_providers_routes = get_budget_providers_routes(&app_state);
 
         let origins = [
             "https://tauri.localhost"

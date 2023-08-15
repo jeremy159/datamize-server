@@ -5,6 +5,7 @@ use crate::error::DatamizeResult;
 
 use super::EncryptionKeyRepo;
 
+#[derive(Clone)]
 pub struct RedisEncryptionKeyRepo {
     pub redis_conn: ConnectionManager,
 }

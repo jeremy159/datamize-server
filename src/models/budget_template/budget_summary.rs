@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::{BudgetDetails, Budgeter, ComputedExpenses, ComputedSalary, TotalBudgeter};
 
 /// A proportionally split budget's expenses.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct BudgetSummary {
     budgeters: Vec<Budgeter<ComputedExpenses>>,
     total_budgeter: TotalBudgeter<ComputedExpenses>,

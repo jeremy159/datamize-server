@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    db::budget_template::ExternalExpenseRepo,
+    db::budget_template::{ExternalExpenseRepo, PostgresExternalExpenseRepo},
     error::{AppError, DatamizeResult},
     models::budget_template::{ExternalExpense, SaveExternalExpense},
 };
@@ -22,6 +25,8 @@ pub trait ExternalExpenseServiceExt {
     ) -> DatamizeResult<ExternalExpense>;
     async fn delete_external_expense(&self, expense_id: Uuid) -> DatamizeResult<ExternalExpense>;
 }
+
+pub type DynExternalExpenseService = Arc<dyn ExternalExpenseServiceExt + Send + Sync>;
 
 pub struct ExternalExpenseService {
     pub external_expense_repo: Box<dyn ExternalExpenseRepo + Sync + Send>,
@@ -81,16 +86,24 @@ impl ExternalExpenseServiceExt for ExternalExpenseService {
     }
 }
 
+impl ExternalExpenseService {
+    pub fn new_arced(db_conn_pool: PgPool) -> Arc<Self> {
+        Arc::new(Self {
+            external_expense_repo: Box::new(PostgresExternalExpenseRepo { db_conn_pool }),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
 
     use super::*;
-    use crate::db::budget_template::MockExternalExpenseRepo;
+    use crate::db::budget_template::MockExternalExpenseRepoImpl;
 
     #[tokio::test]
     async fn create_external_expense_success() {
-        let mut external_expense_repo = Box::new(MockExternalExpenseRepo::new());
+        let mut external_expense_repo = Box::new(MockExternalExpenseRepoImpl::new());
         external_expense_repo
             .expect_get_by_name()
             .once()
@@ -119,7 +132,7 @@ mod tests {
 
     #[tokio::test]
     async fn create_external_expense_failure_already_exist() {
-        let mut external_expense_repo = Box::new(MockExternalExpenseRepo::new());
+        let mut external_expense_repo = Box::new(MockExternalExpenseRepoImpl::new());
         external_expense_repo
             .expect_get_by_name()
             .once()
@@ -142,7 +155,7 @@ mod tests {
     async fn update_external_expense_success() {
         let external_expense = Faker.fake::<ExternalExpense>();
         let new_external_expense = external_expense.clone();
-        let mut external_expense_repo = Box::new(MockExternalExpenseRepo::new());
+        let mut external_expense_repo = Box::new(MockExternalExpenseRepoImpl::new());
         external_expense_repo
             .expect_get()
             .return_once(|_| Ok(new_external_expense));
@@ -165,7 +178,7 @@ mod tests {
     #[tokio::test]
     async fn update_external_expense_failure_does_not_exist() {
         let external_expense = Faker.fake::<ExternalExpense>();
-        let mut external_expense_repo = Box::new(MockExternalExpenseRepo::new());
+        let mut external_expense_repo = Box::new(MockExternalExpenseRepoImpl::new());
         external_expense_repo
             .expect_get()
             .return_once(|_| Err(AppError::ResourceNotFound));
@@ -186,7 +199,7 @@ mod tests {
         let external_expense = Faker.fake::<ExternalExpense>();
         let new_external_expense = external_expense.clone();
         let external_expense_id = external_expense.id;
-        let mut external_expense_repo = Box::new(MockExternalExpenseRepo::new());
+        let mut external_expense_repo = Box::new(MockExternalExpenseRepoImpl::new());
         external_expense_repo
             .expect_get()
             .return_once(|_| Ok(new_external_expense));
@@ -210,7 +223,7 @@ mod tests {
     async fn delete_external_expense_failure_does_not_exist() {
         let external_expense = Faker.fake::<ExternalExpense>();
         let external_expense_id = external_expense.id;
-        let mut external_expense_repo = Box::new(MockExternalExpenseRepo::new());
+        let mut external_expense_repo = Box::new(MockExternalExpenseRepoImpl::new());
         external_expense_repo
             .expect_get()
             .return_once(|_| Err(AppError::ResourceNotFound));

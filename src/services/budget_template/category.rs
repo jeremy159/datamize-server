@@ -3,31 +3,54 @@ use std::{collections::HashSet, sync::Arc};
 use anyhow::Context;
 use async_trait::async_trait;
 use chrono::{DateTime, Datelike, Local, NaiveDate};
+use dyn_clone::{clone_trait_object, DynClone};
+use redis::aio::ConnectionManager;
+use sqlx::PgPool;
 use ynab::{Category, CategoryGroup, CategoryRequests, MonthRequests};
 
 use crate::{
     db::{
-        budget_providers::ynab::{YnabCategoryMetaRepo, YnabCategoryRepo},
-        budget_template::ExpenseCategorizationRepo,
+        budget_providers::ynab::{
+            DynYnabCategoryMetaRepo, DynYnabCategoryRepo, PostgresYnabCategoryRepo,
+            RedisYnabCategoryMetaRepo,
+        },
+        budget_template::{DynExpenseCategorizationRepo, PostgresExpenseCategorizationRepo},
     },
     error::{AppError, DatamizeResult},
     models::budget_template::{ExpenseCategorization, MonthTarget},
 };
 
-#[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait CategoryServiceExt {
+pub trait CategoryServiceExt: DynClone {
     async fn get_categories_of_month(
         &mut self,
         month: MonthTarget,
     ) -> DatamizeResult<(Vec<Category>, Vec<ExpenseCategorization>)>;
 }
 
+clone_trait_object!(CategoryServiceExt);
+
+pub type DynCategoryService = Box<dyn CategoryServiceExt + Send + Sync>;
+
 pub struct CategoryService<YC: CategoryRequests + MonthRequests> {
-    pub ynab_category_repo: Box<dyn YnabCategoryRepo + Sync + Send>,
-    pub ynab_category_meta_repo: Box<dyn YnabCategoryMetaRepo + Sync + Send>,
-    pub expense_categorization_repo: Box<dyn ExpenseCategorizationRepo + Sync + Send>,
+    pub ynab_category_repo: DynYnabCategoryRepo,
+    pub ynab_category_meta_repo: DynYnabCategoryMetaRepo,
+    pub expense_categorization_repo: DynExpenseCategorizationRepo,
     pub ynab_client: Arc<YC>,
+}
+
+impl<YC> Clone for CategoryService<YC>
+where
+    YC: CategoryRequests + MonthRequests,
+{
+    fn clone(&self) -> Self {
+        Self {
+            ynab_category_repo: self.ynab_category_repo.clone(),
+            ynab_category_meta_repo: self.ynab_category_meta_repo.clone(),
+            expense_categorization_repo: self.expense_categorization_repo.clone(),
+            ynab_client: self.ynab_client.clone(),
+        }
+    }
 }
 
 #[async_trait]
@@ -63,6 +86,23 @@ impl<YC> CategoryService<YC>
 where
     YC: CategoryRequests + MonthRequests + Sync + Send,
 {
+    pub fn new_boxed(
+        db_conn_pool: PgPool,
+        redis_conn: ConnectionManager,
+        ynab_client: Arc<YC>,
+    ) -> Box<Self> {
+        Box::new(CategoryService {
+            ynab_category_repo: Box::new(PostgresYnabCategoryRepo {
+                db_conn_pool: db_conn_pool.clone(),
+            }),
+            ynab_category_meta_repo: Box::new(RedisYnabCategoryMetaRepo { redis_conn }),
+            expense_categorization_repo: Box::new(PostgresExpenseCategorizationRepo {
+                db_conn_pool,
+            }),
+            ynab_client,
+        })
+    }
+
     async fn get_latest_categories(
         &mut self,
     ) -> DatamizeResult<(Vec<Category>, Vec<ExpenseCategorization>)> {
@@ -185,8 +225,8 @@ mod tests {
     use super::*;
     use crate::{
         db::{
-            budget_providers::ynab::{MockYnabCategoryMetaRepo, MockYnabCategoryRepo},
-            budget_template::MockExpenseCategorizationRepo,
+            budget_providers::ynab::{MockYnabCategoryMetaRepoImpl, MockYnabCategoryRepoImpl},
+            budget_template::MockExpenseCategorizationRepoImpl,
         },
         error::AppError,
     };
@@ -229,9 +269,9 @@ mod tests {
 
     #[tokio::test]
     async fn check_last_saved_when_nothing_currently_saved_should_update_last_saved() {
-        let ynab_category_repo = Box::new(MockYnabCategoryRepo::new());
-        let mut ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepo::new());
-        let expense_categorization_repo = Box::new(MockExpenseCategorizationRepo::new());
+        let ynab_category_repo = Box::new(MockYnabCategoryRepoImpl::new());
+        let mut ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepoImpl::new());
+        let expense_categorization_repo = Box::new(MockExpenseCategorizationRepoImpl::new());
 
         ynab_category_meta_repo
             .expect_get_last_saved()
@@ -261,9 +301,9 @@ mod tests {
     #[tokio::test]
     async fn check_last_saved_when_saved_date_is_the_same_month_as_current_should_not_update_last_saved(
     ) {
-        let ynab_category_repo = Box::new(MockYnabCategoryRepo::new());
-        let mut ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepo::new());
-        let expense_categorization_repo = Box::new(MockExpenseCategorizationRepo::new());
+        let ynab_category_repo = Box::new(MockYnabCategoryRepoImpl::new());
+        let mut ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepoImpl::new());
+        let expense_categorization_repo = Box::new(MockExpenseCategorizationRepoImpl::new());
 
         let saved_date = Local::now().date_naive();
         ynab_category_meta_repo
@@ -289,9 +329,9 @@ mod tests {
     #[tokio::test]
     async fn check_last_saved_when_saved_date_is_not_the_same_month_as_current_should_update_last_saved_and_delete_delta(
     ) {
-        let ynab_category_repo = Box::new(MockYnabCategoryRepo::new());
-        let mut ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepo::new());
-        let expense_categorization_repo = Box::new(MockExpenseCategorizationRepo::new());
+        let ynab_category_repo = Box::new(MockYnabCategoryRepoImpl::new());
+        let mut ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepoImpl::new());
+        let expense_categorization_repo = Box::new(MockExpenseCategorizationRepoImpl::new());
 
         let saved_date = Local::now()
             .date_naive()
@@ -329,9 +369,9 @@ mod tests {
 
     #[tokio::test]
     async fn get_expenses_categorization_returns_all_categorizations_from_categories() {
-        let ynab_category_repo = Box::new(MockYnabCategoryRepo::new());
-        let ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepo::new());
-        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepo::new());
+        let ynab_category_repo = Box::new(MockYnabCategoryRepoImpl::new());
+        let ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepoImpl::new());
+        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepoImpl::new());
 
         expense_categorization_repo
             .expect_get()
@@ -378,9 +418,9 @@ mod tests {
 
     #[tokio::test]
     async fn get_expenses_categorization_returns_unique_categorizations_from_categories() {
-        let ynab_category_repo = Box::new(MockYnabCategoryRepo::new());
-        let ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepo::new());
-        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepo::new());
+        let ynab_category_repo = Box::new(MockYnabCategoryRepoImpl::new());
+        let ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepoImpl::new());
+        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepoImpl::new());
 
         expense_categorization_repo
             .expect_get()
@@ -419,9 +459,9 @@ mod tests {
 
     #[tokio::test]
     async fn get_expenses_categorization_should_use_existing_categorizations_if_found() {
-        let ynab_category_repo = Box::new(MockYnabCategoryRepo::new());
-        let ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepo::new());
-        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepo::new());
+        let ynab_category_repo = Box::new(MockYnabCategoryRepoImpl::new());
+        let ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepoImpl::new());
+        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepoImpl::new());
 
         let expense_categorization = Faker.fake::<ExpenseCategorization>();
 
@@ -460,9 +500,9 @@ mod tests {
 
     #[tokio::test]
     async fn get_latest_categories_should_return_all_categories() {
-        let mut ynab_category_repo = Box::new(MockYnabCategoryRepo::new());
-        let mut ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepo::new());
-        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepo::new());
+        let mut ynab_category_repo = Box::new(MockYnabCategoryRepoImpl::new());
+        let mut ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepoImpl::new());
+        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepoImpl::new());
         let mut ynab_client = MockYnabClient::new();
 
         let saved_date = Local::now().date_naive();
@@ -642,9 +682,9 @@ mod tests {
 
     #[tokio::test]
     async fn get_categories_of_month_for_current_month_should_go_through_get_latest_categories() {
-        let mut ynab_category_repo = Box::new(MockYnabCategoryRepo::new());
-        let mut ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepo::new());
-        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepo::new());
+        let mut ynab_category_repo = Box::new(MockYnabCategoryRepoImpl::new());
+        let mut ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepoImpl::new());
+        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepoImpl::new());
         let mut ynab_client = MockYnabClient::new();
 
         let saved_date = Local::now().date_naive();
@@ -767,9 +807,9 @@ mod tests {
 
     #[tokio::test]
     async fn get_categories_of_month_for_previous_month_should_use_get_month_by_date() {
-        let ynab_category_repo = Box::new(MockYnabCategoryRepo::new());
-        let ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepo::new());
-        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepo::new());
+        let ynab_category_repo = Box::new(MockYnabCategoryRepoImpl::new());
+        let ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepoImpl::new());
+        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepoImpl::new());
         let mut ynab_client = MockYnabClient::new();
 
         let expected_date = Local::now()
@@ -864,9 +904,9 @@ mod tests {
 
     #[tokio::test]
     async fn get_categories_of_month_for_next_month_should_use_get_month_by_date() {
-        let ynab_category_repo = Box::new(MockYnabCategoryRepo::new());
-        let ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepo::new());
-        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepo::new());
+        let ynab_category_repo = Box::new(MockYnabCategoryRepoImpl::new());
+        let ynab_category_meta_repo = Box::new(MockYnabCategoryMetaRepoImpl::new());
+        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepoImpl::new());
         let mut ynab_client = MockYnabClient::new();
 
         let expected_date = Local::now()

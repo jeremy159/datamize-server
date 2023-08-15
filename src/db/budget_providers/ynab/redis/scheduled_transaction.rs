@@ -3,6 +3,7 @@ use redis::{aio::ConnectionManager, AsyncCommands};
 
 use crate::{db::budget_providers::ynab::YnabScheduledTransactionMetaRepo, error::DatamizeResult};
 
+#[derive(Clone)]
 pub struct RedisYnabScheduledTransactionMetaRepo {
     pub redis_conn: ConnectionManager,
 }

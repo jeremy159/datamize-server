@@ -2,22 +2,45 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use async_trait::async_trait;
+use dyn_clone::{clone_trait_object, DynClone};
+use redis::aio::ConnectionManager;
+use sqlx::PgPool;
 use ynab::{Payee, PayeeRequests};
 
 use crate::{
-    db::budget_providers::ynab::{YnabPayeeMetaRepo, YnabPayeeRepo},
+    db::budget_providers::ynab::{
+        DynYnabPayeeMetaRepo, DynYnabPayeeRepo, PostgresYnabPayeeRepo, RedisYnabPayeeMetaRepo,
+    },
     error::DatamizeResult,
 };
 
-#[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait YnabPayeeServiceExt {
+pub trait YnabPayeeServiceExt: DynClone {
     async fn get_all_ynab_payees(&mut self) -> DatamizeResult<Vec<Payee>>;
 }
 
+clone_trait_object!(YnabPayeeServiceExt);
+
+pub type DynYnabPayeeService = Box<dyn YnabPayeeServiceExt + Send + Sync>;
+
+#[cfg(test)]
+mockall::mock! {
+    pub YnabPayeeService {}
+
+    impl Clone for YnabPayeeService {
+        fn clone(&self) -> Self;
+    }
+
+    #[async_trait]
+    impl YnabPayeeServiceExt for YnabPayeeService {
+        async fn get_all_ynab_payees(&mut self) -> DatamizeResult<Vec<Payee>>;
+    }
+}
+
+#[derive(Clone)]
 pub struct YnabPayeeService {
-    pub ynab_payee_repo: Box<dyn YnabPayeeRepo + Sync + Send>,
-    pub ynab_payee_meta_repo: Box<dyn YnabPayeeMetaRepo + Sync + Send>,
+    pub ynab_payee_repo: DynYnabPayeeRepo,
+    pub ynab_payee_meta_repo: DynYnabPayeeMetaRepo,
     pub ynab_client: Arc<dyn PayeeRequests + Send + Sync>,
 }
 
@@ -59,6 +82,20 @@ impl YnabPayeeServiceExt for YnabPayeeService {
     }
 }
 
+impl YnabPayeeService {
+    pub fn new_boxed(
+        db_conn_pool: PgPool,
+        redis_conn: ConnectionManager,
+        ynab_client: Arc<dyn PayeeRequests + Send + Sync>,
+    ) -> Box<Self> {
+        Box::new(Self {
+            ynab_payee_repo: Box::new(PostgresYnabPayeeRepo { db_conn_pool }),
+            ynab_payee_meta_repo: Box::new(RedisYnabPayeeMetaRepo { redis_conn }),
+            ynab_client,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
@@ -67,7 +104,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        db::budget_providers::ynab::{MockYnabPayeeMetaRepo, MockYnabPayeeRepo},
+        db::budget_providers::ynab::{MockYnabPayeeMetaRepoImpl, MockYnabPayeeRepoImpl},
         error::AppError,
     };
 
@@ -86,8 +123,8 @@ mod tests {
 
     #[tokio::test]
     async fn get_all_ynab_payees_success() {
-        let mut ynab_payee_repo = Box::new(MockYnabPayeeRepo::new());
-        let mut ynab_payee_meta_repo = Box::new(MockYnabPayeeMetaRepo::new());
+        let mut ynab_payee_repo = Box::new(MockYnabPayeeRepoImpl::new());
+        let mut ynab_payee_meta_repo = Box::new(MockYnabPayeeMetaRepoImpl::new());
         let mut ynab_client = MockYnabClient::new();
 
         ynab_payee_meta_repo
@@ -147,8 +184,8 @@ mod tests {
 
     #[tokio::test]
     async fn get_all_ynab_payees_issue_with_db_should_not_update_saved_delta() {
-        let mut ynab_payee_repo = Box::new(MockYnabPayeeRepo::new());
-        let mut ynab_payee_meta_repo = Box::new(MockYnabPayeeMetaRepo::new());
+        let mut ynab_payee_repo = Box::new(MockYnabPayeeRepoImpl::new());
+        let mut ynab_payee_meta_repo = Box::new(MockYnabPayeeMetaRepoImpl::new());
         let mut ynab_client = MockYnabClient::new();
 
         ynab_payee_meta_repo

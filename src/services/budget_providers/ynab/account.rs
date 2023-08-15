@@ -2,22 +2,32 @@ use std::sync::Arc;
 
 use anyhow::Context;
 use async_trait::async_trait;
+use dyn_clone::{clone_trait_object, DynClone};
+use redis::aio::ConnectionManager;
+use sqlx::PgPool;
 use ynab::{Account, AccountRequests};
 
 use crate::{
-    db::budget_providers::ynab::{YnabAccountMetaRepo, YnabAccountRepo},
+    db::budget_providers::ynab::{
+        DynYnabAccountMetaRepo, DynYnabAccountRepo, PostgresYnabAccountRepo,
+        RedisYnabAccountMetaRepo,
+    },
     error::DatamizeResult,
 };
 
-#[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait YnabAccountServiceExt {
+pub trait YnabAccountServiceExt: DynClone {
     async fn get_all_ynab_accounts(&mut self) -> DatamizeResult<Vec<Account>>;
 }
 
+clone_trait_object!(YnabAccountServiceExt);
+
+pub type DynYnabAccountService = Box<dyn YnabAccountServiceExt + Send + Sync>;
+
+#[derive(Clone)]
 pub struct YnabAccountService {
-    pub ynab_account_repo: Box<dyn YnabAccountRepo + Sync + Send>,
-    pub ynab_account_meta_repo: Box<dyn YnabAccountMetaRepo + Sync + Send>,
+    pub ynab_account_repo: DynYnabAccountRepo,
+    pub ynab_account_meta_repo: DynYnabAccountMetaRepo,
     pub ynab_client: Arc<dyn AccountRequests + Send + Sync>,
 }
 
@@ -59,6 +69,20 @@ impl YnabAccountServiceExt for YnabAccountService {
     }
 }
 
+impl YnabAccountService {
+    pub fn new_boxed(
+        db_conn_pool: PgPool,
+        redis_conn: ConnectionManager,
+        ynab_client: Arc<dyn AccountRequests + Send + Sync>,
+    ) -> Box<Self> {
+        Box::new(YnabAccountService {
+            ynab_account_repo: Box::new(PostgresYnabAccountRepo { db_conn_pool }),
+            ynab_account_meta_repo: Box::new(RedisYnabAccountMetaRepo { redis_conn }),
+            ynab_client,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
@@ -67,7 +91,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        db::budget_providers::ynab::{MockYnabAccountMetaRepo, MockYnabAccountRepo},
+        db::budget_providers::ynab::{MockYnabAccountMetaRepoImpl, MockYnabAccountRepoImpl},
         error::AppError,
     };
 
@@ -87,8 +111,8 @@ mod tests {
 
     #[tokio::test]
     async fn get_all_ynab_accounts_success() {
-        let mut ynab_account_repo = Box::new(MockYnabAccountRepo::new());
-        let mut ynab_account_meta_repo = Box::new(MockYnabAccountMetaRepo::new());
+        let mut ynab_account_repo = Box::new(MockYnabAccountRepoImpl::new());
+        let mut ynab_account_meta_repo = Box::new(MockYnabAccountMetaRepoImpl::new());
         let mut ynab_client = MockYnabClient::new();
 
         ynab_account_meta_repo
@@ -166,8 +190,8 @@ mod tests {
 
     #[tokio::test]
     async fn get_all_ynab_accounts_issue_with_db_should_not_update_saved_delta() {
-        let mut ynab_account_repo = Box::new(MockYnabAccountRepo::new());
-        let mut ynab_account_meta_repo = Box::new(MockYnabAccountMetaRepo::new());
+        let mut ynab_account_repo = Box::new(MockYnabAccountRepoImpl::new());
+        let mut ynab_account_meta_repo = Box::new(MockYnabAccountMetaRepoImpl::new());
         let mut ynab_client = MockYnabClient::new();
 
         ynab_account_meta_repo

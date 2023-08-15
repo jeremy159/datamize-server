@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    db::budget_template::ExpenseCategorizationRepo,
+    db::budget_template::{ExpenseCategorizationRepo, PostgresExpenseCategorizationRepo},
     error::{AppError, DatamizeResult},
     models::budget_template::ExpenseCategorization,
 };
@@ -24,6 +27,8 @@ pub trait ExpenseCategorizationServiceExt {
         new_expense_categorization: ExpenseCategorization,
     ) -> DatamizeResult<ExpenseCategorization>;
 }
+
+pub type DynExpenseCategorizationService = Arc<dyn ExpenseCategorizationServiceExt + Send + Sync>;
 
 pub struct ExpenseCategorizationService {
     pub expense_categorization_repo: Box<dyn ExpenseCategorizationRepo + Sync + Send>,
@@ -75,18 +80,28 @@ impl ExpenseCategorizationServiceExt for ExpenseCategorizationService {
     }
 }
 
+impl ExpenseCategorizationService {
+    pub fn new_arced(db_conn_pool: PgPool) -> Arc<Self> {
+        Arc::new(Self {
+            expense_categorization_repo: Box::new(PostgresExpenseCategorizationRepo {
+                db_conn_pool,
+            }),
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use fake::{Fake, Faker};
 
     use super::*;
-    use crate::db::budget_template::MockExpenseCategorizationRepo;
+    use crate::db::budget_template::MockExpenseCategorizationRepoImpl;
 
     #[tokio::test]
     async fn update_expense_categorization_success() {
         let expense_categorization = Faker.fake::<ExpenseCategorization>();
         let new_expense_categorization = expense_categorization.clone();
-        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepo::new());
+        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepoImpl::new());
         expense_categorization_repo
             .expect_get()
             .once()
@@ -110,7 +125,7 @@ mod tests {
     #[tokio::test]
     async fn update_expense_categorization_failure_does_not_exist() {
         let expense_categorization = Faker.fake::<ExpenseCategorization>();
-        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepo::new());
+        let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepoImpl::new());
         expense_categorization_repo
             .expect_get()
             .return_once(|_| Err(AppError::ResourceNotFound));
