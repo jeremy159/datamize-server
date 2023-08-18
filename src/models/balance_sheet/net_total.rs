@@ -3,6 +3,7 @@ use std::str::FromStr;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, sqlx::Type)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 #[sqlx(type_name = "net_type")]
@@ -35,7 +36,8 @@ impl std::fmt::Display for NetTotalType {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[cfg_attr(test, derive(fake::Dummy))]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow, PartialEq)]
 pub struct NetTotal {
     pub id: Uuid,
     /// Internal splitting beyond the category.

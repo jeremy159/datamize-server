@@ -1,7 +1,10 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
+use sqlx::PgPool;
 
 use crate::{
-    db::balance_sheet::YearRepo,
+    db::balance_sheet::{PostgresYearRepo, YearRepo},
     error::{AppError, DatamizeResult},
     models::balance_sheet::{SaveYear, UpdateYear, YearDetail, YearSummary},
 };
@@ -16,8 +19,10 @@ pub trait YearServiceExt {
     async fn delete_year(&self, year: i32) -> DatamizeResult<YearDetail>;
 }
 
+pub type DynYearService = Arc<dyn YearServiceExt + Send + Sync>;
+
 pub struct YearService {
-    pub year_repo: Box<dyn YearRepo + Sync + Send>,
+    pub year_repo: Arc<dyn YearRepo + Sync + Send>,
 }
 
 #[async_trait]
@@ -64,5 +69,13 @@ impl YearServiceExt for YearService {
         self.year_repo.delete(year).await?;
 
         Ok(year_detail)
+    }
+}
+
+impl YearService {
+    pub fn new_arced(db_conn_pool: PgPool) -> Arc<Self> {
+        Arc::new(Self {
+            year_repo: PostgresYearRepo::new_arced(db_conn_pool),
+        })
     }
 }

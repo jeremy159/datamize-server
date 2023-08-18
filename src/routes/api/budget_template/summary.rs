@@ -61,9 +61,6 @@ mod tests {
         let template_summary_service = Box::new(MockTemplateSummaryService {});
 
         let app = get_summary_routes(template_summary_service);
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -98,9 +95,6 @@ mod tests {
         let template_summary_service = Box::new(MockTemplateSummaryService {});
 
         let app = get_summary_routes(template_summary_service);
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -134,9 +128,6 @@ mod tests {
         let template_summary_service = Box::new(MockTemplateSummaryService {});
 
         let app = get_summary_routes(template_summary_service);
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -173,9 +164,6 @@ mod tests {
         let template_summary_service = Box::new(MockTemplateSummaryService {});
 
         let app = get_summary_routes(template_summary_service);
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()

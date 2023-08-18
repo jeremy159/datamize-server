@@ -69,9 +69,6 @@ mod tests {
             .returning(move |_| Ok(expense_categorization_cloned.clone()));
 
         let app = get_expense_categorization_routes(Arc::new(expense_categorization_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -104,9 +101,6 @@ mod tests {
             });
 
         let app = get_expense_categorization_routes(Arc::new(expense_categorization_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -131,9 +125,6 @@ mod tests {
             .returning(move |_| Err(AppError::ResourceNotFound));
 
         let app = get_expense_categorization_routes(Arc::new(expense_categorization_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -155,9 +146,6 @@ mod tests {
         let expense_categorization_service = MockExpenseCategorizationServiceExt::new();
 
         let app = get_expense_categorization_routes(Arc::new(expense_categorization_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -182,9 +170,6 @@ mod tests {
             .returning(move |_| Ok(expense_categorization_cloned.clone()));
 
         let app = get_expense_categorization_routes(Arc::new(expense_categorization_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -221,9 +206,6 @@ mod tests {
             });
 
         let app = get_expense_categorization_routes(Arc::new(expense_categorization_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -249,9 +231,6 @@ mod tests {
         let expense_categorization_service = MockExpenseCategorizationServiceExt::new();
 
         let app = get_expense_categorization_routes(Arc::new(expense_categorization_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -280,9 +259,6 @@ mod tests {
         let expense_categorization_service = MockExpenseCategorizationServiceExt::new();
 
         let app = get_expense_categorization_routes(Arc::new(expense_categorization_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -310,9 +286,6 @@ mod tests {
         let expense_categorization_service = MockExpenseCategorizationServiceExt::new();
 
         let app = get_expense_categorization_routes(Arc::new(expense_categorization_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -341,9 +314,6 @@ mod tests {
         let expense_categorization_service = MockExpenseCategorizationServiceExt::new();
 
         let app = get_expense_categorization_routes(Arc::new(expense_categorization_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -364,9 +334,6 @@ mod tests {
         let expense_categorization_service = MockExpenseCategorizationServiceExt::new();
 
         let app = get_expense_categorization_routes(Arc::new(expense_categorization_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -392,9 +359,6 @@ mod tests {
         let expense_categorization_service = MockExpenseCategorizationServiceExt::new();
 
         let app = get_expense_categorization_routes(Arc::new(expense_categorization_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -419,9 +383,6 @@ mod tests {
         let expense_categorization_service = MockExpenseCategorizationServiceExt::new();
 
         let app = get_expense_categorization_routes(Arc::new(expense_categorization_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -451,9 +412,6 @@ mod tests {
             .returning(|_| Err(AppError::ResourceNotFound));
 
         let app = get_expense_categorization_routes(Arc::new(expense_categorization_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()

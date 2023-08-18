@@ -1,7 +1,10 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
+use sqlx::PgPool;
 
 use crate::{
-    db::balance_sheet::MonthRepo,
+    db::balance_sheet::{MonthRepo, PostgresMonthRepo},
     error::{AppError, DatamizeResult},
     models::balance_sheet::{Month, MonthNum, SaveMonth},
 };
@@ -16,8 +19,10 @@ pub trait MonthServiceExt {
     async fn delete_month(&self, month: MonthNum, year: i32) -> DatamizeResult<Month>;
 }
 
+pub type DynMonthService = Arc<dyn MonthServiceExt + Send + Sync>;
+
 pub struct MonthService {
-    pub month_repo: Box<dyn MonthRepo + Sync + Send>,
+    pub month_repo: Arc<dyn MonthRepo + Sync + Send>,
 }
 
 #[async_trait]
@@ -63,5 +68,13 @@ impl MonthServiceExt for MonthService {
         self.month_repo.delete(month, year).await?;
 
         Ok(month_detail)
+    }
+}
+
+impl MonthService {
+    pub fn new_arced(db_conn_pool: PgPool) -> Arc<Self> {
+        Arc::new(Self {
+            month_repo: PostgresMonthRepo::new_arced(db_conn_pool),
+        })
     }
 }

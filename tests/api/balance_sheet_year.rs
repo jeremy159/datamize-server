@@ -1,10 +1,8 @@
 use chrono::{Datelike, NaiveDate};
 use datamize::models::balance_sheet::YearDetail;
-use fake::{faker::chrono::en::Date, Dummy, Fake, Faker};
-use rand::Rng;
+use fake::{faker::chrono::en::Date, Fake, Faker};
 use serde::Serialize;
 use sqlx::PgPool;
-use uuid::Uuid;
 
 use crate::{
     dummy_types::{
@@ -23,23 +21,6 @@ async fn get_year_returns_a_404_for_a_non_existing_year(pool: PgPool) {
 
     // Assert
     assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
-}
-
-#[sqlx::test]
-async fn get_year_returns_a_400_for_invalid_year_in_path(pool: PgPool) {
-    // Arange
-    let app = spawn_app(pool).await;
-    let year = Date().fake::<NaiveDate>().year();
-    app.insert_year(year).await;
-
-    let min: i64 = i64::MAX - i32::MAX as i64;
-    // Act
-    let response = app
-        .get_year(rand::thread_rng().gen_range(min..i64::MAX))
-        .await;
-
-    // Assert
-    assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
 }
 
 #[sqlx::test]
@@ -232,39 +213,6 @@ struct Body {
 }
 
 #[sqlx::test]
-async fn put_year_returns_a_200_for_valid_data(pool: PgPool) {
-    // Arange
-    let app = spawn_app(pool).await;
-    let year = Date().fake::<NaiveDate>().year();
-    app.insert_year(year).await;
-    let body = Body {
-        saving_rates: vec![Faker.fake(), Faker.fake()],
-    };
-
-    // Act
-    let response = app.update_year(year, &body).await;
-
-    // Assert
-    assert_eq!(response.status(), reqwest::StatusCode::OK);
-}
-
-#[sqlx::test]
-async fn put_year_returns_a_404_for_non_existing_year(pool: PgPool) {
-    // Arange
-    let app = spawn_app(pool).await;
-    let year = Date().fake::<NaiveDate>().year();
-    let body = Body {
-        saving_rates: vec![Faker.fake()],
-    };
-
-    // Act
-    let response = app.update_year(year, &body).await;
-
-    // Assert
-    assert_eq!(response.status(), reqwest::StatusCode::NOT_FOUND);
-}
-
-#[sqlx::test]
 async fn put_year_persists_data(pool: PgPool) {
     // Arange
     let app = spawn_app(pool).await;
@@ -298,191 +246,6 @@ async fn put_year_persists_data(pool: PgPool) {
     );
     assert_eq!(saved.incomes, body.saving_rates[0].incomes);
     assert_eq!(saved.rate, body.saving_rates[0].rate);
-}
-
-#[sqlx::test]
-async fn put_year_returns_a_422_for_wrong_root_body_attribute(pool: PgPool) {
-    // Arange
-    let app = spawn_app(pool).await;
-    let year = Date().fake::<NaiveDate>().year();
-    app.insert_year(year).await;
-    #[derive(Debug, Clone, Serialize)]
-    struct Body {
-        savings: Vec<DummySavingRatesPerPerson>,
-    }
-    let body = Body {
-        savings: vec![Faker.fake()],
-    };
-
-    // Act
-    let response = app.update_year(year, &body).await;
-
-    // Assert
-    assert_eq!(response.status(), reqwest::StatusCode::UNPROCESSABLE_ENTITY);
-}
-
-#[sqlx::test]
-async fn put_year_returns_a_422_for_wrong_body_attributes(pool: PgPool) {
-    // Arange
-    let app = spawn_app(pool).await;
-    let year = Date().fake::<NaiveDate>().year();
-    app.insert_year(year).await;
-    #[derive(Debug, Clone, Serialize, Dummy)]
-    struct SavingRatesPerPersonWrongName {
-        pub id: Uuid,
-        pub name: String,
-        pub savings: i64,
-        pub employer_contribution: i64,
-        pub employeeeeeeeeee_contribution: i64,
-        pub mortgage_capital: i64,
-        pub incomes: i64,
-        pub rate: f32,
-    }
-    #[derive(Debug, Clone, Serialize)]
-    struct Body {
-        saving_rates: Vec<SavingRatesPerPersonWrongName>,
-    }
-    let body = Body {
-        saving_rates: vec![Faker.fake()],
-    };
-
-    // Act
-    let response = app.update_year(year, &body).await;
-
-    // Assert
-    assert_eq!(response.status(), reqwest::StatusCode::UNPROCESSABLE_ENTITY);
-}
-
-#[sqlx::test]
-async fn put_year_returns_a_422_for_missing_body_attributes(pool: PgPool) {
-    // Arange
-    let app = spawn_app(pool).await;
-    let year = Date().fake::<NaiveDate>().year();
-    app.insert_year(year).await;
-    #[derive(Debug, Clone, Serialize, Dummy)]
-    struct SavingRatesPerPersonMissing {
-        pub id: Uuid,
-        pub name: String,
-        pub savings: i64,
-        pub employer_contribution: i64,
-        // pub employee_contribution: i64,
-        pub mortgage_capital: i64,
-        pub incomes: i64,
-        pub rate: f32,
-    }
-    #[derive(Debug, Clone, Serialize)]
-    struct Body {
-        saving_rates: Vec<SavingRatesPerPersonMissing>,
-    }
-    let body = Body {
-        saving_rates: vec![Faker.fake()],
-    };
-
-    // Act
-    let response = app.update_year(year, &body).await;
-
-    // Assert
-    assert_eq!(response.status(), reqwest::StatusCode::UNPROCESSABLE_ENTITY);
-}
-
-#[sqlx::test]
-async fn put_year_returns_a_422_for_wrong_body_attribute_type(pool: PgPool) {
-    // Arange
-    let app = spawn_app(pool).await;
-    let year = Date().fake::<NaiveDate>().year();
-    app.insert_year(year).await;
-    #[derive(Debug, Clone, Serialize, Dummy)]
-    struct SavingRatesPerPersonMissing {
-        pub id: Uuid,
-        pub name: i64,
-        pub savings: i64,
-        pub employer_contribution: i64,
-        pub employee_contribution: i64,
-        pub mortgage_capital: i64,
-        pub incomes: i64,
-        pub rate: f32,
-    }
-    #[derive(Debug, Clone, Serialize)]
-    struct Body {
-        saving_rates: Vec<SavingRatesPerPersonMissing>,
-    }
-    let body = Body {
-        saving_rates: vec![Faker.fake()],
-    };
-
-    // Act
-    let response = app.update_year(year, &body).await;
-
-    // Assert
-    assert_eq!(response.status(), reqwest::StatusCode::UNPROCESSABLE_ENTITY);
-}
-
-#[sqlx::test]
-async fn put_year_returns_a_400_for_empty_body(pool: PgPool) {
-    // Arange
-    let app = spawn_app(pool).await;
-    let year = Date().fake::<NaiveDate>().year();
-    app.insert_year(year).await;
-
-    // Act
-    let response = app
-        .api_client
-        .put(&format!(
-            "{}/api/balance_sheet/years/{}",
-            &app.address, year
-        ))
-        .header(reqwest::header::CONTENT_TYPE, "application/json")
-        .send()
-        .await
-        .expect("Failed to execute request.");
-
-    // Assert
-    assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
-}
-
-#[sqlx::test]
-async fn put_year_returns_a_415_for_missing_content_type(pool: PgPool) {
-    // Arange
-    let app = spawn_app(pool).await;
-    let year = Date().fake::<NaiveDate>().year();
-    app.insert_year(year).await;
-
-    // Act
-    let response = app
-        .api_client
-        .put(&format!(
-            "{}/api/balance_sheet/years/{}",
-            &app.address, year
-        ))
-        .send()
-        .await
-        .expect("Failed to execute request.");
-
-    // Assert
-    assert_eq!(
-        response.status(),
-        reqwest::StatusCode::UNSUPPORTED_MEDIA_TYPE
-    );
-}
-
-#[sqlx::test]
-async fn put_year_returns_a_400_for_invalid_year_in_path(pool: PgPool) {
-    // Arange
-    let app = spawn_app(pool).await;
-    let year = Date().fake::<NaiveDate>().year();
-    app.insert_year(year).await;
-    let body = Body {
-        saving_rates: vec![Faker.fake()],
-    };
-
-    let min: i64 = i64::MAX - i32::MAX as i64;
-    // Act
-    let response = app
-        .update_year(rand::thread_rng().gen_range(min..i64::MAX), &body)
-        .await;
-
-    // Assert
-    assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
 }
 
 #[sqlx::test]

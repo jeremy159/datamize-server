@@ -1,4 +1,7 @@
-use std::collections::{BTreeMap, HashMap};
+use std::{
+    collections::{BTreeMap, HashMap},
+    sync::Arc,
+};
 
 use async_trait::async_trait;
 use sqlx::PgPool;
@@ -18,8 +21,8 @@ pub struct PostgresFinResRepo {
 }
 
 impl PostgresFinResRepo {
-    pub fn new(db_conn_pool: PgPool) -> Self {
-        Self { db_conn_pool }
+    pub fn new_arced(db_conn_pool: PgPool) -> Arc<Self> {
+        Arc::new(Self { db_conn_pool })
     }
 }
 

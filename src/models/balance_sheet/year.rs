@@ -4,7 +4,8 @@ use uuid::Uuid;
 
 use super::{FinancialResourceYearly, Month, NetTotal};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(fake::Dummy))]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct YearSummary {
     pub id: Uuid,
     /// The year of the date, in format 2015.
@@ -19,13 +20,15 @@ pub struct YearSummary {
     pub net_portfolio: NetTotal,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[cfg_attr(test, derive(fake::Dummy))]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SaveYear {
     /// The year of the date, in format 2015.
     pub year: i32,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]
+#[cfg_attr(test, derive(fake::Dummy))]
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow, PartialEq)]
 pub struct SavingRatesPerPerson {
     pub id: Uuid,
     pub name: String,
@@ -90,7 +93,8 @@ impl SavingRatesPerPerson {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(test, derive(fake::Dummy))]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct YearDetail {
     pub id: Uuid,
     /// The year of the date, in format 2015.
@@ -173,7 +177,8 @@ impl YearDetail {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(fake::Dummy))]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub struct UpdateYear {
     pub saving_rates: Vec<SavingRatesPerPerson>,
 }

@@ -41,42 +41,6 @@ async fn get_month_returns_a_404_for_a_non_existing_month(pool: PgPool) {
 }
 
 #[sqlx::test]
-async fn get_month_returns_a_400_for_invalid_year_in_path(pool: PgPool) {
-    // Arange
-    let app = spawn_app(pool).await;
-    let date = Date().fake::<NaiveDate>();
-    let year = date.year();
-    let month = date.month();
-    app.insert_year(year).await;
-
-    let min: i64 = i64::MAX - i32::MAX as i64;
-    // Act
-    let response = app
-        .get_month(rand::thread_rng().gen_range(min..i64::MAX), month)
-        .await;
-
-    // Assert
-    assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
-}
-
-#[sqlx::test]
-async fn get_month_returns_a_400_for_invalid_month_in_path(pool: PgPool) {
-    // Arange
-    let app = spawn_app(pool).await;
-    let date = Date().fake::<NaiveDate>();
-    let year = date.year();
-    let month = date.month();
-    let year_id = app.insert_year(year).await;
-    app.insert_month(year_id, month as i16).await;
-
-    // Act
-    let response = app.get_month(year, (13..i16::MAX).fake::<i16>()).await;
-
-    // Assert
-    assert_eq!(response.status(), reqwest::StatusCode::BAD_REQUEST);
-}
-
-#[sqlx::test]
 async fn get_month_returns_a_200_for_an_existing_month(pool: PgPool) {
     // Arange
     let app = spawn_app(pool).await;

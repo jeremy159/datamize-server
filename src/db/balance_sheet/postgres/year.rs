@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use async_recursion::async_recursion;
 use async_trait::async_trait;
@@ -19,21 +19,22 @@ use super::{PostgresFinResRepo, PostgresMonthRepo};
 #[derive(Debug, Clone)]
 pub struct PostgresYearRepo {
     pub db_conn_pool: PgPool,
-    month_repo: PostgresMonthRepo,
-    fin_res_repo: PostgresFinResRepo,
+    pub month_repo: PostgresMonthRepo,
+    pub fin_res_repo: PostgresFinResRepo,
 }
 
 impl PostgresYearRepo {
-    pub fn new(
-        db_conn_pool: PgPool,
-        month_repo: PostgresMonthRepo,
-        fin_res_repo: PostgresFinResRepo,
-    ) -> Self {
-        Self {
-            db_conn_pool,
-            month_repo,
-            fin_res_repo,
-        }
+    pub fn new_arced(db_conn_pool: PgPool) -> Arc<Self> {
+        Arc::new(Self {
+            db_conn_pool: db_conn_pool.clone(),
+            month_repo: PostgresMonthRepo {
+                db_conn_pool: db_conn_pool.clone(),
+                fin_res_repo: PostgresFinResRepo {
+                    db_conn_pool: db_conn_pool.clone(),
+                },
+            },
+            fin_res_repo: PostgresFinResRepo { db_conn_pool },
+        })
     }
 
     #[tracing::instrument(skip(self, net_totals))]

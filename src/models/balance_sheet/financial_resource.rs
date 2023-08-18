@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use super::MonthNum;
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub enum ResourceCategory {
@@ -34,6 +35,7 @@ impl FromStr for ResourceCategory {
     }
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub enum ResourceType {
@@ -69,7 +71,8 @@ impl FromStr for ResourceType {
 
 /// A resource with economic value. It represents either an asset or a liability
 /// and adds more data to it.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(test, derive(fake::Dummy))]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct BaseFinancialResource {
     /// ID of the resource to be used when an update is needed.
     pub id: Uuid,
@@ -112,7 +115,8 @@ impl BaseFinancialResource {
 }
 
 /// A resource represented within a year. It has a BTreeMap of balance per months.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(test, derive(fake::Dummy))]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct FinancialResourceYearly {
     #[serde(flatten)]
     pub base: BaseFinancialResource,
@@ -123,7 +127,8 @@ pub struct FinancialResourceYearly {
 }
 
 /// A resource represented with a month of a particular year. It has a single balance field.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(test, derive(fake::Dummy))]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct FinancialResourceMonthly {
     #[serde(flatten)]
     pub base: BaseFinancialResource,
@@ -135,7 +140,8 @@ pub struct FinancialResourceMonthly {
     pub balance: i64,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[cfg_attr(test, derive(fake::Dummy))]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SaveResource {
     pub name: String,
     pub category: ResourceCategory,

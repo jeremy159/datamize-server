@@ -49,9 +49,6 @@ mod tests {
         let template_transaction_service = Box::new(MockTemplateTransactionService {});
 
         let app = get_transaction_routes(template_transaction_service);
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -91,9 +88,6 @@ mod tests {
         let template_transaction_service = Box::new(MockTemplateTransactionService {});
 
         let app = get_transaction_routes(template_transaction_service);
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()

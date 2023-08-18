@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::HashMap};
+use std::{cmp::Ordering, collections::HashMap, sync::Arc};
 
 use async_recursion::async_recursion;
 use async_trait::async_trait;
@@ -16,15 +16,15 @@ use super::PostgresFinResRepo;
 #[derive(Debug, Clone)]
 pub struct PostgresMonthRepo {
     pub db_conn_pool: PgPool,
-    fin_res_repo: PostgresFinResRepo,
+    pub fin_res_repo: PostgresFinResRepo,
 }
 
 impl PostgresMonthRepo {
-    pub fn new(db_conn_pool: PgPool, fin_res_repo: PostgresFinResRepo) -> Self {
-        Self {
-            db_conn_pool,
-            fin_res_repo,
-        }
+    pub fn new_arced(db_conn_pool: PgPool) -> Arc<Self> {
+        Arc::new(Self {
+            db_conn_pool: db_conn_pool.clone(),
+            fin_res_repo: PostgresFinResRepo { db_conn_pool },
+        })
     }
 
     #[tracing::instrument(skip(self, net_totals))]

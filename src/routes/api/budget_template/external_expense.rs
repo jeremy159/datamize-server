@@ -78,9 +78,6 @@ mod tests {
             .returning(move |_| Ok(external_expense_cloned.clone()));
 
         let app = get_external_expense_routes(Arc::new(external_expense_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -110,9 +107,6 @@ mod tests {
             });
 
         let app = get_external_expense_routes(Arc::new(external_expense_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -134,9 +128,6 @@ mod tests {
             .returning(move |_| Err(AppError::ResourceNotFound));
 
         let app = get_external_expense_routes(Arc::new(external_expense_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -155,9 +146,6 @@ mod tests {
         let external_expense_service = MockExternalExpenseServiceExt::new();
 
         let app = get_external_expense_routes(Arc::new(external_expense_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -182,9 +170,6 @@ mod tests {
             .returning(move |_| Ok(external_expense_cloned.clone()));
 
         let app = get_external_expense_routes(Arc::new(external_expense_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -218,9 +203,6 @@ mod tests {
             });
 
         let app = get_external_expense_routes(Arc::new(external_expense_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -243,9 +225,6 @@ mod tests {
         let external_expense_service = MockExternalExpenseServiceExt::new();
 
         let app = get_external_expense_routes(Arc::new(external_expense_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -274,9 +253,6 @@ mod tests {
         let external_expense_service = MockExternalExpenseServiceExt::new();
 
         let app = get_external_expense_routes(Arc::new(external_expense_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -304,9 +280,6 @@ mod tests {
         let external_expense_service = MockExternalExpenseServiceExt::new();
 
         let app = get_external_expense_routes(Arc::new(external_expense_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -335,9 +308,6 @@ mod tests {
         let external_expense_service = MockExternalExpenseServiceExt::new();
 
         let app = get_external_expense_routes(Arc::new(external_expense_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -358,9 +328,6 @@ mod tests {
         let external_expense_service = MockExternalExpenseServiceExt::new();
 
         let app = get_external_expense_routes(Arc::new(external_expense_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -383,9 +350,6 @@ mod tests {
         let external_expense_service = MockExternalExpenseServiceExt::new();
 
         let app = get_external_expense_routes(Arc::new(external_expense_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -407,9 +371,6 @@ mod tests {
         let external_expense_service = MockExternalExpenseServiceExt::new();
 
         let app = get_external_expense_routes(Arc::new(external_expense_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -436,9 +397,6 @@ mod tests {
             .returning(|_| Err(AppError::ResourceNotFound));
 
         let app = get_external_expense_routes(Arc::new(external_expense_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -465,9 +423,6 @@ mod tests {
             .returning(move |_| Ok(external_expense_cloned.clone()));
 
         let app = get_external_expense_routes(Arc::new(external_expense_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -498,9 +453,6 @@ mod tests {
             });
 
         let app = get_external_expense_routes(Arc::new(external_expense_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -523,9 +475,6 @@ mod tests {
             .returning(move |_| Err(AppError::ResourceNotFound));
 
         let app = get_external_expense_routes(Arc::new(external_expense_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -545,9 +494,6 @@ mod tests {
         let external_expense_service = MockExternalExpenseServiceExt::new();
 
         let app = get_external_expense_routes(Arc::new(external_expense_service));
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()

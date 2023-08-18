@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use super::{FinancialResourceMonthly, NetTotal, ResourceCategory, ResourceType};
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(
     Serialize_repr,
     Deserialize_repr,
@@ -132,7 +133,8 @@ impl MonthNum {
 }
 
 /// A balance sheet of the month.
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[cfg_attr(test, derive(fake::Dummy))]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Month {
     pub id: Uuid,
     /// The year in which the month is
@@ -198,6 +200,7 @@ impl Month {
     }
 }
 
+#[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SaveMonth {
     pub month: MonthNum,

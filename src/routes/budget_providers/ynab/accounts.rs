@@ -79,9 +79,6 @@ mod tests {
         });
 
         let app = get_ynab_account_routes(ynab_account_service);
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
@@ -119,9 +116,6 @@ mod tests {
         let ynab_account_service = Box::new(MockYnabAccountService {});
 
         let app = get_ynab_account_routes(ynab_account_service);
-
-        // `Router` implements `tower::Service<Request<Body>>` so we can
-        // call it like any tower service, no need to run an HTTP server.
         let response = app
             .oneshot(
                 Request::builder()
