@@ -37,8 +37,10 @@ pub async fn get_rrsp_ia_sandryne(
         .await?;
 
     f.submit().await?;
-    c.wait().for_element(Locator::Id("divMyContracts")).await?;
-    c.find(Locator::Css("#divMyContracts a"))
+    c.wait()
+        .for_element(Locator::Css("[data-testid=\"gsr\"]"))
+        .await?;
+    c.find(Locator::Css("[data-testid=\"gsr\"]"))
         .await?
         .click()
         .await?;

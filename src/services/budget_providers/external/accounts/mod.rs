@@ -128,30 +128,43 @@ impl ExternalAccountServiceExt for ExternalAccountService {
             .collect::<Vec<_>>()
             .await;
 
-        Ok(updated_accounts
-            .into_iter()
-            .zip(initial_accounts)
-            .map(
-                |(updated_account_res, i_account)| match updated_account_res {
-                    Ok(u_account) => {
-                        if u_account.balance != i_account.balance {
-                            u_account
-                        } else {
-                            i_account
+        let mut accounts = vec![];
+
+        for (updated_account_res, i_account) in updated_accounts.into_iter().zip(initial_accounts) {
+            let account = match updated_account_res {
+                Ok(u_account) => {
+                    if u_account.balance != i_account.balance {
+                        match self.external_account_repo.update(&u_account).await {
+                            Ok(_) => u_account,
+                            Err(e) => {
+                                tracing::error!(
+                                    error.cause_chain = ?e,
+                                    error.message = %e,
+                                    "Failed to save latest balance for account {}. Skipping.",
+                                    i_account.name
+                                );
+                                i_account
+                            }
                         }
-                    }
-                    Err(e) => {
-                        tracing::error!(
-                            error.cause_chain = ?e,
-                            error.message = %e,
-                            "Failed to get latest balance for account {}. Skipping.",
-                            i_account.name
-                        );
+                    } else {
                         i_account
                     }
-                },
-            )
-            .collect::<Vec<_>>())
+                }
+                Err(e) => {
+                    tracing::error!(
+                        error.cause_chain = ?e,
+                        error.message = %e,
+                        "Failed to get latest balance for account {}. Skipping.",
+                        i_account.name
+                    );
+                    i_account
+                }
+            };
+
+            accounts.push(account);
+        }
+
+        Ok(accounts)
     }
 
     #[tracing::instrument(skip_all)]
