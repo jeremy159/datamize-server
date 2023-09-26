@@ -15,7 +15,7 @@ env:
 
 jobs:
   test:
-    name: Test
+    name: Test & Code Coverage
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -84,7 +84,13 @@ jobs:
         run: |
           cargo sqlx prepare --check -- --bin datamize
 
-      - name: Run cargo test
-        uses: actions-rs/cargo@v1
+      - name: Run cargo-tarpaulin
+        uses: actions-rs/tarpaulin@v0.1
         with:
-          command: test
+          version: "0.22.0"
+          args: --ignore-tests --avoid-cfg-tarpaulin
+
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
