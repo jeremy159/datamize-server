@@ -34,8 +34,8 @@ impl YearServiceExt for YearService {
     #[tracing::instrument(skip_all)]
     async fn create_year(&self, new_year: SaveYear) -> DatamizeResult<Year> {
         let Err(AppError::ResourceNotFound) =
-            self.year_repo.get_year_data_by_number(new_year.year).await else
-        {
+            self.year_repo.get_year_data_by_number(new_year.year).await
+        else {
             return Err(AppError::YearAlreadyExist);
         };
 

@@ -108,8 +108,8 @@ async fn main() -> anyhow::Result<()> {
         .context("failed to get redis connection manager")?;
 
     let mut external_account_service = ExternalAccountService {
-        external_account_repo: PostgresExternalAccountRepo { db_conn_pool },
-        encryption_key_repo: RedisEncryptionKeyRepo { redis_conn },
+        external_account_repo: Box::new(PostgresExternalAccountRepo { db_conn_pool }),
+        encryption_key_repo: Box::new(RedisEncryptionKeyRepo { redis_conn }),
     };
 
     match args.command {
@@ -161,7 +161,8 @@ async fn update_account(
     // check if  account exists
     let Ok(mut account) = external_account_service
         .get_external_account_by_name(&name)
-        .await else {
+        .await
+    else {
         return Err::<(), anyhow::Error>(Error::RowNotFound.into())
             .with_context(|| format!("Account {} does not exist", name));
     };

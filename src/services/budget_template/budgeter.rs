@@ -42,8 +42,11 @@ impl BudgeterServiceExt for BudgeterService {
         &self,
         new_budgeter: SaveBudgeterConfig,
     ) -> DatamizeResult<BudgeterConfig> {
-        let Err(AppError::ResourceNotFound) = self.budgeter_config_repo.get_by_name(&new_budgeter.name).await else
-        {
+        let Err(AppError::ResourceNotFound) = self
+            .budgeter_config_repo
+            .get_by_name(&new_budgeter.name)
+            .await
+        else {
             return Err(AppError::ResourceAlreadyExist);
         };
 
@@ -63,9 +66,9 @@ impl BudgeterServiceExt for BudgeterService {
         &self,
         new_budgeter: BudgeterConfig,
     ) -> DatamizeResult<BudgeterConfig> {
-        let Ok(_) =  self.budgeter_config_repo.get(new_budgeter.id).await else {
-                return Err(AppError::ResourceNotFound);
-            };
+        let Ok(_) = self.budgeter_config_repo.get(new_budgeter.id).await else {
+            return Err(AppError::ResourceNotFound);
+        };
 
         self.budgeter_config_repo.update(&new_budgeter).await?;
 

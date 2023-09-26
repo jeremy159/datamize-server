@@ -76,8 +76,11 @@ impl SavingRateServiceExt for SavingRateService {
         &mut self,
         new_saving_rate: SaveSavingRate,
     ) -> DatamizeResult<SavingRate> {
-        let Err(AppError::ResourceNotFound) = self.saving_rate_repo.get_by_name(&new_saving_rate.name).await else
-        {
+        let Err(AppError::ResourceNotFound) = self
+            .saving_rate_repo
+            .get_by_name(&new_saving_rate.name)
+            .await
+        else {
             return Err(AppError::ResourceAlreadyExist);
         };
 
@@ -98,7 +101,7 @@ impl SavingRateServiceExt for SavingRateService {
         &mut self,
         new_saving_rate: SavingRate,
     ) -> DatamizeResult<SavingRate> {
-        let Ok(_) =  self.saving_rate_repo.get(new_saving_rate.id).await else {
+        let Ok(_) = self.saving_rate_repo.get(new_saving_rate.id).await else {
             return Err(AppError::ResourceNotFound);
         };
 

@@ -44,8 +44,11 @@ impl ExternalExpenseServiceExt for ExternalExpenseService {
         &self,
         new_expense: SaveExternalExpense,
     ) -> DatamizeResult<ExternalExpense> {
-        let Err(AppError::ResourceNotFound) = self.external_expense_repo.get_by_name(&new_expense.name).await else
-        {
+        let Err(AppError::ResourceNotFound) = self
+            .external_expense_repo
+            .get_by_name(&new_expense.name)
+            .await
+        else {
             return Err(AppError::ResourceAlreadyExist);
         };
 
@@ -65,9 +68,9 @@ impl ExternalExpenseServiceExt for ExternalExpenseService {
         &self,
         new_expense: ExternalExpense,
     ) -> DatamizeResult<ExternalExpense> {
-        let Ok(_) =  self.external_expense_repo.get(new_expense.id).await else {
-                return Err(AppError::ResourceNotFound);
-            };
+        let Ok(_) = self.external_expense_repo.get(new_expense.id).await else {
+            return Err(AppError::ResourceNotFound);
+        };
 
         self.external_expense_repo.update(&new_expense).await?;
 

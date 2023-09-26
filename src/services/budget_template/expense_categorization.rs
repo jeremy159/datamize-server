@@ -68,7 +68,11 @@ impl ExpenseCategorizationServiceExt for ExpenseCategorizationService {
         &self,
         new_expense_categorization: ExpenseCategorization,
     ) -> DatamizeResult<ExpenseCategorization> {
-        let Ok(_) = self.expense_categorization_repo.get(new_expense_categorization.id).await else {
+        let Ok(_) = self
+            .expense_categorization_repo
+            .get(new_expense_categorization.id)
+            .await
+        else {
             return Err(AppError::ResourceNotFound);
         };
 

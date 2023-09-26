@@ -41,9 +41,11 @@ impl MonthServiceExt for MonthService {
     async fn create_month(&self, year: i32, new_month: SaveMonth) -> DatamizeResult<Month> {
         self.month_repo.get_year_data_by_number(year).await?;
 
-        let Err(AppError::ResourceNotFound) =
-            self.month_repo.get_month_data_by_number(new_month.month, year).await else
-        {
+        let Err(AppError::ResourceNotFound) = self
+            .month_repo
+            .get_month_data_by_number(new_month.month, year)
+            .await
+        else {
             return Err(AppError::MonthAlreadyExist);
         };
 
