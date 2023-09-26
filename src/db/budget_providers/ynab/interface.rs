@@ -5,6 +5,7 @@ use ynab::types::Account;
 use ynab::types::Category;
 use ynab::types::Payee;
 use ynab::types::ScheduledTransactionDetail;
+use ynab::TransactionDetail;
 
 use crate::error::DatamizeResult;
 
@@ -110,6 +111,39 @@ mockall::mock! {
     impl YnabPayeeRepo for YnabPayeeRepoImpl {
         async fn get_all(&self) -> DatamizeResult<Vec<Payee>>;
         async fn update_all(&self, payees: &[Payee]) -> DatamizeResult<()>;
+    }
+}
+
+#[async_trait]
+pub trait YnabTransactionRepo: DynClone {
+    async fn get_all(&self) -> DatamizeResult<Vec<TransactionDetail>>;
+    async fn update_all(&self, transactions: &[TransactionDetail]) -> DatamizeResult<()>;
+    async fn get_all_with_payee_id(&self, payee_id: Uuid)
+        -> DatamizeResult<Vec<TransactionDetail>>;
+    async fn get_all_with_category_id(
+        &self,
+        category_id: Uuid,
+    ) -> DatamizeResult<Vec<TransactionDetail>>;
+}
+
+clone_trait_object!(YnabTransactionRepo);
+
+pub type DynYnabTransactionRepo = Box<dyn YnabTransactionRepo + Send + Sync>;
+
+#[cfg(test)]
+mockall::mock! {
+    pub YnabTransactionRepoImpl {}
+
+    impl Clone for YnabTransactionRepoImpl {
+        fn clone(&self) -> Self;
+    }
+
+    #[async_trait]
+    impl YnabTransactionRepo for YnabTransactionRepoImpl {
+        async fn get_all(&self) -> DatamizeResult<Vec<TransactionDetail>>;
+        async fn update_all(&self, transactions: &[TransactionDetail]) -> DatamizeResult<()>;
+        async fn get_all_with_payee_id(&self, payee_id: Uuid) -> DatamizeResult<Vec<TransactionDetail>>;
+        async fn get_all_with_category_id(&self, category_id: Uuid) -> DatamizeResult<Vec<TransactionDetail>>;
     }
 }
 
@@ -221,6 +255,31 @@ mockall::mock! {
 
     #[async_trait]
     impl YnabPayeeMetaRepo for YnabPayeeMetaRepoImpl {
+        async fn get_delta(&mut self) -> DatamizeResult<i64>;
+        async fn set_delta(&mut self, server_knowledge: i64) -> DatamizeResult<()>;
+    }
+}
+
+#[async_trait]
+pub trait YnabTransactionMetaRepo: DynClone {
+    async fn get_delta(&mut self) -> DatamizeResult<i64>;
+    async fn set_delta(&mut self, server_knowledge: i64) -> DatamizeResult<()>;
+}
+
+clone_trait_object!(YnabTransactionMetaRepo);
+
+pub type DynYnabTransactionMetaRepo = Box<dyn YnabTransactionMetaRepo + Send + Sync>;
+
+#[cfg(test)]
+mockall::mock! {
+    pub YnabTransactionMetaRepoImpl {}
+
+    impl Clone for YnabTransactionMetaRepoImpl {
+        fn clone(&self) -> Self;
+    }
+
+    #[async_trait]
+    impl YnabTransactionMetaRepo for YnabTransactionMetaRepoImpl {
         async fn get_delta(&mut self) -> DatamizeResult<i64>;
         async fn set_delta(&mut self, server_knowledge: i64) -> DatamizeResult<()>;
     }

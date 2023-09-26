@@ -1,5 +1,5 @@
 use chrono::{Datelike, Months, NaiveDate};
-use datamize::models::balance_sheet::{NetTotalType, YearDetail};
+use datamize::models::balance_sheet::{NetTotalType, Year};
 use fake::faker::chrono::en::Date;
 use fake::Fake;
 use serde::Serialize;
@@ -99,7 +99,7 @@ async fn post_years_persits_net_totals_and_saving_rates_for_new_year(pool: PgPoo
 
     // Act
     let response = app.create_year(&body).await;
-    let year: YearDetail = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+    let year: Year = serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
     // Assert
     let saved_net_totals = sqlx::query!(
@@ -110,15 +110,6 @@ async fn post_years_persits_net_totals_and_saving_rates_for_new_year(pool: PgPoo
     .await
     .expect("Failed to fetch net totals.");
     assert!(!saved_net_totals.is_empty());
-
-    let saved_saving_rates = sqlx::query!(
-        "SELECT * FROM balance_sheet_saving_rates WHERE year_id = $1",
-        year.id
-    )
-    .fetch_all(&app.db_pool)
-    .await
-    .expect("Failed to fetch saving rates.");
-    assert!(!saved_saving_rates.is_empty());
 }
 
 #[sqlx::test]
@@ -146,7 +137,7 @@ async fn post_years_updates_net_totals_if_previous_year_exists(pool: PgPool) {
 
     // Act
     let response = app.create_year(&body).await;
-    let year: YearDetail = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+    let year: Year = serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
     // Assert
     assert_eq!(year.net_assets.balance_var, -net_total_assets.total as i64);
@@ -195,7 +186,7 @@ async fn post_years_updates_net_totals_of_current_and_next_year_if_exist(pool: P
 
     // Act
     let response = app.create_year(&body).await;
-    let year: YearDetail = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+    let year: Year = serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
     // Assert
     assert_eq!(

@@ -1,0 +1,128 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                id,\n                date,\n                amount,\n                memo,\n                cleared,\n                approved,\n                flag_color,\n                account_id,\n                payee_id,\n                category_id,\n                transfer_account_id,\n                transfer_transaction_id,\n                matched_transaction_id,\n                import_id,\n                deleted,\n                account_name,\n                payee_name,\n                category_name,\n                subtransactions\n            FROM transactions\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "date",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 2,
+        "name": "amount",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "memo",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "cleared",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "approved",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "flag_color",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "account_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 8,
+        "name": "payee_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
+        "name": "category_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "transfer_account_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 11,
+        "name": "transfer_transaction_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 12,
+        "name": "matched_transaction_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 13,
+        "name": "import_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 14,
+        "name": "deleted",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 15,
+        "name": "account_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 16,
+        "name": "payee_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 17,
+        "name": "category_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 18,
+        "name": "subtransactions",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "c25add30c2b92692fd3ed794112f83979a98791af8c48d62afd827e6a26ee370"
+}

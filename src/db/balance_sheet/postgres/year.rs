@@ -3,15 +3,14 @@ use std::{collections::HashMap, sync::Arc};
 use async_recursion::async_recursion;
 use async_trait::async_trait;
 use futures::try_join;
+use futures::{stream::FuturesUnordered, StreamExt};
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    db::balance_sheet::{interface::YearData, FinResRepo, MonthRepo, YearRepo},
+    db::balance_sheet::{interface::YearData, MonthRepo, YearRepo},
     error::DatamizeResult,
-    models::balance_sheet::{
-        NetTotal, NetTotalType, SavingRatesPerPerson, YearDetail, YearSummary,
-    },
+    models::balance_sheet::{NetTotal, NetTotalType, Year},
 };
 
 use super::{PostgresFinResRepo, PostgresMonthRepo};
@@ -20,7 +19,6 @@ use super::{PostgresFinResRepo, PostgresMonthRepo};
 pub struct PostgresYearRepo {
     pub db_conn_pool: PgPool,
     pub month_repo: PostgresMonthRepo,
-    pub fin_res_repo: PostgresFinResRepo,
 }
 
 impl PostgresYearRepo {
@@ -29,11 +27,8 @@ impl PostgresYearRepo {
             db_conn_pool: db_conn_pool.clone(),
             month_repo: PostgresMonthRepo {
                 db_conn_pool: db_conn_pool.clone(),
-                fin_res_repo: PostgresFinResRepo {
-                    db_conn_pool: db_conn_pool.clone(),
-                },
+                fin_res_repo: PostgresFinResRepo { db_conn_pool },
             },
-            fin_res_repo: PostgresFinResRepo { db_conn_pool },
         })
     }
 
@@ -72,14 +67,15 @@ impl PostgresYearRepo {
 #[async_trait]
 impl YearRepo for PostgresYearRepo {
     #[tracing::instrument(skip(self))]
-    async fn get_years_summary(&self) -> DatamizeResult<Vec<YearSummary>> {
-        let mut years = HashMap::<Uuid, YearSummary>::new();
+    async fn get_years(&self) -> DatamizeResult<Vec<Year>> {
+        let mut years = HashMap::<Uuid, Year>::new();
 
         let db_rows = sqlx::query!(
             r#"
         SELECT
             y.id as year_id,
             y.year,
+            y.refreshed_at,
             n.id as net_total_id,
             n.type,
             n.total,
@@ -129,17 +125,34 @@ impl YearRepo for PostgresYearRepo {
                         y.net_portfolio = net_portfolio.clone();
                     }
                 })
-                .or_insert_with(|| YearSummary {
+                .or_insert_with(|| Year {
                     id: r.year_id,
                     year: r.year,
+                    refreshed_at: r.refreshed_at,
                     net_assets,
                     net_portfolio,
+                    months: vec![],
                 });
         }
 
         let mut years = years.into_values().collect::<Vec<_>>();
 
         years.sort_by(|a, b| a.year.cmp(&b.year));
+
+        let months_stream = years
+            .iter()
+            .map(|y| self.month_repo.get_months_of_year(y.year))
+            .collect::<FuturesUnordered<_>>()
+            .collect::<Vec<_>>()
+            .await;
+
+        for months in months_stream {
+            let months = months?;
+            let idx = years.iter().position(|y| y.year == months[0].year);
+            if let Some(idx) = idx {
+                years[idx].months = months;
+            }
+        }
 
         Ok(years)
     }
@@ -161,7 +174,7 @@ impl YearRepo for PostgresYearRepo {
     }
 
     #[tracing::instrument(skip_all)]
-    async fn add(&self, year: &YearDetail) -> DatamizeResult<()> {
+    async fn add(&self, year: &Year) -> DatamizeResult<()> {
         sqlx::query!(
             r#"
             INSERT INTO balance_sheet_years (id, year, refreshed_at)
@@ -177,38 +190,16 @@ impl YearRepo for PostgresYearRepo {
         self.insert_net_totals(year.id, [&year.net_assets, &year.net_portfolio])
             .await?;
 
-        for sr in &year.saving_rates {
-            sqlx::query!(
-                r#"
-                INSERT INTO balance_sheet_saving_rates (id, name, savings, employer_contribution, employee_contribution, mortgage_capital, incomes, rate, year_id)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                "#,
-                sr.id,
-                sr.name,
-                sr.savings,
-                sr.employer_contribution,
-                sr.employee_contribution,
-                sr.mortgage_capital,
-                sr.incomes,
-                sr.rate,
-                year.id,
-            )
-            .execute(&self.db_conn_pool)
-            .await?;
-        }
-
         Ok(())
     }
 
     #[tracing::instrument(skip(self))]
-    async fn get(&self, year: i32) -> DatamizeResult<YearDetail> {
+    async fn get(&self, year: i32) -> DatamizeResult<Year> {
         let year_data = self.get_year_data_by_number(year).await?;
 
-        let (net_totals, saving_rates, months, resources) = try_join!(
+        let (net_totals, months) = try_join!(
             self.get_net_totals(year_data.id),
-            self.get_saving_rates(year_data.id),
             self.month_repo.get_months_of_year(year),
-            self.fin_res_repo.get_from_year(year_data.year),
         )?;
 
         let net_assets = match net_totals
@@ -227,14 +218,12 @@ impl YearRepo for PostgresYearRepo {
             None => NetTotal::new_portfolio(),
         };
 
-        let year = YearDetail {
+        let year = Year {
             id: year_data.id,
             year: year_data.year,
             refreshed_at: year_data.refreshed_at,
             net_assets,
             net_portfolio,
-            saving_rates,
-            resources,
             months,
         };
 
@@ -265,63 +254,6 @@ impl YearRepo for PostgresYearRepo {
     #[tracing::instrument(skip(self))]
     async fn update_net_totals(&self, year: i32) -> DatamizeResult<()> {
         update_year_net_totals(self, year).await
-    }
-
-    #[tracing::instrument(skip(self))]
-    async fn get_saving_rates(&self, year_id: Uuid) -> DatamizeResult<Vec<SavingRatesPerPerson>> {
-        sqlx::query_as!(
-            SavingRatesPerPerson,
-            r#"
-            SELECT
-                id,
-                name,
-                savings,
-                employer_contribution,
-                employee_contribution,
-                mortgage_capital,
-                incomes,
-                rate
-            FROM balance_sheet_saving_rates
-            WHERE year_id = $1;
-            "#,
-            year_id,
-        )
-        .fetch_all(&self.db_conn_pool)
-        .await
-        .map_err(Into::into)
-    }
-
-    #[tracing::instrument(skip_all)]
-    async fn update_saving_rates(&self, year: &YearDetail) -> DatamizeResult<()> {
-        for sr in &year.saving_rates {
-            sqlx::query!(
-                r#"
-                INSERT INTO balance_sheet_saving_rates (id, name, savings, employer_contribution, employee_contribution, mortgage_capital, incomes, rate, year_id)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                ON CONFLICT (id) DO UPDATE
-                SET name = EXCLUDED.name,
-                savings = EXCLUDED.savings,
-                employer_contribution = EXCLUDED.employer_contribution,
-                employee_contribution = EXCLUDED.employee_contribution,
-                mortgage_capital = EXCLUDED.mortgage_capital,
-                incomes = EXCLUDED.incomes,
-                rate = EXCLUDED.rate;
-                "#,
-                sr.id,
-                sr.name,
-                sr.savings,
-                sr.employer_contribution,
-                sr.employee_contribution,
-                sr.mortgage_capital,
-                sr.incomes,
-                sr.rate,
-                year.id
-            )
-            .execute(&self.db_conn_pool)
-            .await?;
-        }
-
-        Ok(())
     }
 
     #[tracing::instrument(skip_all)]
@@ -364,9 +296,8 @@ impl YearRepo for PostgresYearRepo {
 async fn update_year_net_totals(year_repo: &PostgresYearRepo, year: i32) -> DatamizeResult<()> {
     let year_data = year_repo.get_year_data_by_number(year).await?;
 
-    let (net_totals, saving_rates, months) = try_join!(
+    let (net_totals, months) = try_join!(
         year_repo.get_net_totals(year_data.id),
-        year_repo.get_saving_rates(year_data.id),
         year_repo.month_repo.get_months_of_year(year),
     )?;
 
@@ -386,14 +317,12 @@ async fn update_year_net_totals(year_repo: &PostgresYearRepo, year: i32) -> Data
         None => NetTotal::new_portfolio(),
     };
 
-    let mut year = YearDetail {
+    let mut year = Year {
         id: year_data.id,
         year: year_data.year,
         refreshed_at: year_data.refreshed_at,
         net_assets,
         net_portfolio,
-        saving_rates,
-        resources: vec![],
         months,
     };
 

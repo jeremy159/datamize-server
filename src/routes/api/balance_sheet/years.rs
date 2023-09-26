@@ -3,15 +3,15 @@ use axum_extra::extract::WithRejection;
 
 use crate::{
     error::{AppError, HttpJsonDatamizeResult, JsonError},
-    models::balance_sheet::{SaveYear, YearSummary},
+    models::balance_sheet::{SaveYear, Year},
     services::balance_sheet::DynYearService,
 };
 
 /// Returns a summary of all the years with balance sheets.
-#[tracing::instrument(name = "Get a summary of all years", skip_all)]
+#[tracing::instrument(name = "Get all years", skip_all)]
 pub async fn balance_sheet_years(
     State(year_service): State<DynYearService>,
-) -> HttpJsonDatamizeResult<Vec<YearSummary>> {
+) -> HttpJsonDatamizeResult<Vec<Year>> {
     Ok(Json(year_service.get_all_years().await?))
 }
 
@@ -42,15 +42,15 @@ mod tests {
     use uuid::Uuid;
 
     use crate::{
-        error::AppError, models::balance_sheet::YearDetail,
-        routes::api::balance_sheet::get_year_routes, services::balance_sheet::MockYearServiceExt,
+        error::AppError, models::balance_sheet::Year, routes::api::balance_sheet::get_year_routes,
+        services::balance_sheet::MockYearServiceExt,
     };
 
     use super::*;
 
     #[tokio::test]
     async fn balance_sheet_years_success() {
-        let years: Vec<YearSummary> = Faker.fake();
+        let years: Vec<Year> = Faker.fake();
 
         let mut year_service = MockYearServiceExt::new();
         let years_cloned = years.clone();
@@ -72,7 +72,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
 
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-        let body: Vec<YearSummary> = serde_json::from_slice(&body).unwrap();
+        let body: Vec<Year> = serde_json::from_slice(&body).unwrap();
         assert_eq!(body, years);
     }
 
@@ -104,7 +104,7 @@ mod tests {
         let new_year = Faker.fake::<SaveYear>();
 
         let mut year_service = MockYearServiceExt::new();
-        let year = YearDetail::new(new_year.year);
+        let year = Year::new(new_year.year);
         year_service
             .expect_create_year()
             .returning(move |_| Ok(year.clone()));
@@ -125,7 +125,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::CREATED);
 
         let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-        let body: YearDetail = serde_json::from_slice(&body).unwrap();
+        let body: Year = serde_json::from_slice(&body).unwrap();
         assert_eq!(body.year, new_year.year);
     }
 

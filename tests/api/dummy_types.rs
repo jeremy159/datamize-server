@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use fake::{Dummy, Fake};
+use fake::Dummy;
 use rand::distributions::OpenClosed01;
 use rand::prelude::*;
 use serde::Serialize;
@@ -44,19 +44,6 @@ pub struct DummyNetTotal {
     #[dummy(faker = "rand::thread_rng().sample::<f32, _>(OpenClosed01)")]
     pub percent_var: f32,
     pub balance_var: i64,
-}
-
-#[derive(Debug, Clone, Serialize, Dummy)]
-pub struct DummySavingRatesPerPerson {
-    pub id: Uuid,
-    pub name: String,
-    pub savings: i64,
-    pub employer_contribution: i64,
-    pub employee_contribution: i64,
-    pub mortgage_capital: i64,
-    pub incomes: i64,
-    #[dummy(faker = "rand::thread_rng().sample::<f32, _>(OpenClosed01)")]
-    pub rate: f32,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq, Dummy)]

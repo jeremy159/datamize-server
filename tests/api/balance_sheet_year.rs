@@ -1,13 +1,10 @@
 use chrono::{Datelike, NaiveDate};
-use datamize::models::balance_sheet::YearDetail;
-use fake::{faker::chrono::en::Date, Fake, Faker};
-use serde::Serialize;
+use datamize::models::balance_sheet::Year;
+use fake::{faker::chrono::en::Date, Fake};
 use sqlx::PgPool;
 
 use crate::{
-    dummy_types::{
-        DummyNetTotalType, DummyResourceCategory, DummyResourceType, DummySavingRatesPerPerson,
-    },
+    dummy_types::{DummyNetTotalType, DummyResourceCategory, DummyResourceType},
     helpers::spawn_app,
 };
 
@@ -72,7 +69,6 @@ async fn get_year_returns_net_totals_saving_rates_months_and_resources_of_the_ye
     let year_net_total_portfolio = app
         .insert_year_net_total(year_id, DummyNetTotalType::Portfolio)
         .await;
-    let saving_rate = app.insert_saving_rate(year_id).await;
     let month = app.insert_random_month(year_id).await;
     let month_net_total_assets = app
         .insert_month_net_total(month.0, DummyNetTotalType::Asset)
@@ -81,19 +77,18 @@ async fn get_year_returns_net_totals_saving_rates_months_and_resources_of_the_ye
         .insert_month_net_total(month.0, DummyNetTotalType::Portfolio)
         .await;
 
-    let res = app
-        .insert_financial_resource(
-            month.0,
-            DummyResourceCategory::Asset,
-            DummyResourceType::Cash,
-        )
-        .await;
+    app.insert_financial_resource(
+        month.0,
+        DummyResourceCategory::Asset,
+        DummyResourceType::Cash,
+    )
+    .await;
 
     // Act
     let response = app.get_year(year).await;
     assert!(response.status().is_success());
 
-    let year: YearDetail = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+    let year: Year = serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
     // Assert
     assert_eq!(year.net_assets.id, year_net_total_assets.id);
@@ -103,10 +98,6 @@ async fn get_year_returns_net_totals_saving_rates_months_and_resources_of_the_ye
         year.net_portfolio.total,
         year_net_total_portfolio.total as i64
     );
-
-    for sr in &year.saving_rates {
-        assert_eq!(sr.id, saving_rate.id);
-    }
 
     assert_eq!(year.months.len(), 1);
     assert_eq!(year.months[0].id, month.0);
@@ -123,9 +114,6 @@ async fn get_year_returns_net_totals_saving_rates_months_and_resources_of_the_ye
         year.months[0].net_portfolio.total,
         month_net_total_portfolio.total as i64
     );
-
-    assert_eq!(year.resources.len(), 1);
-    assert_eq!(year.resources[0].base.id, res.id);
 }
 
 #[sqlx::test]
@@ -141,21 +129,15 @@ async fn get_year_returns_net_totals_saving_rates_without_months_of_the_year(poo
     let year_net_total_portfolio = app
         .insert_year_net_total(year_id, DummyNetTotalType::Portfolio)
         .await;
-    let saving_rate = app.insert_saving_rate(year_id).await;
-
     // Act
     let response = app.get_year(year).await;
     assert!(response.status().is_success());
 
-    let year: YearDetail = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+    let year: Year = serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
     // Assert
     assert_eq!(year.net_assets.id, year_net_total_assets.id);
     assert_eq!(year.net_portfolio.id, year_net_total_portfolio.id);
-
-    for sr in &year.saving_rates {
-        assert_eq!(sr.id, saving_rate.id);
-    }
 
     assert!(year.months.is_empty());
 }
@@ -183,7 +165,7 @@ async fn get_year_returns_has_net_totals_update_persisted(pool: PgPool) {
     let response = app.get_year(year).await;
     assert!(response.status().is_success());
 
-    let year: YearDetail = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+    let year: Year = serde_json::from_str(&response.text().await.unwrap()).unwrap();
 
     // Assert
     let saved_net_total_assets = sqlx::query!(
@@ -205,47 +187,6 @@ async fn get_year_returns_has_net_totals_update_persisted(pool: PgPool) {
     .await
     .expect("Failed to fetch net totals.");
     assert_eq!(saved_net_total_portfolio.total, year.net_portfolio.total);
-}
-
-#[derive(Debug, Clone, Serialize)]
-struct Body {
-    saving_rates: Vec<DummySavingRatesPerPerson>,
-}
-
-#[sqlx::test]
-async fn put_year_persists_data(pool: PgPool) {
-    // Arange
-    let app = spawn_app(pool).await;
-    let year = Date().fake::<NaiveDate>().year();
-    app.insert_year(year).await;
-    let body = Body {
-        saving_rates: vec![Faker.fake()],
-    };
-
-    // Act
-    app.update_year(year, &body).await;
-
-    // Assert
-    let saved = sqlx::query!("SELECT * FROM balance_sheet_saving_rates",)
-        .fetch_one(&app.db_pool)
-        .await
-        .expect("Failed to fetch saved saving rate.");
-    assert_eq!(saved.name, body.saving_rates[0].name);
-    assert_eq!(saved.savings, body.saving_rates[0].savings);
-    assert_eq!(
-        saved.employer_contribution,
-        body.saving_rates[0].employer_contribution
-    );
-    assert_eq!(
-        saved.employee_contribution,
-        body.saving_rates[0].employee_contribution
-    );
-    assert_eq!(
-        saved.mortgage_capital,
-        body.saving_rates[0].mortgage_capital
-    );
-    assert_eq!(saved.incomes, body.saving_rates[0].incomes);
-    assert_eq!(saved.rate, body.saving_rates[0].rate);
 }
 
 #[sqlx::test]
@@ -286,22 +227,19 @@ async fn delete_year_returns_a_200_and_the_year_for_existing_year(pool: PgPool) 
         .insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
         .await;
 
-    let saving_rate = app.insert_saving_rate(year_id).await;
-
-    let res = app
-        .insert_financial_resource(
-            month_id,
-            DummyResourceCategory::Asset,
-            DummyResourceType::Cash,
-        )
-        .await;
+    app.insert_financial_resource(
+        month_id,
+        DummyResourceCategory::Asset,
+        DummyResourceType::Cash,
+    )
+    .await;
 
     // Act
     let response = app.delete_year(year).await;
 
     // Assert
     assert_eq!(response.status(), reqwest::StatusCode::OK);
-    let year: YearDetail = serde_json::from_str(&response.text().await.unwrap()).unwrap();
+    let year: Year = serde_json::from_str(&response.text().await.unwrap()).unwrap();
     assert_eq!(year.id, year_id);
     assert_eq!(year.net_assets.id, year_net_total_assets.id);
     assert_eq!(year.net_assets.total, year_net_total_assets.total as i64);
@@ -316,9 +254,6 @@ async fn delete_year_returns_a_200_and_the_year_for_existing_year(pool: PgPool) 
         year.months[0].net_portfolio.id,
         month_net_total_portfolio.id
     );
-    assert_eq!(year.saving_rates[0].id, saving_rate.id);
-    assert_eq!(year.resources.len(), 1);
-    assert_eq!(year.resources[0].base.id, res.id);
 }
 
 #[sqlx::test]
@@ -346,8 +281,6 @@ async fn delete_year_removes_year_month_saving_rates_and_net_totals_from_db_but_
     let month_net_total_portfolio = app
         .insert_month_net_total(month_id, DummyNetTotalType::Portfolio)
         .await;
-
-    let saving_rate = app.insert_saving_rate(year_id).await;
 
     let res = app
         .insert_financial_resource(
@@ -387,15 +320,6 @@ async fn delete_year_removes_year_month_saving_rates_and_net_totals_from_db_but_
     .await
     .expect("Failed to fetch saved net portfolio.");
     assert!(saved_year_net_portfolio.is_none());
-
-    let saved_saving_rate = sqlx::query!(
-        "SELECT * FROM balance_sheet_saving_rates WHERE id = $1",
-        saving_rate.id
-    )
-    .fetch_optional(&app.db_pool)
-    .await
-    .expect("Failed to fetch saved saving rate.");
-    assert!(saved_saving_rate.is_none());
 
     let saved_month = sqlx::query!(
         "SELECT month FROM balance_sheet_months WHERE id = $1",

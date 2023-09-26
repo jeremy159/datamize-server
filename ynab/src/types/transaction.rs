@@ -51,7 +51,7 @@ pub struct TransactionSummary {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BaseTransactionDetail {
     pub id: Uuid,
-    pub date: String,
+    pub date: chrono::NaiveDate,
     pub amount: i64,
     pub memo: Option<String>,
     pub cleared: ClearedType,
@@ -67,7 +67,7 @@ pub struct BaseTransactionDetail {
     pub deleted: bool,
     pub account_name: String,
     pub payee_name: Option<String>,
-    pub category_name: String,
+    pub category_name: Option<String>,
 }
 
 #[cfg_attr(test, derive(fake::Dummy))]
@@ -75,7 +75,7 @@ pub struct BaseTransactionDetail {
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct BaseTransactionDetail {
     pub id: Uuid,
-    pub date: String,
+    pub date: chrono::NaiveDate,
     pub amount: i64,
     pub memo: Option<String>,
     pub cleared: ClearedType,
@@ -91,7 +91,7 @@ pub struct BaseTransactionDetail {
     pub deleted: bool,
     pub account_name: String,
     pub payee_name: Option<String>,
-    pub category_name: String,
+    pub category_name: Option<String>,
 }
 
 #[cfg_attr(test, derive(fake::Dummy))]

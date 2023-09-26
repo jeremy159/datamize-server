@@ -3,6 +3,8 @@ mod months;
 mod refresh_resources;
 mod resource;
 mod resources;
+mod saving_rate;
+mod saving_rates;
 mod year;
 mod years;
 
@@ -15,13 +17,16 @@ use months::*;
 use refresh_resources::*;
 use resource::*;
 use resources::*;
+use saving_rate::*;
+use saving_rates::*;
 use year::*;
 use years::*;
 
 use crate::{
     services::balance_sheet::{
-        DynFinResService, DynMonthService, DynRefreshFinResService, DynYearService, FinResService,
-        MonthService, RefreshFinResService, YearService,
+        DynFinResService, DynMonthService, DynRefreshFinResService, DynSavingRateService,
+        DynYearService, FinResService, MonthService, RefreshFinResService, SavingRateService,
+        YearService,
     },
     startup::AppState,
 };
@@ -37,11 +42,17 @@ pub fn get_balance_sheets_routes<S: Clone + Send + Sync + 'static>(
         app_state.redis_conn.clone(),
         app_state.ynab_client.clone(),
     );
+    let saving_rate_service = SavingRateService::new_boxed(
+        app_state.db_conn_pool.clone(),
+        app_state.redis_conn.clone(),
+        app_state.ynab_client.clone(),
+    );
 
     Router::new()
         .merge(get_year_routes(year_service))
         .merge(get_month_routes(month_service))
         .merge(get_fin_res_routes(fin_res_service))
+        .merge(get_saving_rate_routes(saving_rate_service))
         .merge(get_refresh_fin_res_routes(refresh_fin_res_service))
 }
 
@@ -53,9 +64,7 @@ fn get_year_routes<S>(year_service: DynYearService) -> Router<S> {
         )
         .route(
             "/years/:year",
-            get(balance_sheet_year)
-                .put(update_balance_sheet_year)
-                .delete(delete_balance_sheet_year),
+            get(balance_sheet_year).delete(delete_balance_sheet_year),
         )
         .with_state(year_service)
 }
@@ -88,6 +97,19 @@ fn get_fin_res_routes<S>(fin_res_service: DynFinResService) -> Router<S> {
         )
         .route("/years/:year/resources", get(balance_sheet_resources))
         .with_state(fin_res_service)
+}
+
+fn get_saving_rate_routes<S>(saving_rate_service: DynSavingRateService) -> Router<S> {
+    Router::new()
+        .route("/saving_rates", post(create_balance_sheet_saving_rate))
+        .route(
+            "/saving_rates/:saving_rate_id",
+            get(balance_sheet_saving_rate)
+                .put(update_balance_sheet_saving_rate)
+                .delete(delete_balance_sheet_saving_rate),
+        )
+        .route("/years/:year/saving_rates", get(balance_sheet_saving_rates))
+        .with_state(saving_rate_service)
 }
 
 fn get_refresh_fin_res_routes<S>(refresh_fin_res_service: DynRefreshFinResService) -> Router<S> {

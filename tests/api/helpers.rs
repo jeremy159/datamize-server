@@ -16,7 +16,7 @@ use wiremock::MockServer;
 
 use crate::dummy_types::{
     DummyFinancialResource, DummyMonthNum, DummyNetTotal, DummyNetTotalType, DummyResourceCategory,
-    DummyResourceType, DummySavingRatesPerPerson,
+    DummyResourceType,
 };
 
 // Ensure that the `tracing` stack is only initialised once using `once_cell`
@@ -72,22 +72,6 @@ impl TestApp {
                 "{}/api/balance_sheet/years/{}",
                 &self.address, year
             ))
-            .send()
-            .await
-            .expect("Failed to execute request.")
-    }
-
-    pub async fn update_year<Y, B>(&self, year: Y, body: &B) -> reqwest::Response
-    where
-        Y: Display,
-        B: Serialize,
-    {
-        self.api_client
-            .put(&format!(
-                "{}/api/balance_sheet/years/{}",
-                &self.address, year
-            ))
-            .json(body)
             .send()
             .await
             .expect("Failed to execute request.")
@@ -309,31 +293,6 @@ impl TestApp {
         .expect("Failed to insert net totals of a year.");
 
         net_total
-    }
-
-    pub async fn insert_saving_rate(&self, year_id: Uuid) -> DummySavingRatesPerPerson {
-        let saving_rate: DummySavingRatesPerPerson = Faker.fake();
-
-        sqlx::query!(
-            r#"
-            INSERT INTO balance_sheet_saving_rates (id, name, savings, employer_contribution, employee_contribution, mortgage_capital, incomes, rate, year_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
-            "#,
-            saving_rate.id,
-            saving_rate.name,
-            saving_rate.savings,
-            saving_rate.employer_contribution,
-            saving_rate.employee_contribution,
-            saving_rate.mortgage_capital,
-            saving_rate.incomes,
-            saving_rate.rate,
-            year_id,
-        )
-        .execute(&self.db_pool)
-        .await
-        .expect("Failed to insert saving rates of a year.");
-
-        saving_rate
     }
 
     pub async fn insert_month(&self, year_id: Uuid, month: i16) -> Uuid {

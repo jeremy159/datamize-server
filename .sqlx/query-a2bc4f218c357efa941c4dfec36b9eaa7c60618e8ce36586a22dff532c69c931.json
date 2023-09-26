@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n            y.id as year_id,\n            y.year,\n            n.id as net_total_id,\n            n.type,\n            n.total,\n            n.percent_var,\n            n.balance_var,\n            n.year_id as net_total_year_id\n        FROM balance_sheet_years AS y\n        JOIN balance_sheet_net_totals_years AS n ON year_id = n.year_id;\n        ",
+  "query": "\n        SELECT\n            y.id as year_id,\n            y.year,\n            y.refreshed_at,\n            n.id as net_total_id,\n            n.type,\n            n.total,\n            n.percent_var,\n            n.balance_var,\n            n.year_id as net_total_year_id\n        FROM balance_sheet_years AS y\n        JOIN balance_sheet_net_totals_years AS n ON year_id = n.year_id;\n        ",
   "describe": {
     "columns": [
       {
@@ -15,31 +15,36 @@
       },
       {
         "ordinal": 2,
+        "name": "refreshed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
         "name": "net_total_id",
         "type_info": "Uuid"
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "type",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "total",
         "type_info": "Int8"
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "percent_var",
         "type_info": "Float4"
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "balance_var",
         "type_info": "Int8"
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "net_total_year_id",
         "type_info": "Uuid"
       }
@@ -55,8 +60,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "933a8ccb3189d20be34bfd68e1b1be915a4a58569e5243fc5974f693f2df3956"
+  "hash": "a2bc4f218c357efa941c4dfec36b9eaa7c60618e8ce36586a22dff532c69c931"
 }

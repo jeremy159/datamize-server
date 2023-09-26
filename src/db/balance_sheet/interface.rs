@@ -5,22 +5,20 @@ use uuid::Uuid;
 use crate::{
     error::DatamizeResult,
     models::balance_sheet::{
-        FinancialResourceMonthly, FinancialResourceYearly, Month, MonthNum, NetTotal,
-        SavingRatesPerPerson, YearDetail, YearSummary,
+        FinancialResourceMonthly, FinancialResourceYearly, Month, MonthNum, NetTotal, SavingRate,
+        Year,
     },
 };
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait YearRepo {
-    async fn get_years_summary(&self) -> DatamizeResult<Vec<YearSummary>>;
+    async fn get_years(&self) -> DatamizeResult<Vec<Year>>;
     async fn get_year_data_by_number(&self, year: i32) -> DatamizeResult<YearData>;
-    async fn add(&self, year: &YearDetail) -> DatamizeResult<()>;
-    async fn get(&self, year: i32) -> DatamizeResult<YearDetail>;
+    async fn add(&self, year: &Year) -> DatamizeResult<()>;
+    async fn get(&self, year: i32) -> DatamizeResult<Year>;
     async fn get_net_totals(&self, year_id: Uuid) -> DatamizeResult<Vec<NetTotal>>;
     async fn update_net_totals(&self, year: i32) -> DatamizeResult<()>;
-    async fn get_saving_rates(&self, year_id: Uuid) -> DatamizeResult<Vec<SavingRatesPerPerson>>;
-    async fn update_saving_rates(&self, year: &YearDetail) -> DatamizeResult<()>;
     async fn update_refreshed_at(&self, year: &YearData) -> DatamizeResult<()>;
     async fn delete(&self, year: i32) -> DatamizeResult<()>;
 }
@@ -69,6 +67,15 @@ pub trait FinResRepo {
     async fn get(&self, resource_id: Uuid) -> DatamizeResult<FinancialResourceYearly>;
     async fn update(&self, resource: &FinancialResourceYearly) -> DatamizeResult<()>;
     async fn update_monthly(&self, resource: &FinancialResourceMonthly) -> DatamizeResult<()>;
-
     async fn delete(&self, resource_id: Uuid) -> DatamizeResult<()>;
+}
+
+#[cfg_attr(test, mockall::automock)]
+#[async_trait]
+pub trait SavingRateRepo {
+    async fn get_from_year(&self, year: i32) -> DatamizeResult<Vec<SavingRate>>;
+    async fn get(&self, saving_rate_id: Uuid) -> DatamizeResult<SavingRate>;
+    async fn get_by_name(&self, name: &str) -> DatamizeResult<SavingRate>;
+    async fn update(&self, saving_rate: &SavingRate) -> DatamizeResult<()>;
+    async fn delete(&self, saving_rate_id: Uuid) -> DatamizeResult<()>;
 }

@@ -1,0 +1,90 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                sr.id as saving_rate_id,\n                sr.name,\n                sr.savings AS \"savings!: IdsAndBalanceRecord\",\n                sr.employer_contribution,\n                sr.employee_contribution,\n                sr.mortgage_capital,\n                sr.incomes AS \"incomes!: IdsAndBalanceRecord\"\n            FROM balance_sheet_saving_rates AS sr\n            JOIN balance_sheet_years AS y ON y.id = sr.year_id AND y.year = $1;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "saving_rate_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "savings!: IdsAndBalanceRecord",
+        "type_info": {
+          "Custom": {
+            "name": "ids_and_balance",
+            "kind": {
+              "Composite": [
+                [
+                  "ids",
+                  "UuidArray"
+                ],
+                [
+                  "extra_balance",
+                  "Int8"
+                ]
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "employer_contribution",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "employee_contribution",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "mortgage_capital",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "incomes!: IdsAndBalanceRecord",
+        "type_info": {
+          "Custom": {
+            "name": "ids_and_balance",
+            "kind": {
+              "Composite": [
+                [
+                  "ids",
+                  "UuidArray"
+                ],
+                [
+                  "extra_balance",
+                  "Int8"
+                ]
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ca1e4d42672da5123af5aff4590748c9730ae9a1e8c3d3b52a828771a514ad93"
+}

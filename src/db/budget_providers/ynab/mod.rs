@@ -4,10 +4,10 @@ mod redis;
 
 pub use self::redis::{
     RedisYnabAccountMetaRepo, RedisYnabCategoryMetaRepo, RedisYnabPayeeMetaRepo,
-    RedisYnabScheduledTransactionMetaRepo,
+    RedisYnabScheduledTransactionMetaRepo, RedisYnabTransactionMetaRepo,
 };
 pub use interface::*;
 pub use postgres::{
     PostgresYnabAccountRepo, PostgresYnabCategoryRepo, PostgresYnabPayeeRepo,
-    PostgresYnabScheduledTransactionRepo,
+    PostgresYnabScheduledTransactionRepo, PostgresYnabTransactionRepo,
 };
