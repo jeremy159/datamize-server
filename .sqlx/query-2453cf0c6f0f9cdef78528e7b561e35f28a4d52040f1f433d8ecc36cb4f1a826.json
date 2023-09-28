@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM balance_sheet_net_totals_months WHERE month_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "total",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "percent_var",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 4,
+        "name": "balance_var",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "month_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "2453cf0c6f0f9cdef78528e7b561e35f28a4d52040f1f433d8ecc36cb4f1a826"
+}
