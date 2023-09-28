@@ -1,18 +1,17 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    db::budget_template::{ExpenseCategorizationRepo, PostgresExpenseCategorizationRepo},
+    db::budget_template::DynExpenseCategorizationRepo,
     error::{AppError, DatamizeResult},
     models::budget_template::ExpenseCategorization,
 };
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait ExpenseCategorizationServiceExt {
+pub trait ExpenseCategorizationServiceExt: Send + Sync {
     async fn get_all_expenses_categorization(&self) -> DatamizeResult<Vec<ExpenseCategorization>>;
     async fn update_all_expenses_categorization(
         &self,
@@ -28,10 +27,18 @@ pub trait ExpenseCategorizationServiceExt {
     ) -> DatamizeResult<ExpenseCategorization>;
 }
 
-pub type DynExpenseCategorizationService = Arc<dyn ExpenseCategorizationServiceExt + Send + Sync>;
+pub type DynExpenseCategorizationService = Arc<dyn ExpenseCategorizationServiceExt>;
 
 pub struct ExpenseCategorizationService {
-    pub expense_categorization_repo: Box<dyn ExpenseCategorizationRepo + Sync + Send>,
+    pub expense_categorization_repo: DynExpenseCategorizationRepo,
+}
+
+impl ExpenseCategorizationService {
+    pub fn new_arced(expense_categorization_repo: DynExpenseCategorizationRepo) -> Arc<Self> {
+        Arc::new(Self {
+            expense_categorization_repo,
+        })
+    }
 }
 
 #[async_trait]
@@ -81,16 +88,6 @@ impl ExpenseCategorizationServiceExt for ExpenseCategorizationService {
             .await?;
 
         Ok(new_expense_categorization)
-    }
-}
-
-impl ExpenseCategorizationService {
-    pub fn new_arced(db_conn_pool: PgPool) -> Arc<Self> {
-        Arc::new(Self {
-            expense_categorization_repo: Box::new(PostgresExpenseCategorizationRepo {
-                db_conn_pool,
-            }),
-        })
     }
 }
 

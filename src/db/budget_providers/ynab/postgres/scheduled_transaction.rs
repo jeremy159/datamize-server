@@ -9,6 +9,12 @@ pub struct PostgresYnabScheduledTransactionRepo {
     pub db_conn_pool: PgPool,
 }
 
+impl PostgresYnabScheduledTransactionRepo {
+    pub fn new_boxed(db_conn_pool: PgPool) -> Box<Self> {
+        Box::new(Self { db_conn_pool })
+    }
+}
+
 #[async_trait]
 impl YnabScheduledTransactionRepo for PostgresYnabScheduledTransactionRepo {
     #[tracing::instrument(skip(self))]

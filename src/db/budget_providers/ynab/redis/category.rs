@@ -8,6 +8,12 @@ pub struct RedisYnabCategoryMetaRepo {
     pub redis_conn: ConnectionManager,
 }
 
+impl RedisYnabCategoryMetaRepo {
+    pub fn new_boxed(redis_conn: ConnectionManager) -> Box<Self> {
+        Box::new(Self { redis_conn })
+    }
+}
+
 #[async_trait]
 impl YnabCategoryMetaRepo for RedisYnabCategoryMetaRepo {
     #[tracing::instrument(skip(self))]

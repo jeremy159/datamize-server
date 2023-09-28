@@ -1,22 +1,18 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use dyn_clone::{clone_trait_object, DynClone};
 use futures::{stream::FuturesUnordered, StreamExt};
-use redis::aio::ConnectionManager;
-use sqlx::PgPool;
 use uuid::Uuid;
-use ynab::{TransactionDetail, TransactionRequests};
+use ynab::TransactionDetail;
 
 use crate::{
-    db::balance_sheet::{PostgresSavingRateRepo, SavingRateRepo},
+    db::balance_sheet::DynSavingRateRepo,
     error::{AppError, DatamizeResult},
     models::balance_sheet::{SaveSavingRate, SavingRate},
-    services::budget_providers::{DynTransactionService, TransactionService},
+    services::budget_providers::DynTransactionService,
 };
 
 #[async_trait]
-pub trait SavingRateServiceExt: DynClone {
+pub trait SavingRateServiceExt: DynClone + Send + Sync {
     async fn get_all_from_year(&mut self, year: i32) -> DatamizeResult<Vec<SavingRate>>;
     async fn get_saving_rate(&mut self, saving_rate_id: Uuid) -> DatamizeResult<SavingRate>;
     async fn create_saving_rate(
@@ -32,11 +28,11 @@ pub trait SavingRateServiceExt: DynClone {
 
 clone_trait_object!(SavingRateServiceExt);
 
-pub type DynSavingRateService = Box<dyn SavingRateServiceExt + Send + Sync>;
+pub type DynSavingRateService = Box<dyn SavingRateServiceExt>;
 
 #[derive(Clone)]
 pub struct SavingRateService {
-    pub saving_rate_repo: Arc<dyn SavingRateRepo + Sync + Send>,
+    pub saving_rate_repo: DynSavingRateRepo,
     pub transaction_service: DynTransactionService,
 }
 
@@ -137,17 +133,12 @@ impl SavingRateServiceExt for SavingRateService {
 
 impl SavingRateService {
     pub fn new_boxed(
-        db_conn_pool: PgPool,
-        redis_conn: ConnectionManager,
-        ynab_client: Arc<dyn TransactionRequests + Send + Sync + 'static>,
+        saving_rate_repo: DynSavingRateRepo,
+        transaction_service: DynTransactionService,
     ) -> Box<Self> {
         Box::new(Self {
-            saving_rate_repo: PostgresSavingRateRepo::new_arced(db_conn_pool.clone()),
-            transaction_service: TransactionService::new_boxed(
-                db_conn_pool,
-                redis_conn,
-                ynab_client,
-            ),
+            saving_rate_repo,
+            transaction_service,
         })
     }
 

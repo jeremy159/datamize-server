@@ -6,21 +6,16 @@ use internal::*;
 
 use async_trait::async_trait;
 use orion::kex::SecretKey;
-use redis::aio::ConnectionManager;
-use sqlx::PgPool;
 
 use crate::{
     config,
-    db::budget_providers::external::{
-        DynEncryptionKeyRepo, DynExternalAccountRepo, PostgresExternalAccountRepo,
-        RedisEncryptionKeyRepo,
-    },
+    db::budget_providers::external::{DynEncryptionKeyRepo, DynExternalAccountRepo},
     error::DatamizeResult,
     models::budget_providers::{AccountType, ExternalAccount, WebScrapingAccount},
 };
 
 #[async_trait]
-pub trait ExternalAccountServiceExt: DynClone {
+pub trait ExternalAccountServiceExt: DynClone + Send + Sync {
     async fn get_all_external_accounts(&self) -> DatamizeResult<Vec<ExternalAccount>>;
     async fn refresh_all_web_scraping_accounts(
         &mut self,
@@ -36,7 +31,7 @@ pub trait ExternalAccountServiceExt: DynClone {
 
 clone_trait_object!(ExternalAccountServiceExt);
 
-pub type DynExternalAccountService = Box<dyn ExternalAccountServiceExt + Send + Sync>;
+pub type DynExternalAccountService = Box<dyn ExternalAccountServiceExt>;
 
 #[cfg(test)]
 mockall::mock! {
@@ -194,10 +189,13 @@ impl ExternalAccountServiceExt for ExternalAccountService {
 }
 
 impl ExternalAccountService {
-    pub fn new_boxed(db_conn_pool: PgPool, redis_conn: ConnectionManager) -> Box<Self> {
+    pub fn new_boxed(
+        external_account_repo: DynExternalAccountRepo,
+        encryption_key_repo: DynEncryptionKeyRepo,
+    ) -> Box<Self> {
         Box::new(Self {
-            external_account_repo: Box::new(PostgresExternalAccountRepo { db_conn_pool }),
-            encryption_key_repo: Box::new(RedisEncryptionKeyRepo { redis_conn }),
+            external_account_repo,
+            encryption_key_repo,
         })
     }
 }

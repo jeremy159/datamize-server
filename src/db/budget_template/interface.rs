@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[async_trait]
-pub trait BudgeterConfigRepo: DynClone {
+pub trait BudgeterConfigRepo: DynClone + Send + Sync {
     async fn get_all(&self) -> DatamizeResult<Vec<BudgeterConfig>>;
     async fn get(&self, budgeter_id: Uuid) -> DatamizeResult<BudgeterConfig>;
     async fn get_by_name(&self, name: &str) -> DatamizeResult<BudgeterConfig>;
@@ -18,7 +18,7 @@ pub trait BudgeterConfigRepo: DynClone {
 
 clone_trait_object!(BudgeterConfigRepo);
 
-pub type DynBudgeterConfigRepo = Box<dyn BudgeterConfigRepo + Send + Sync>;
+pub type DynBudgeterConfigRepo = Box<dyn BudgeterConfigRepo>;
 
 #[cfg(test)]
 mockall::mock! {
@@ -39,7 +39,7 @@ mockall::mock! {
 }
 
 #[async_trait]
-pub trait ExternalExpenseRepo: DynClone {
+pub trait ExternalExpenseRepo: DynClone + Send + Sync {
     async fn get_all(&self) -> DatamizeResult<Vec<ExternalExpense>>;
     async fn get(&self, expense_id: Uuid) -> DatamizeResult<ExternalExpense>;
     async fn get_by_name(&self, name: &str) -> DatamizeResult<ExternalExpense>;
@@ -49,7 +49,7 @@ pub trait ExternalExpenseRepo: DynClone {
 
 clone_trait_object!(ExternalExpenseRepo);
 
-pub type DynExternalExpenseRepo = Box<dyn ExternalExpenseRepo + Send + Sync>;
+pub type DynExternalExpenseRepo = Box<dyn ExternalExpenseRepo>;
 
 #[cfg(test)]
 mockall::mock! {
@@ -70,7 +70,7 @@ mockall::mock! {
 }
 
 #[async_trait]
-pub trait ExpenseCategorizationRepo: DynClone {
+pub trait ExpenseCategorizationRepo: DynClone + Send + Sync {
     async fn get_all(&self) -> DatamizeResult<Vec<ExpenseCategorization>>;
     async fn get(&self, id: Uuid) -> DatamizeResult<ExpenseCategorization>;
     async fn update_all(
@@ -82,7 +82,7 @@ pub trait ExpenseCategorizationRepo: DynClone {
 
 clone_trait_object!(ExpenseCategorizationRepo);
 
-pub type DynExpenseCategorizationRepo = Box<dyn ExpenseCategorizationRepo + Send + Sync>;
+pub type DynExpenseCategorizationRepo = Box<dyn ExpenseCategorizationRepo>;
 
 #[cfg(test)]
 mockall::mock! {

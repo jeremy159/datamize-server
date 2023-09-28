@@ -8,6 +8,12 @@ pub struct RedisYnabTransactionMetaRepo {
     pub redis_conn: ConnectionManager,
 }
 
+impl RedisYnabTransactionMetaRepo {
+    pub fn new_boxed(redis_conn: ConnectionManager) -> Box<dyn YnabTransactionMetaRepo> {
+        Box::new(Self { redis_conn })
+    }
+}
+
 #[async_trait]
 impl YnabTransactionMetaRepo for RedisYnabTransactionMetaRepo {
     #[tracing::instrument(skip(self))]

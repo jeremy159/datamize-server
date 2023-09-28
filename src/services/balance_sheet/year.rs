@@ -1,27 +1,32 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use sqlx::PgPool;
 
 use crate::{
-    db::balance_sheet::{PostgresYearRepo, YearRepo},
+    db::balance_sheet::DynYearRepo,
     error::{AppError, DatamizeResult},
     models::balance_sheet::{SaveYear, Year},
 };
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait YearServiceExt {
+pub trait YearServiceExt: Send + Sync {
     async fn get_all_years(&self) -> DatamizeResult<Vec<Year>>;
     async fn create_year(&self, new_year: SaveYear) -> DatamizeResult<Year>;
     async fn get_year(&self, year: i32) -> DatamizeResult<Year>;
     async fn delete_year(&self, year: i32) -> DatamizeResult<Year>;
 }
 
-pub type DynYearService = Arc<dyn YearServiceExt + Send + Sync>;
+pub type DynYearService = Arc<dyn YearServiceExt>;
 
 pub struct YearService {
-    pub year_repo: Arc<dyn YearRepo + Sync + Send>,
+    pub year_repo: DynYearRepo,
+}
+
+impl YearService {
+    pub fn new_arced(year_repo: DynYearRepo) -> Arc<Self> {
+        Arc::new(Self { year_repo })
+    }
 }
 
 #[async_trait]
@@ -58,13 +63,5 @@ impl YearServiceExt for YearService {
         self.year_repo.delete(year).await?;
 
         Ok(year_detail)
-    }
-}
-
-impl YearService {
-    pub fn new_arced(db_conn_pool: PgPool) -> Arc<Self> {
-        Arc::new(Self {
-            year_repo: PostgresYearRepo::new_arced(db_conn_pool),
-        })
     }
 }

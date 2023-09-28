@@ -3,25 +3,21 @@ use std::sync::Arc;
 use anyhow::Context;
 use async_trait::async_trait;
 use dyn_clone::{clone_trait_object, DynClone};
-use redis::aio::ConnectionManager;
-use sqlx::PgPool;
 use ynab::{Payee, PayeeRequests};
 
 use crate::{
-    db::budget_providers::ynab::{
-        DynYnabPayeeMetaRepo, DynYnabPayeeRepo, PostgresYnabPayeeRepo, RedisYnabPayeeMetaRepo,
-    },
+    db::budget_providers::ynab::{DynYnabPayeeMetaRepo, DynYnabPayeeRepo},
     error::DatamizeResult,
 };
 
 #[async_trait]
-pub trait YnabPayeeServiceExt: DynClone {
+pub trait YnabPayeeServiceExt: DynClone + Send + Sync {
     async fn get_all_ynab_payees(&mut self) -> DatamizeResult<Vec<Payee>>;
 }
 
 clone_trait_object!(YnabPayeeServiceExt);
 
-pub type DynYnabPayeeService = Box<dyn YnabPayeeServiceExt + Send + Sync>;
+pub type DynYnabPayeeService = Box<dyn YnabPayeeServiceExt>;
 
 #[cfg(test)]
 mockall::mock! {
@@ -84,13 +80,13 @@ impl YnabPayeeServiceExt for YnabPayeeService {
 
 impl YnabPayeeService {
     pub fn new_boxed(
-        db_conn_pool: PgPool,
-        redis_conn: ConnectionManager,
+        ynab_payee_repo: DynYnabPayeeRepo,
+        ynab_payee_meta_repo: DynYnabPayeeMetaRepo,
         ynab_client: Arc<dyn PayeeRequests + Send + Sync>,
     ) -> Box<Self> {
         Box::new(Self {
-            ynab_payee_repo: Box::new(PostgresYnabPayeeRepo { db_conn_pool }),
-            ynab_payee_meta_repo: Box::new(RedisYnabPayeeMetaRepo { redis_conn }),
+            ynab_payee_repo,
+            ynab_payee_meta_repo,
             ynab_client,
         })
     }

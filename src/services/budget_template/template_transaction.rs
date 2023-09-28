@@ -4,22 +4,20 @@ use anyhow::Context;
 use async_trait::async_trait;
 use dyn_clone::{clone_trait_object, DynClone};
 use futures::{stream::FuturesUnordered, StreamExt};
-use redis::aio::ConnectionManager;
-use sqlx::PgPool;
-use ynab::{CategoryRequests, ScheduledTransactionRequests};
+use ynab::CategoryRequests;
 
 use crate::{
-    db::budget_providers::ynab::{DynYnabCategoryRepo, PostgresYnabCategoryRepo},
+    db::budget_providers::ynab::DynYnabCategoryRepo,
     error::DatamizeResult,
     models::budget_template::{
         CategoryIdToNameMap, DatamizeScheduledTransaction, ScheduledTransactionsDistribution,
     },
 };
 
-use super::{DynScheduledTransactionService, ScheduledTransactionService};
+use super::DynScheduledTransactionService;
 
 #[async_trait]
-pub trait TemplateTransactionServiceExt: DynClone {
+pub trait TemplateTransactionServiceExt: DynClone + Send + Sync {
     async fn get_template_transactions(
         &mut self,
     ) -> DatamizeResult<ScheduledTransactionsDistribution>;
@@ -27,13 +25,37 @@ pub trait TemplateTransactionServiceExt: DynClone {
 
 clone_trait_object!(TemplateTransactionServiceExt);
 
-pub type DynTemplateTransactionService = Box<dyn TemplateTransactionServiceExt + Send + Sync>;
+pub type DynTemplateTransactionService = Box<dyn TemplateTransactionServiceExt>;
 
 #[derive(Clone)]
 pub struct TemplateTransactionService {
     pub scheduled_transaction_service: DynScheduledTransactionService,
     pub ynab_category_repo: DynYnabCategoryRepo,
     pub ynab_client: Arc<dyn CategoryRequests + Sync + Send>,
+}
+
+impl TemplateTransactionService {
+    pub fn new_boxed(
+        scheduled_transaction_service: DynScheduledTransactionService,
+        ynab_category_repo: DynYnabCategoryRepo,
+        ynab_client: Arc<dyn CategoryRequests + Sync + Send>,
+    ) -> Box<Self> {
+        Box::new(TemplateTransactionService {
+            scheduled_transaction_service,
+            ynab_category_repo,
+            ynab_client,
+        })
+    }
+
+    fn get_subtransactions_category_ids(
+        scheduled_transactions: &[DatamizeScheduledTransaction],
+    ) -> Vec<uuid::Uuid> {
+        scheduled_transactions
+            .iter()
+            .flat_map(|st| &st.subtransactions)
+            .filter_map(|sub_st| sub_st.category_id)
+            .collect()
+    }
 }
 
 #[async_trait]
@@ -83,36 +105,6 @@ impl TemplateTransactionServiceExt for TemplateTransactionService {
             .build();
 
         Ok(data)
-    }
-}
-
-impl TemplateTransactionService {
-    pub fn new_boxed<
-        YC: CategoryRequests + ScheduledTransactionRequests + Send + Sync + 'static,
-    >(
-        db_conn_pool: PgPool,
-        redis_conn: ConnectionManager,
-        ynab_client: Arc<YC>,
-    ) -> Box<Self> {
-        Box::new(TemplateTransactionService {
-            scheduled_transaction_service: ScheduledTransactionService::new_boxed(
-                db_conn_pool.clone(),
-                redis_conn,
-                ynab_client.clone(),
-            ),
-            ynab_category_repo: Box::new(PostgresYnabCategoryRepo { db_conn_pool }),
-            ynab_client,
-        })
-    }
-
-    fn get_subtransactions_category_ids(
-        scheduled_transactions: &[DatamizeScheduledTransaction],
-    ) -> Vec<uuid::Uuid> {
-        scheduled_transactions
-            .iter()
-            .flat_map(|st| &st.subtransactions)
-            .filter_map(|sub_st| sub_st.category_id)
-            .collect()
     }
 }
 

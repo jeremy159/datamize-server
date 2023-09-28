@@ -4,21 +4,18 @@ use anyhow::Context;
 use async_trait::async_trait;
 use chrono::{Datelike, Local, NaiveDate};
 use dyn_clone::{clone_trait_object, DynClone};
-use redis::aio::ConnectionManager;
-use sqlx::PgPool;
 use ynab::ScheduledTransactionRequests;
 
 use crate::{
     db::budget_providers::ynab::{
         DynYnabScheduledTransactionMetaRepo, DynYnabScheduledTransactionRepo,
-        PostgresYnabScheduledTransactionRepo, RedisYnabScheduledTransactionMetaRepo,
     },
     error::DatamizeResult,
     models::budget_template::DatamizeScheduledTransaction,
 };
 
 #[async_trait]
-pub trait ScheduledTransactionServiceExt: DynClone {
+pub trait ScheduledTransactionServiceExt: DynClone + Send + Sync {
     async fn get_latest_scheduled_transactions(
         &mut self,
     ) -> DatamizeResult<Vec<DatamizeScheduledTransaction>>;
@@ -26,13 +23,58 @@ pub trait ScheduledTransactionServiceExt: DynClone {
 
 clone_trait_object!(ScheduledTransactionServiceExt);
 
-pub type DynScheduledTransactionService = Box<dyn ScheduledTransactionServiceExt + Send + Sync>;
+pub type DynScheduledTransactionService = Box<dyn ScheduledTransactionServiceExt>;
 
 #[derive(Clone)]
 pub struct ScheduledTransactionService {
     pub ynab_scheduled_transaction_repo: DynYnabScheduledTransactionRepo,
     pub ynab_scheduled_transaction_meta_repo: DynYnabScheduledTransactionMetaRepo,
     pub ynab_client: Arc<dyn ScheduledTransactionRequests + Send + Sync>,
+}
+
+impl ScheduledTransactionService {
+    pub fn new_boxed(
+        ynab_scheduled_transaction_repo: DynYnabScheduledTransactionRepo,
+        ynab_scheduled_transaction_meta_repo: DynYnabScheduledTransactionMetaRepo,
+        ynab_client: Arc<dyn ScheduledTransactionRequests + Send + Sync>,
+    ) -> Box<Self> {
+        Box::new(ScheduledTransactionService {
+            ynab_scheduled_transaction_repo,
+            ynab_scheduled_transaction_meta_repo,
+            ynab_client,
+        })
+    }
+
+    async fn check_last_saved(&mut self) -> DatamizeResult<()> {
+        let current_date = Local::now().date_naive();
+        if let Ok(last_saved) = self
+            .ynab_scheduled_transaction_meta_repo
+            .get_last_saved()
+            .await
+        {
+            let last_saved_date: NaiveDate = last_saved.parse()?;
+            if current_date.month() != last_saved_date.month() {
+                tracing::debug!(
+                    ?current_date,
+                    ?last_saved_date,
+                    "discarding knowledge_server",
+                );
+                // Discard knowledge_server when changing month.
+                self.ynab_scheduled_transaction_meta_repo
+                    .del_delta()
+                    .await?;
+                self.ynab_scheduled_transaction_meta_repo
+                    .set_last_saved(current_date.to_string())
+                    .await?;
+            }
+        } else {
+            self.ynab_scheduled_transaction_meta_repo
+                .set_last_saved(current_date.to_string())
+                .await?;
+        }
+
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -74,55 +116,6 @@ impl ScheduledTransactionServiceExt for ScheduledTransactionService {
             .into_iter()
             .map(Into::into)
             .collect())
-    }
-}
-
-impl ScheduledTransactionService {
-    pub fn new_boxed(
-        db_conn_pool: PgPool,
-        redis_conn: ConnectionManager,
-        ynab_client: Arc<dyn ScheduledTransactionRequests + Send + Sync>,
-    ) -> Box<Self> {
-        Box::new(ScheduledTransactionService {
-            ynab_scheduled_transaction_repo: Box::new(PostgresYnabScheduledTransactionRepo {
-                db_conn_pool,
-            }),
-            ynab_scheduled_transaction_meta_repo: Box::new(RedisYnabScheduledTransactionMetaRepo {
-                redis_conn,
-            }),
-            ynab_client,
-        })
-    }
-
-    async fn check_last_saved(&mut self) -> DatamizeResult<()> {
-        let current_date = Local::now().date_naive();
-        if let Ok(last_saved) = self
-            .ynab_scheduled_transaction_meta_repo
-            .get_last_saved()
-            .await
-        {
-            let last_saved_date: NaiveDate = last_saved.parse()?;
-            if current_date.month() != last_saved_date.month() {
-                tracing::debug!(
-                    ?current_date,
-                    ?last_saved_date,
-                    "discarding knowledge_server",
-                );
-                // Discard knowledge_server when changing month.
-                self.ynab_scheduled_transaction_meta_repo
-                    .del_delta()
-                    .await?;
-                self.ynab_scheduled_transaction_meta_repo
-                    .set_last_saved(current_date.to_string())
-                    .await?;
-            }
-        } else {
-            self.ynab_scheduled_transaction_meta_repo
-                .set_last_saved(current_date.to_string())
-                .await?;
-        }
-
-        Ok(())
     }
 }
 

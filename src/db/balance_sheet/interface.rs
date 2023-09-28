@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
@@ -12,7 +14,7 @@ use crate::{
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait YearRepo {
+pub trait YearRepo: Send + Sync {
     async fn get_years(&self) -> DatamizeResult<Vec<Year>>;
     async fn get_year_data_by_number(&self, year: i32) -> DatamizeResult<YearData>;
     async fn add(&self, year: &Year) -> DatamizeResult<()>;
@@ -23,6 +25,8 @@ pub trait YearRepo {
     async fn delete(&self, year: i32) -> DatamizeResult<()>;
 }
 
+pub type DynYearRepo = Arc<dyn YearRepo>;
+
 #[derive(Debug, Clone, Copy, sqlx::FromRow)]
 pub struct YearData {
     pub id: Uuid,
@@ -32,7 +36,7 @@ pub struct YearData {
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait MonthRepo {
+pub trait MonthRepo: Send + Sync {
     async fn get_year_data_by_number(&self, year: i32) -> DatamizeResult<YearData>;
     async fn get_month_data_by_number(
         &self,
@@ -48,6 +52,8 @@ pub trait MonthRepo {
     async fn delete(&self, month_num: MonthNum, year: i32) -> DatamizeResult<()>;
 }
 
+pub type DynMonthRepo = Arc<dyn MonthRepo>;
+
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct MonthData {
     pub id: Uuid,
@@ -56,7 +62,7 @@ pub struct MonthData {
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait FinResRepo {
+pub trait FinResRepo: Send + Sync {
     async fn get_from_all_years(&self) -> DatamizeResult<Vec<FinancialResourceYearly>>;
     async fn get_from_year(&self, year: i32) -> DatamizeResult<Vec<FinancialResourceYearly>>;
     async fn get_from_month(
@@ -70,12 +76,16 @@ pub trait FinResRepo {
     async fn delete(&self, resource_id: Uuid) -> DatamizeResult<()>;
 }
 
+pub type DynFinResRepo = Arc<dyn FinResRepo>;
+
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait SavingRateRepo {
+pub trait SavingRateRepo: Send + Sync {
     async fn get_from_year(&self, year: i32) -> DatamizeResult<Vec<SavingRate>>;
     async fn get(&self, saving_rate_id: Uuid) -> DatamizeResult<SavingRate>;
     async fn get_by_name(&self, name: &str) -> DatamizeResult<SavingRate>;
     async fn update(&self, saving_rate: &SavingRate) -> DatamizeResult<()>;
     async fn delete(&self, saving_rate_id: Uuid) -> DatamizeResult<()>;
 }
+
+pub type DynSavingRateRepo = Arc<dyn SavingRateRepo>;

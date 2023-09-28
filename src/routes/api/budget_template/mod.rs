@@ -23,11 +23,22 @@ use summary::*;
 use transactions::*;
 
 use crate::{
+    db::{
+        budget_providers::ynab::{
+            PostgresYnabCategoryRepo, PostgresYnabScheduledTransactionRepo,
+            RedisYnabCategoryMetaRepo, RedisYnabScheduledTransactionMetaRepo,
+        },
+        budget_template::{
+            PostgresBudgeterConfigRepo, PostgresExpenseCategorizationRepo,
+            PostgresExternalExpenseRepo,
+        },
+    },
     services::budget_template::{
-        BudgeterService, DynBudgeterService, DynExpenseCategorizationService,
+        BudgeterService, CategoryService, DynBudgeterService, DynExpenseCategorizationService,
         DynExternalExpenseService, DynTemplateDetailService, DynTemplateSummaryService,
         DynTemplateTransactionService, ExpenseCategorizationService, ExternalExpenseService,
-        TemplateDetailService, TemplateSummaryService, TemplateTransactionService,
+        ScheduledTransactionService, TemplateDetailService, TemplateSummaryService,
+        TemplateTransactionService,
     },
     startup::AppState,
 };
@@ -35,31 +46,57 @@ use crate::{
 pub fn get_budget_template_routes<S: Clone + Send + Sync + 'static>(
     app_state: &AppState,
 ) -> Router<S> {
-    let template_detail_service = TemplateDetailService::new_boxed(
-        app_state.db_conn_pool.clone(),
-        app_state.redis_conn.clone(),
+    let ynab_category_repo = PostgresYnabCategoryRepo::new_boxed(app_state.db_conn_pool.clone());
+    let ynab_category_meta_repo =
+        RedisYnabCategoryMetaRepo::new_boxed(app_state.redis_conn.clone());
+    let ynab_scheduled_transaction_repo =
+        PostgresYnabScheduledTransactionRepo::new_boxed(app_state.db_conn_pool.clone());
+    let ynab_scheduled_transaction_meta_repo =
+        RedisYnabScheduledTransactionMetaRepo::new_boxed(app_state.redis_conn.clone());
+    let expense_categorization_repo =
+        PostgresExpenseCategorizationRepo::new_boxed(app_state.db_conn_pool.clone());
+    let budgeter_config_repo =
+        PostgresBudgeterConfigRepo::new_boxed(app_state.db_conn_pool.clone());
+    let external_expense_repo =
+        PostgresExternalExpenseRepo::new_boxed(app_state.db_conn_pool.clone());
+    let category_service = CategoryService::new_boxed(
+        ynab_category_repo.clone(),
+        ynab_category_meta_repo,
+        expense_categorization_repo.clone(),
         app_state.ynab_client.clone(),
+    );
+    let scheduled_transaction_service = ScheduledTransactionService::new_boxed(
+        ynab_scheduled_transaction_repo,
+        ynab_scheduled_transaction_meta_repo,
+        app_state.ynab_client.clone(),
+    );
+
+    let template_detail_service = TemplateDetailService::new_boxed(
+        category_service.clone(),
+        scheduled_transaction_service.clone(),
+        budgeter_config_repo.clone(),
+        external_expense_repo.clone(),
     );
 
     let template_summary_service = TemplateSummaryService::new_boxed(
-        app_state.db_conn_pool.clone(),
-        app_state.redis_conn.clone(),
-        app_state.ynab_client.clone(),
+        category_service,
+        scheduled_transaction_service.clone(),
+        budgeter_config_repo.clone(),
+        external_expense_repo.clone(),
     );
 
     let template_transaction_service = TemplateTransactionService::new_boxed(
-        app_state.db_conn_pool.clone(),
-        app_state.redis_conn.clone(),
+        scheduled_transaction_service,
+        ynab_category_repo,
         app_state.ynab_client.clone(),
     );
 
-    let budgeter_service = BudgeterService::new_arced(app_state.db_conn_pool.clone());
+    let budgeter_service = BudgeterService::new_arced(budgeter_config_repo);
 
-    let external_expense_service =
-        ExternalExpenseService::new_arced(app_state.db_conn_pool.clone());
+    let external_expense_service = ExternalExpenseService::new_arced(external_expense_repo);
 
     let expense_categorization_service =
-        ExpenseCategorizationService::new_arced(app_state.db_conn_pool.clone());
+        ExpenseCategorizationService::new_arced(expense_categorization_repo);
 
     Router::new()
         .merge(get_detail_routes(template_detail_service))

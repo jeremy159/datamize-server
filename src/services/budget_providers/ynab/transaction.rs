@@ -3,21 +3,16 @@ use std::sync::Arc;
 use anyhow::Context;
 use async_trait::async_trait;
 use dyn_clone::{clone_trait_object, DynClone};
-use redis::aio::ConnectionManager;
-use sqlx::PgPool;
 use uuid::Uuid;
 use ynab::{TransactionDetail, TransactionRequests};
 
 use crate::{
-    db::budget_providers::ynab::{
-        DynYnabTransactionMetaRepo, DynYnabTransactionRepo, PostgresYnabTransactionRepo,
-        RedisYnabTransactionMetaRepo,
-    },
+    db::budget_providers::ynab::{DynYnabTransactionMetaRepo, DynYnabTransactionRepo},
     error::DatamizeResult,
 };
 
 #[async_trait]
-pub trait TransactionServiceExt: DynClone {
+pub trait TransactionServiceExt: DynClone + Send + Sync {
     async fn refresh_saved_transactions(&mut self) -> DatamizeResult<()>;
     async fn get_latest_transactions(&mut self) -> DatamizeResult<Vec<TransactionDetail>>;
     async fn get_transactions_by_category_id(
@@ -32,7 +27,7 @@ pub trait TransactionServiceExt: DynClone {
 
 clone_trait_object!(TransactionServiceExt);
 
-pub type DynTransactionService = Box<dyn TransactionServiceExt + Send + Sync>;
+pub type DynTransactionService = Box<dyn TransactionServiceExt>;
 
 #[derive(Clone)]
 pub struct TransactionService {
@@ -103,13 +98,13 @@ impl TransactionServiceExt for TransactionService {
 
 impl TransactionService {
     pub fn new_boxed(
-        db_conn_pool: PgPool,
-        redis_conn: ConnectionManager,
+        ynab_transaction_repo: DynYnabTransactionRepo,
+        ynab_transaction_meta_repo: DynYnabTransactionMetaRepo,
         ynab_client: Arc<dyn TransactionRequests + Send + Sync>,
     ) -> Box<Self> {
         Box::new(TransactionService {
-            ynab_transaction_repo: Box::new(PostgresYnabTransactionRepo { db_conn_pool }),
-            ynab_transaction_meta_repo: Box::new(RedisYnabTransactionMetaRepo { redis_conn }),
+            ynab_transaction_repo,
+            ynab_transaction_meta_repo,
             ynab_client,
         })
     }

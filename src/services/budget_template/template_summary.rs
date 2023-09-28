@@ -1,33 +1,22 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use dyn_clone::{clone_trait_object, DynClone};
-use redis::aio::ConnectionManager;
-use sqlx::PgPool;
-use ynab::{CategoryRequests, MonthRequests, ScheduledTransactionRequests};
 
 use crate::{
-    db::budget_template::{
-        DynBudgeterConfigRepo, DynExternalExpenseRepo, PostgresBudgeterConfigRepo,
-        PostgresExternalExpenseRepo,
-    },
+    db::budget_template::{DynBudgeterConfigRepo, DynExternalExpenseRepo},
     error::DatamizeResult,
     models::budget_template::{BudgetDetails, BudgetSummary, Budgeter, Configured, MonthTarget},
 };
 
-use super::{
-    CategoryService, DynCategoryService, DynScheduledTransactionService,
-    ScheduledTransactionService,
-};
+use super::{DynCategoryService, DynScheduledTransactionService};
 
 #[async_trait]
-pub trait TemplateSummaryServiceExt: DynClone {
+pub trait TemplateSummaryServiceExt: DynClone + Send + Sync {
     async fn get_template_summary(&mut self, month: MonthTarget) -> DatamizeResult<BudgetSummary>;
 }
 
 clone_trait_object!(TemplateSummaryServiceExt);
 
-pub type DynTemplateSummaryService = Box<dyn TemplateSummaryServiceExt + Send + Sync>;
+pub type DynTemplateSummaryService = Box<dyn TemplateSummaryServiceExt>;
 
 #[derive(Clone)]
 pub struct TemplateSummaryService {
@@ -35,6 +24,22 @@ pub struct TemplateSummaryService {
     pub scheduled_transaction_service: DynScheduledTransactionService,
     pub budgeter_config_repo: DynBudgeterConfigRepo,
     pub external_expense_repo: DynExternalExpenseRepo,
+}
+
+impl TemplateSummaryService {
+    pub fn new_boxed(
+        category_service: DynCategoryService,
+        scheduled_transaction_service: DynScheduledTransactionService,
+        budgeter_config_repo: DynBudgeterConfigRepo,
+        external_expense_repo: DynExternalExpenseRepo,
+    ) -> Box<Self> {
+        Box::new(TemplateSummaryService {
+            category_service,
+            scheduled_transaction_service,
+            budgeter_config_repo,
+            external_expense_repo,
+        })
+    }
 }
 
 #[async_trait]
@@ -66,33 +71,6 @@ impl TemplateSummaryServiceExt for TemplateSummaryService {
         );
 
         Ok(BudgetSummary::build(&budget_details, budgeters))
-    }
-}
-
-impl TemplateSummaryService {
-    pub fn new_boxed<
-        YC: CategoryRequests + ScheduledTransactionRequests + MonthRequests + Send + Sync + 'static,
-    >(
-        db_conn_pool: PgPool,
-        redis_conn: ConnectionManager,
-        ynab_client: Arc<YC>,
-    ) -> Box<Self> {
-        Box::new(TemplateSummaryService {
-            category_service: CategoryService::new_boxed(
-                db_conn_pool.clone(),
-                redis_conn.clone(),
-                ynab_client.clone(),
-            ),
-            scheduled_transaction_service: ScheduledTransactionService::new_boxed(
-                db_conn_pool.clone(),
-                redis_conn,
-                ynab_client,
-            ),
-            budgeter_config_repo: Box::new(PostgresBudgeterConfigRepo {
-                db_conn_pool: db_conn_pool.clone(),
-            }),
-            external_expense_repo: Box::new(PostgresExternalExpenseRepo { db_conn_pool }),
-        })
     }
 }
 

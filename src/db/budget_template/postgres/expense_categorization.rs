@@ -12,6 +12,12 @@ pub struct PostgresExpenseCategorizationRepo {
     pub db_conn_pool: PgPool,
 }
 
+impl PostgresExpenseCategorizationRepo {
+    pub fn new_boxed(db_conn_pool: PgPool) -> Box<Self> {
+        Box::new(Self { db_conn_pool })
+    }
+}
+
 #[async_trait]
 impl ExpenseCategorizationRepo for PostgresExpenseCategorizationRepo {
     #[tracing::instrument(skip(self))]

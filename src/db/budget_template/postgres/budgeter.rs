@@ -12,6 +12,12 @@ pub struct PostgresBudgeterConfigRepo {
     pub db_conn_pool: PgPool,
 }
 
+impl PostgresBudgeterConfigRepo {
+    pub fn new_boxed(db_conn_pool: PgPool) -> Box<Self> {
+        Box::new(Self { db_conn_pool })
+    }
+}
+
 #[async_trait]
 impl BudgeterConfigRepo for PostgresBudgeterConfigRepo {
     #[tracing::instrument(skip(self))]

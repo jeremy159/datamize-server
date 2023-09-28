@@ -9,6 +9,12 @@ pub struct PostgresYnabPayeeRepo {
     pub db_conn_pool: PgPool,
 }
 
+impl PostgresYnabPayeeRepo {
+    pub fn new_boxed(db_conn_pool: PgPool) -> Box<Self> {
+        Box::new(Self { db_conn_pool })
+    }
+}
+
 #[async_trait]
 impl YnabPayeeRepo for PostgresYnabPayeeRepo {
     #[tracing::instrument(skip(self))]

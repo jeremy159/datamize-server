@@ -10,6 +10,12 @@ pub struct PostgresYnabCategoryRepo {
     pub db_conn_pool: PgPool,
 }
 
+impl PostgresYnabCategoryRepo {
+    pub fn new_boxed(db_conn_pool: PgPool) -> Box<Self> {
+        Box::new(Self { db_conn_pool })
+    }
+}
+
 #[async_trait]
 impl YnabCategoryRepo for PostgresYnabCategoryRepo {
     #[tracing::instrument(skip(self))]

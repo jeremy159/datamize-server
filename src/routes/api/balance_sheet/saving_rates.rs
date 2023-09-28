@@ -31,3 +31,6 @@ pub async fn create_balance_sheet_saving_rate(
         Json(saving_rate_service.create_saving_rate(body).await?),
     ))
 }
+
+// TODO: Introduce SQLite for unit tests. See https://jmmv.dev/2023/07/unit-testing-a-web-service.html
+// and https://matklad.github.io/2021/05/31/how-to-test.html

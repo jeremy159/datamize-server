@@ -4,24 +4,19 @@ use anyhow::Context;
 use async_trait::async_trait;
 use chrono::{DateTime, Datelike, Local, NaiveDate};
 use dyn_clone::{clone_trait_object, DynClone};
-use redis::aio::ConnectionManager;
-use sqlx::PgPool;
 use ynab::{Category, CategoryGroup, CategoryRequests, MonthRequests};
 
 use crate::{
     db::{
-        budget_providers::ynab::{
-            DynYnabCategoryMetaRepo, DynYnabCategoryRepo, PostgresYnabCategoryRepo,
-            RedisYnabCategoryMetaRepo,
-        },
-        budget_template::{DynExpenseCategorizationRepo, PostgresExpenseCategorizationRepo},
+        budget_providers::ynab::{DynYnabCategoryMetaRepo, DynYnabCategoryRepo},
+        budget_template::DynExpenseCategorizationRepo,
     },
     error::{AppError, DatamizeResult},
     models::budget_template::{ExpenseCategorization, MonthTarget},
 };
 
 #[async_trait]
-pub trait CategoryServiceExt: DynClone {
+pub trait CategoryServiceExt: DynClone + Send + Sync {
     async fn get_categories_of_month(
         &mut self,
         month: MonthTarget,
@@ -30,7 +25,7 @@ pub trait CategoryServiceExt: DynClone {
 
 clone_trait_object!(CategoryServiceExt);
 
-pub type DynCategoryService = Box<dyn CategoryServiceExt + Send + Sync>;
+pub type DynCategoryService = Box<dyn CategoryServiceExt>;
 
 pub struct CategoryService<YC: CategoryRequests + MonthRequests> {
     pub ynab_category_repo: DynYnabCategoryRepo,
@@ -53,52 +48,20 @@ where
     }
 }
 
-#[async_trait]
-impl<YC> CategoryServiceExt for CategoryService<YC>
-where
-    YC: CategoryRequests + MonthRequests + Sync + Send,
-{
-    #[tracing::instrument(skip(self))]
-    async fn get_categories_of_month(
-        &mut self,
-        month: MonthTarget,
-    ) -> DatamizeResult<(Vec<Category>, Vec<ExpenseCategorization>)> {
-        match month {
-            MonthTarget::Previous | MonthTarget::Next => {
-                let categories = self
-                    .ynab_client
-                    .get_month_by_date(&DateTime::<Local>::from(month).date_naive().to_string())
-                    .await
-                    .map_err(anyhow::Error::from)
-                    .map(|month_detail| month_detail.categories)?;
-
-                let expenses_categorization =
-                    self.get_expenses_categorization(categories.clone()).await?;
-
-                Ok((categories, expenses_categorization))
-            }
-            MonthTarget::Current => self.get_latest_categories().await,
-        }
-    }
-}
-
 impl<YC> CategoryService<YC>
 where
     YC: CategoryRequests + MonthRequests + Sync + Send,
 {
     pub fn new_boxed(
-        db_conn_pool: PgPool,
-        redis_conn: ConnectionManager,
+        ynab_category_repo: DynYnabCategoryRepo,
+        ynab_category_meta_repo: DynYnabCategoryMetaRepo,
+        expense_categorization_repo: DynExpenseCategorizationRepo,
         ynab_client: Arc<YC>,
     ) -> Box<Self> {
         Box::new(CategoryService {
-            ynab_category_repo: Box::new(PostgresYnabCategoryRepo {
-                db_conn_pool: db_conn_pool.clone(),
-            }),
-            ynab_category_meta_repo: Box::new(RedisYnabCategoryMetaRepo { redis_conn }),
-            expense_categorization_repo: Box::new(PostgresExpenseCategorizationRepo {
-                db_conn_pool,
-            }),
+            ynab_category_repo,
+            ynab_category_meta_repo,
+            expense_categorization_repo,
             ynab_client,
         })
     }
@@ -209,6 +172,35 @@ where
         }
 
         Ok(expenses_categorization_set.into_iter().collect())
+    }
+}
+
+#[async_trait]
+impl<YC> CategoryServiceExt for CategoryService<YC>
+where
+    YC: CategoryRequests + MonthRequests + Sync + Send,
+{
+    #[tracing::instrument(skip(self))]
+    async fn get_categories_of_month(
+        &mut self,
+        month: MonthTarget,
+    ) -> DatamizeResult<(Vec<Category>, Vec<ExpenseCategorization>)> {
+        match month {
+            MonthTarget::Previous | MonthTarget::Next => {
+                let categories = self
+                    .ynab_client
+                    .get_month_by_date(&DateTime::<Local>::from(month).date_naive().to_string())
+                    .await
+                    .map_err(anyhow::Error::from)
+                    .map(|month_detail| month_detail.categories)?;
+
+                let expenses_categorization =
+                    self.get_expenses_categorization(categories.clone()).await?;
+
+                Ok((categories, expenses_categorization))
+            }
+            MonthTarget::Current => self.get_latest_categories().await,
+        }
     }
 }
 
@@ -409,7 +401,7 @@ mod tests {
         let actual = category_service
             .get_expenses_categorization(category_groups.clone())
             .await;
-        assert!(matches!(actual, Ok(_)));
+        assert!(actual.is_ok());
         let actual = actual.unwrap();
         assert_eq!(actual.len(), 2);
         assert!(actual.contains(&category_groups[0].clone().try_into().unwrap()));
@@ -451,7 +443,7 @@ mod tests {
         let actual = category_service
             .get_expenses_categorization(category_groups.clone())
             .await;
-        assert!(matches!(actual, Ok(_)));
+        assert!(actual.is_ok());
         let actual = actual.unwrap();
         assert_eq!(actual.len(), 1);
         assert!(actual.contains(&cat_group.try_into().unwrap()));
@@ -492,7 +484,7 @@ mod tests {
         let actual = category_service
             .get_expenses_categorization(category_groups.clone())
             .await;
-        assert!(matches!(actual, Ok(_)));
+        assert!(actual.is_ok());
         let actual = actual.unwrap();
         assert_eq!(actual.len(), 1);
         assert!(actual.contains(&expense_categorization));

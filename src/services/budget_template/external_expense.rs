@@ -1,18 +1,17 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    db::budget_template::{ExternalExpenseRepo, PostgresExternalExpenseRepo},
+    db::budget_template::DynExternalExpenseRepo,
     error::{AppError, DatamizeResult},
     models::budget_template::{ExternalExpense, SaveExternalExpense},
 };
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait ExternalExpenseServiceExt {
+pub trait ExternalExpenseServiceExt: Send + Sync {
     async fn get_all_external_expenses(&self) -> DatamizeResult<Vec<ExternalExpense>>;
     async fn create_external_expense(
         &self,
@@ -26,10 +25,18 @@ pub trait ExternalExpenseServiceExt {
     async fn delete_external_expense(&self, expense_id: Uuid) -> DatamizeResult<ExternalExpense>;
 }
 
-pub type DynExternalExpenseService = Arc<dyn ExternalExpenseServiceExt + Send + Sync>;
+pub type DynExternalExpenseService = Arc<dyn ExternalExpenseServiceExt>;
 
 pub struct ExternalExpenseService {
-    pub external_expense_repo: Box<dyn ExternalExpenseRepo + Sync + Send>,
+    pub external_expense_repo: DynExternalExpenseRepo,
+}
+
+impl ExternalExpenseService {
+    pub fn new_arced(external_expense_repo: DynExternalExpenseRepo) -> Arc<Self> {
+        Arc::new(Self {
+            external_expense_repo,
+        })
+    }
 }
 
 #[async_trait]
@@ -86,14 +93,6 @@ impl ExternalExpenseServiceExt for ExternalExpenseService {
         self.external_expense_repo.delete(expense_id).await?;
 
         Ok(external_expense)
-    }
-}
-
-impl ExternalExpenseService {
-    pub fn new_arced(db_conn_pool: PgPool) -> Arc<Self> {
-        Arc::new(Self {
-            external_expense_repo: Box::new(PostgresExternalExpenseRepo { db_conn_pool }),
-        })
     }
 }
 

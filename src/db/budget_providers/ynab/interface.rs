@@ -10,7 +10,7 @@ use ynab::TransactionDetail;
 use crate::error::DatamizeResult;
 
 #[async_trait]
-pub trait YnabCategoryRepo: DynClone {
+pub trait YnabCategoryRepo: DynClone + Send + Sync {
     async fn get_all(&self) -> DatamizeResult<Vec<Category>>;
     async fn get(&self, category_id: Uuid) -> DatamizeResult<Category>;
     async fn update_all(&self, categories: &[Category]) -> DatamizeResult<()>;
@@ -18,7 +18,7 @@ pub trait YnabCategoryRepo: DynClone {
 
 clone_trait_object!(YnabCategoryRepo);
 
-pub type DynYnabCategoryRepo = Box<dyn YnabCategoryRepo + Send + Sync>;
+pub type DynYnabCategoryRepo = Box<dyn YnabCategoryRepo>;
 
 #[cfg(test)]
 mockall::mock! {
@@ -37,7 +37,7 @@ mockall::mock! {
 }
 
 #[async_trait]
-pub trait YnabScheduledTransactionRepo: DynClone {
+pub trait YnabScheduledTransactionRepo: DynClone + Send + Sync {
     async fn get_all(&self) -> DatamizeResult<Vec<ScheduledTransactionDetail>>;
     async fn update_all(
         &self,
@@ -47,7 +47,7 @@ pub trait YnabScheduledTransactionRepo: DynClone {
 
 clone_trait_object!(YnabScheduledTransactionRepo);
 
-pub type DynYnabScheduledTransactionRepo = Box<dyn YnabScheduledTransactionRepo + Send + Sync>;
+pub type DynYnabScheduledTransactionRepo = Box<dyn YnabScheduledTransactionRepo>;
 
 #[cfg(test)]
 mockall::mock! {
@@ -65,14 +65,14 @@ mockall::mock! {
 }
 
 #[async_trait]
-pub trait YnabAccountRepo: DynClone {
+pub trait YnabAccountRepo: DynClone + Send + Sync {
     async fn get_all(&self) -> DatamizeResult<Vec<Account>>;
     async fn update_all(&self, accounts: &[Account]) -> DatamizeResult<()>;
 }
 
 clone_trait_object!(YnabAccountRepo);
 
-pub type DynYnabAccountRepo = Box<dyn YnabAccountRepo + Send + Sync>;
+pub type DynYnabAccountRepo = Box<dyn YnabAccountRepo>;
 
 #[cfg(test)]
 mockall::mock! {
@@ -90,14 +90,14 @@ mockall::mock! {
 }
 
 #[async_trait]
-pub trait YnabPayeeRepo: DynClone {
+pub trait YnabPayeeRepo: DynClone + Send + Sync {
     async fn get_all(&self) -> DatamizeResult<Vec<Payee>>;
     async fn update_all(&self, payees: &[Payee]) -> DatamizeResult<()>;
 }
 
 clone_trait_object!(YnabPayeeRepo);
 
-pub type DynYnabPayeeRepo = Box<dyn YnabPayeeRepo + Send + Sync>;
+pub type DynYnabPayeeRepo = Box<dyn YnabPayeeRepo>;
 
 #[cfg(test)]
 mockall::mock! {
@@ -115,7 +115,7 @@ mockall::mock! {
 }
 
 #[async_trait]
-pub trait YnabTransactionRepo: DynClone {
+pub trait YnabTransactionRepo: DynClone + Send + Sync {
     async fn get_all(&self) -> DatamizeResult<Vec<TransactionDetail>>;
     async fn update_all(&self, transactions: &[TransactionDetail]) -> DatamizeResult<()>;
     async fn get_all_with_payee_id(&self, payee_id: Uuid)
@@ -128,7 +128,7 @@ pub trait YnabTransactionRepo: DynClone {
 
 clone_trait_object!(YnabTransactionRepo);
 
-pub type DynYnabTransactionRepo = Box<dyn YnabTransactionRepo + Send + Sync>;
+pub type DynYnabTransactionRepo = Box<dyn YnabTransactionRepo>;
 
 #[cfg(test)]
 mockall::mock! {
@@ -148,7 +148,7 @@ mockall::mock! {
 }
 
 #[async_trait]
-pub trait YnabCategoryMetaRepo: DynClone {
+pub trait YnabCategoryMetaRepo: DynClone + Send + Sync {
     async fn get_delta(&mut self) -> DatamizeResult<i64>;
     async fn set_delta(&mut self, server_knowledge: i64) -> DatamizeResult<()>;
     async fn del_delta(&mut self) -> DatamizeResult<i64>;
@@ -158,7 +158,7 @@ pub trait YnabCategoryMetaRepo: DynClone {
 
 clone_trait_object!(YnabCategoryMetaRepo);
 
-pub type DynYnabCategoryMetaRepo = Box<dyn YnabCategoryMetaRepo + Send + Sync>;
+pub type DynYnabCategoryMetaRepo = Box<dyn YnabCategoryMetaRepo>;
 
 #[cfg(test)]
 mockall::mock! {
@@ -179,7 +179,7 @@ mockall::mock! {
 }
 
 #[async_trait]
-pub trait YnabScheduledTransactionMetaRepo: DynClone {
+pub trait YnabScheduledTransactionMetaRepo: DynClone + Send + Sync {
     async fn get_delta(&mut self) -> DatamizeResult<i64>;
     async fn set_delta(&mut self, server_knowledge: i64) -> DatamizeResult<()>;
     async fn del_delta(&mut self) -> DatamizeResult<i64>;
@@ -189,8 +189,7 @@ pub trait YnabScheduledTransactionMetaRepo: DynClone {
 
 clone_trait_object!(YnabScheduledTransactionMetaRepo);
 
-pub type DynYnabScheduledTransactionMetaRepo =
-    Box<dyn YnabScheduledTransactionMetaRepo + Send + Sync>;
+pub type DynYnabScheduledTransactionMetaRepo = Box<dyn YnabScheduledTransactionMetaRepo>;
 
 #[cfg(test)]
 mockall::mock! {
@@ -211,14 +210,14 @@ mockall::mock! {
 }
 
 #[async_trait]
-pub trait YnabAccountMetaRepo: DynClone {
+pub trait YnabAccountMetaRepo: DynClone + Send + Sync {
     async fn get_delta(&mut self) -> DatamizeResult<i64>;
     async fn set_delta(&mut self, server_knowledge: i64) -> DatamizeResult<()>;
 }
 
 clone_trait_object!(YnabAccountMetaRepo);
 
-pub type DynYnabAccountMetaRepo = Box<dyn YnabAccountMetaRepo + Send + Sync>;
+pub type DynYnabAccountMetaRepo = Box<dyn YnabAccountMetaRepo>;
 
 #[cfg(test)]
 mockall::mock! {
@@ -236,14 +235,14 @@ mockall::mock! {
 }
 
 #[async_trait]
-pub trait YnabPayeeMetaRepo: DynClone {
+pub trait YnabPayeeMetaRepo: DynClone + Send + Sync {
     async fn get_delta(&mut self) -> DatamizeResult<i64>;
     async fn set_delta(&mut self, server_knowledge: i64) -> DatamizeResult<()>;
 }
 
 clone_trait_object!(YnabPayeeMetaRepo);
 
-pub type DynYnabPayeeMetaRepo = Box<dyn YnabPayeeMetaRepo + Send + Sync>;
+pub type DynYnabPayeeMetaRepo = Box<dyn YnabPayeeMetaRepo>;
 
 #[cfg(test)]
 mockall::mock! {
@@ -261,14 +260,14 @@ mockall::mock! {
 }
 
 #[async_trait]
-pub trait YnabTransactionMetaRepo: DynClone {
+pub trait YnabTransactionMetaRepo: DynClone + Send + Sync {
     async fn get_delta(&mut self) -> DatamizeResult<i64>;
     async fn set_delta(&mut self, server_knowledge: i64) -> DatamizeResult<()>;
 }
 
 clone_trait_object!(YnabTransactionMetaRepo);
 
-pub type DynYnabTransactionMetaRepo = Box<dyn YnabTransactionMetaRepo + Send + Sync>;
+pub type DynYnabTransactionMetaRepo = Box<dyn YnabTransactionMetaRepo>;
 
 #[cfg(test)]
 mockall::mock! {

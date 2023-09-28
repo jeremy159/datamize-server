@@ -13,6 +13,12 @@ pub struct PostgresExternalExpenseRepo {
     pub db_conn_pool: PgPool,
 }
 
+impl PostgresExternalExpenseRepo {
+    pub fn new_boxed(db_conn_pool: PgPool) -> Box<Self> {
+        Box::new(Self { db_conn_pool })
+    }
+}
+
 #[async_trait]
 impl ExternalExpenseRepo for PostgresExternalExpenseRepo {
     #[tracing::instrument(skip(self))]

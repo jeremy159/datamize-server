@@ -3,26 +3,21 @@ use std::sync::Arc;
 use anyhow::Context;
 use async_trait::async_trait;
 use dyn_clone::{clone_trait_object, DynClone};
-use redis::aio::ConnectionManager;
-use sqlx::PgPool;
 use ynab::{Account, AccountRequests};
 
 use crate::{
-    db::budget_providers::ynab::{
-        DynYnabAccountMetaRepo, DynYnabAccountRepo, PostgresYnabAccountRepo,
-        RedisYnabAccountMetaRepo,
-    },
+    db::budget_providers::ynab::{DynYnabAccountMetaRepo, DynYnabAccountRepo},
     error::DatamizeResult,
 };
 
 #[async_trait]
-pub trait YnabAccountServiceExt: DynClone {
+pub trait YnabAccountServiceExt: DynClone + Send + Sync {
     async fn get_all_ynab_accounts(&mut self) -> DatamizeResult<Vec<Account>>;
 }
 
 clone_trait_object!(YnabAccountServiceExt);
 
-pub type DynYnabAccountService = Box<dyn YnabAccountServiceExt + Send + Sync>;
+pub type DynYnabAccountService = Box<dyn YnabAccountServiceExt>;
 
 #[derive(Clone)]
 pub struct YnabAccountService {
@@ -71,13 +66,13 @@ impl YnabAccountServiceExt for YnabAccountService {
 
 impl YnabAccountService {
     pub fn new_boxed(
-        db_conn_pool: PgPool,
-        redis_conn: ConnectionManager,
+        ynab_account_repo: DynYnabAccountRepo,
+        ynab_account_meta_repo: DynYnabAccountMetaRepo,
         ynab_client: Arc<dyn AccountRequests + Send + Sync>,
     ) -> Box<Self> {
         Box::new(YnabAccountService {
-            ynab_account_repo: Box::new(PostgresYnabAccountRepo { db_conn_pool }),
-            ynab_account_meta_repo: Box::new(RedisYnabAccountMetaRepo { redis_conn }),
+            ynab_account_repo,
+            ynab_account_meta_repo,
             ynab_client,
         })
     }

@@ -10,6 +10,12 @@ pub struct RedisEncryptionKeyRepo {
     pub redis_conn: ConnectionManager,
 }
 
+impl RedisEncryptionKeyRepo {
+    pub fn new_boxed(redis_conn: ConnectionManager) -> Box<Self> {
+        Box::new(Self { redis_conn })
+    }
+}
+
 #[async_trait]
 impl EncryptionKeyRepo for RedisEncryptionKeyRepo {
     #[tracing::instrument(skip(self))]

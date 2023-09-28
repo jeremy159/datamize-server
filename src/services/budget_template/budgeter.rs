@@ -1,18 +1,17 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    db::budget_template::{BudgeterConfigRepo, PostgresBudgeterConfigRepo},
+    db::budget_template::DynBudgeterConfigRepo,
     error::{AppError, DatamizeResult},
     models::budget_template::{BudgeterConfig, SaveBudgeterConfig},
 };
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait BudgeterServiceExt {
+pub trait BudgeterServiceExt: Send + Sync {
     async fn get_all_budgeters(&self) -> DatamizeResult<Vec<BudgeterConfig>>;
     async fn create_budgeter(
         &self,
@@ -24,10 +23,18 @@ pub trait BudgeterServiceExt {
     async fn delete_budgeter(&self, budgeter_id: Uuid) -> DatamizeResult<BudgeterConfig>;
 }
 
-pub type DynBudgeterService = Arc<dyn BudgeterServiceExt + Send + Sync>;
+pub type DynBudgeterService = Arc<dyn BudgeterServiceExt>;
 
 pub struct BudgeterService {
-    pub budgeter_config_repo: Box<dyn BudgeterConfigRepo + Send + Sync>,
+    pub budgeter_config_repo: DynBudgeterConfigRepo,
+}
+
+impl BudgeterService {
+    pub fn new_arced(budgeter_config_repo: DynBudgeterConfigRepo) -> Arc<Self> {
+        Arc::new(Self {
+            budgeter_config_repo,
+        })
+    }
 }
 
 #[async_trait]
@@ -84,14 +91,6 @@ impl BudgeterServiceExt for BudgeterService {
         self.budgeter_config_repo.delete(budgeter_id).await?;
 
         Ok(budgeter_config)
-    }
-}
-
-impl BudgeterService {
-    pub fn new_arced(db_conn_pool: PgPool) -> Arc<Self> {
-        Arc::new(Self {
-            budgeter_config_repo: Box::new(PostgresBudgeterConfigRepo { db_conn_pool }),
-        })
     }
 }
 

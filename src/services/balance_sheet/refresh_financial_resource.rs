@@ -3,35 +3,31 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use chrono::{Datelike, Local};
 use dyn_clone::{clone_trait_object, DynClone};
-use redis::aio::ConnectionManager;
-use sqlx::PgPool;
 use uuid::Uuid;
 use ynab::AccountRequests;
 
 use crate::{
-    db::balance_sheet::{
-        FinResRepo, MonthRepo, PostgresFinResRepo, PostgresMonthRepo, PostgresYearRepo, YearRepo,
-    },
+    db::balance_sheet::{DynFinResRepo, DynMonthRepo, DynYearRepo},
     error::{AppError, DatamizeResult},
     models::balance_sheet::{Month, MonthNum},
-    services::budget_providers::{DynExternalAccountService, ExternalAccountService},
+    services::budget_providers::DynExternalAccountService,
     telemetry::spawn_blocking_with_tracing,
 };
 
 #[async_trait]
-pub trait RefreshFinResServiceExt: DynClone {
+pub trait RefreshFinResServiceExt: DynClone + Send + Sync {
     async fn refresh_fin_res(&mut self) -> DatamizeResult<Vec<Uuid>>;
 }
 
 clone_trait_object!(RefreshFinResServiceExt);
 
-pub type DynRefreshFinResService = Box<dyn RefreshFinResServiceExt + Send + Sync>;
+pub type DynRefreshFinResService = Box<dyn RefreshFinResServiceExt>;
 
 #[derive(Clone)]
 pub struct RefreshFinResService {
-    pub fin_res_repo: Arc<dyn FinResRepo + Sync + Send>,
-    pub month_repo: Arc<dyn MonthRepo + Sync + Send>,
-    pub year_repo: Arc<dyn YearRepo + Sync + Send>,
+    pub fin_res_repo: DynFinResRepo,
+    pub month_repo: DynMonthRepo,
+    pub year_repo: DynYearRepo,
     pub external_account_service: DynExternalAccountService,
     pub ynab_client: Arc<dyn AccountRequests + Send + Sync>,
 }
@@ -138,15 +134,17 @@ impl RefreshFinResServiceExt for RefreshFinResService {
 
 impl RefreshFinResService {
     pub fn new_boxed(
-        db_conn_pool: PgPool,
-        redis_conn: ConnectionManager,
+        fin_res_repo: DynFinResRepo,
+        month_repo: DynMonthRepo,
+        year_repo: DynYearRepo,
+        external_account_service: DynExternalAccountService,
         ynab_client: Arc<dyn AccountRequests + Send + Sync>,
     ) -> Box<Self> {
         Box::new(Self {
-            year_repo: PostgresYearRepo::new_arced(db_conn_pool.clone()),
-            month_repo: PostgresMonthRepo::new_arced(db_conn_pool.clone()),
-            fin_res_repo: PostgresFinResRepo::new_arced(db_conn_pool.clone()),
-            external_account_service: ExternalAccountService::new_boxed(db_conn_pool, redis_conn),
+            year_repo,
+            month_repo,
+            fin_res_repo,
+            external_account_service,
             ynab_client,
         })
     }

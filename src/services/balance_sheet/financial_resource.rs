@@ -1,20 +1,17 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    db::balance_sheet::{
-        FinResRepo, MonthRepo, PostgresFinResRepo, PostgresMonthRepo, PostgresYearRepo, YearRepo,
-    },
+    db::balance_sheet::{DynFinResRepo, DynMonthRepo, DynYearRepo},
     error::{AppError, DatamizeResult},
     models::balance_sheet::{FinancialResourceYearly, Month, SaveResource},
 };
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
-pub trait FinResServiceExt {
+pub trait FinResServiceExt: Send + Sync {
     async fn get_all_fin_res(&self) -> DatamizeResult<Vec<FinancialResourceYearly>>;
     async fn get_all_fin_res_from_year(
         &self,
@@ -33,12 +30,26 @@ pub trait FinResServiceExt {
     async fn delete_fin_res(&self, fin_res_id: Uuid) -> DatamizeResult<FinancialResourceYearly>;
 }
 
-pub type DynFinResService = Arc<dyn FinResServiceExt + Send + Sync>;
+pub type DynFinResService = Arc<dyn FinResServiceExt>;
 
 pub struct FinResService {
-    pub fin_res_repo: Arc<dyn FinResRepo + Sync + Send>,
-    pub month_repo: Arc<dyn MonthRepo + Sync + Send>,
-    pub year_repo: Arc<dyn YearRepo + Sync + Send>,
+    pub fin_res_repo: DynFinResRepo,
+    pub month_repo: DynMonthRepo,
+    pub year_repo: DynYearRepo,
+}
+
+impl FinResService {
+    pub fn new_arced(
+        fin_res_repo: DynFinResRepo,
+        month_repo: DynMonthRepo,
+        year_repo: DynYearRepo,
+    ) -> Arc<Self> {
+        Arc::new(Self {
+            year_repo,
+            month_repo,
+            fin_res_repo,
+        })
+    }
 }
 
 #[async_trait]
@@ -158,15 +169,5 @@ impl FinResServiceExt for FinResService {
         self.year_repo.update_net_totals(resource.year).await?;
 
         Ok(resource)
-    }
-}
-
-impl FinResService {
-    pub fn new_arced(db_conn_pool: PgPool) -> Arc<Self> {
-        Arc::new(Self {
-            year_repo: PostgresYearRepo::new_arced(db_conn_pool.clone()),
-            month_repo: PostgresMonthRepo::new_arced(db_conn_pool.clone()),
-            fin_res_repo: PostgresFinResRepo::new_arced(db_conn_pool),
-        })
     }
 }

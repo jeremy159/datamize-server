@@ -15,6 +15,12 @@ pub struct PostgresExternalAccountRepo {
     pub db_conn_pool: PgPool,
 }
 
+impl PostgresExternalAccountRepo {
+    pub fn new_boxed(db_conn_pool: PgPool) -> Box<Self> {
+        Box::new(Self { db_conn_pool })
+    }
+}
+
 #[async_trait]
 impl ExternalAccountRepo for PostgresExternalAccountRepo {
     #[tracing::instrument(skip(self))]

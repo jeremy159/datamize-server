@@ -5,7 +5,7 @@ use uuid::Uuid;
 use crate::{error::DatamizeResult, models::budget_providers::WebScrapingAccount};
 
 #[async_trait]
-pub trait ExternalAccountRepo: DynClone {
+pub trait ExternalAccountRepo: DynClone + Send + Sync {
     async fn get_all(&self) -> DatamizeResult<Vec<WebScrapingAccount>>;
     async fn get(&self, account_id: Uuid) -> DatamizeResult<WebScrapingAccount>;
     async fn get_by_name(&self, name: &str) -> DatamizeResult<WebScrapingAccount>;
@@ -16,7 +16,7 @@ pub trait ExternalAccountRepo: DynClone {
 
 clone_trait_object!(ExternalAccountRepo);
 
-pub type DynExternalAccountRepo = Box<dyn ExternalAccountRepo + Send + Sync>;
+pub type DynExternalAccountRepo = Box<dyn ExternalAccountRepo>;
 
 #[cfg(test)]
 mockall::mock! {
@@ -38,14 +38,14 @@ mockall::mock! {
 }
 
 #[async_trait]
-pub trait EncryptionKeyRepo: DynClone {
+pub trait EncryptionKeyRepo: DynClone + Send + Sync {
     async fn get(&mut self) -> DatamizeResult<Vec<u8>>;
     async fn set(&mut self, encryption_key_str: &[u8]) -> DatamizeResult<()>;
 }
 
 clone_trait_object!(EncryptionKeyRepo);
 
-pub type DynEncryptionKeyRepo = Box<dyn EncryptionKeyRepo + Send + Sync>;
+pub type DynEncryptionKeyRepo = Box<dyn EncryptionKeyRepo>;
 
 #[cfg(test)]
 mockall::mock! {
