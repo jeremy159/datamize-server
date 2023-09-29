@@ -81,6 +81,7 @@ jobs:
           SKIP_DOCKER=true ./scripts/init_db.sh
 
       - name: Check sqlx-data.json is up-to-date
+        working-directory: ./crates/datamize-server
         run: |
           cargo sqlx prepare --check -- --bin datamize-server
 
