@@ -101,8 +101,15 @@ impl WebDriverSettings {
 
 impl Settings {
     pub fn build() -> Result<Self, config::ConfigError> {
-        let base_path = std::env::current_dir().expect("Failed to determine the current directory");
-        let configuration_directory = base_path.join("crates/datamize-server/configuration");
+        let base_path = {
+            let p = std::env::current_dir().expect("Failed to determine the current directory");
+            if !p.ends_with("crates/datamize-server") {
+                p.join("crates/datamize-server")
+            } else {
+                p
+            }
+        };
+        let configuration_directory = base_path.join("configuration");
 
         // Detect the running environment.
         // Default to `local` if unspecified.
