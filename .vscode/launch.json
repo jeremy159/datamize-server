@@ -9,12 +9,7 @@
       "request": "launch",
       "name": "Debug unit tests in library 'budget-data-api'",
       "cargo": {
-        "args": [
-          "test",
-          "--no-run",
-          "--lib",
-          "--package=budget-data-api"
-        ],
+        "args": ["test", "--no-run", "--lib", "--package=budget-data-api"],
         "filter": {
           "name": "budget-data-api",
           "kind": "lib"
@@ -28,12 +23,7 @@
       "request": "launch",
       "name": "Debug unit tests in library 'ynab'",
       "cargo": {
-        "args": [
-          "test",
-          "--no-run",
-          "--lib",
-          "--package=ynab"
-        ],
+        "args": ["test", "--no-run", "--lib", "--package=ynab"],
         "filter": {
           "name": "ynab",
           "kind": "lib"
@@ -47,12 +37,7 @@
       "request": "launch",
       "name": "Debug unit tests in library 'datamize'",
       "cargo": {
-        "args": [
-          "test",
-          "--no-run",
-          "--lib",
-          "--package=datamize"
-        ],
+        "args": ["test", "--no-run", "--lib", "--package=datamize"],
         "filter": {
           "name": "datamize",
           "kind": "lib"
@@ -64,15 +49,11 @@
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Debug executable 'datamize'",
+      "name": "Debug executable 'datamize-server'",
       "cargo": {
-        "args": [
-          "build",
-          "--bin=datamize",
-          "--package=datamize"
-        ],
+        "args": ["build", "--bin=datamize-server", "--package=datamize-server"],
         "filter": {
-          "name": "datamize",
+          "name": "datamize-server",
           "kind": "bin"
         }
       },
@@ -82,16 +63,16 @@
     {
       "type": "lldb",
       "request": "launch",
-      "name": "Debug unit tests in executable 'datamize'",
+      "name": "Debug unit tests in executable 'datamize-server'",
       "cargo": {
         "args": [
           "test",
           "--no-run",
-          "--bin=datamize",
-          "--package=datamize"
+          "--bin=datamize-server",
+          "--package=datamize-server"
         ],
         "filter": {
-          "name": "datamize",
+          "name": "datamize-server",
           "kind": "bin"
         }
       },
