@@ -1,9 +1,7 @@
+use datamize_domain::{secrecy::ExposeSecret, WebScrapingAccount};
 use fantoccini::{ClientBuilder, Locator};
 use orion::aead;
 use orion::kex::SecretKey;
-use secrecy::ExposeSecret;
-
-use crate::models::budget_providers::WebScrapingAccount;
 
 use super::parsing::parse_balance;
 

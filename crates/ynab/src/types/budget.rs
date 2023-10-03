@@ -6,7 +6,7 @@ use crate::{
     ScheduledTransactionSummary, SubTransaction, TransactionSummary,
 };
 
-#[cfg_attr(test, derive(fake::Dummy))]
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CurrencyFormat {
     pub iso_code: String,
@@ -19,13 +19,13 @@ pub struct CurrencyFormat {
     pub display_symbol: bool,
 }
 
-#[cfg_attr(test, derive(fake::Dummy))]
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct DateFormat {
     pub format: String,
 }
 
-#[cfg_attr(test, derive(fake::Dummy))]
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BaseBudgetSumary {
     pub id: Uuid,
@@ -37,7 +37,7 @@ pub struct BaseBudgetSumary {
     pub currency_format: CurrencyFormat,
 }
 
-#[cfg_attr(test, derive(fake::Dummy))]
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Budgets/getBudgetById
 pub struct BudgetSummary {
@@ -51,7 +51,7 @@ impl AsRef<BaseBudgetSumary> for BudgetSummary {
     }
 }
 
-#[cfg_attr(test, derive(fake::Dummy))]
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Budgets/getBudgetById
 pub struct BudgetSummaryWithAccounts {
@@ -66,7 +66,7 @@ impl AsRef<BaseBudgetSumary> for BudgetSummaryWithAccounts {
     }
 }
 
-#[cfg_attr(test, derive(fake::Dummy))]
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Budgets/getBudgetById
 pub struct BudgetDetail {
@@ -89,14 +89,14 @@ pub struct BudgetDetail {
     pub scheduled_subtransactions: Vec<SubTransaction>,
 }
 
-#[cfg_attr(test, derive(fake::Dummy))]
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BudgetDetailDelta {
     pub budget: BudgetDetail,
     pub server_knowledge: i64,
 }
 
-#[cfg_attr(test, derive(fake::Dummy))]
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Budgets/getBudgetSettingsById
 pub struct BudgetSettings {

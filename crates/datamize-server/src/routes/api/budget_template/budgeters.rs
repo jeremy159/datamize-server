@@ -1,9 +1,9 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use axum_extra::extract::WithRejection;
+use datamize_domain::{BudgeterConfig, SaveBudgeterConfig};
 
 use crate::{
     error::{DatamizeResult, HttpJsonDatamizeResult, JsonError},
-    models::budget_template::{BudgeterConfig, SaveBudgeterConfig},
     services::budget_template::DynBudgeterService,
 };
 
@@ -35,10 +35,10 @@ mod tests {
         body::Body,
         http::{Request, StatusCode},
     };
+    use datamize_domain::Uuid;
     use fake::{Dummy, Fake, Faker};
     use serde::Serialize;
     use tower::ServiceExt;
-    use uuid::Uuid;
 
     use crate::{
         error::AppError, routes::api::budget_template::get_budgeter_routes,

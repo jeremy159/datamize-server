@@ -1,18 +1,16 @@
 use std::sync::Arc;
 
 use anyhow::Context;
-use async_trait::async_trait;
 use chrono::{Datelike, Local, NaiveDate};
+use datamize_domain::{
+    async_trait,
+    db::ynab::{DynYnabScheduledTransactionMetaRepo, DynYnabScheduledTransactionRepo},
+    DatamizeScheduledTransaction,
+};
 use dyn_clone::{clone_trait_object, DynClone};
 use ynab::ScheduledTransactionRequests;
 
-use crate::{
-    db::budget_providers::ynab::{
-        DynYnabScheduledTransactionMetaRepo, DynYnabScheduledTransactionRepo,
-    },
-    error::DatamizeResult,
-    models::budget_template::DatamizeScheduledTransaction,
-};
+use crate::error::DatamizeResult;
 
 #[async_trait]
 pub trait ScheduledTransactionServiceExt: DynClone + Send + Sync {
@@ -122,32 +120,15 @@ impl ScheduledTransactionServiceExt for ScheduledTransactionService {
 #[cfg(test)]
 mod tests {
     use chrono::Months;
+    use datamize_domain::db::{
+        ynab::{MockYnabScheduledTransactionMetaRepoImpl, MockYnabScheduledTransactionRepoImpl},
+        DbError,
+    };
     use fake::{Fake, Faker};
-    use mockall::{mock, predicate::eq};
-    use ynab::{ScheduledTransactionDetail, ScheduledTransactionsDetailDelta, YnabResult};
+    use mockall::predicate::eq;
+    use ynab::{MockScheduledTransactionRequests, ScheduledTransactionsDetailDelta};
 
     use super::*;
-    use crate::{
-        db::budget_providers::ynab::{
-            MockYnabScheduledTransactionMetaRepoImpl, MockYnabScheduledTransactionRepoImpl,
-        },
-        error::AppError,
-    };
-
-    mock! {
-        YnabClient {}
-        #[async_trait]
-        impl ScheduledTransactionRequests for YnabClient {
-            async fn get_scheduled_transactions_delta(&self, knowledge_server: Option<i64>) -> YnabResult<ScheduledTransactionsDetailDelta>;
-
-            async fn get_scheduled_transactions(&self) -> YnabResult<Vec<ScheduledTransactionDetail>>;
-
-            async fn get_scheduled_transaction_by_id(
-                &self,
-                scheduled_transaction_id: &str,
-            ) -> YnabResult<ScheduledTransactionDetail>;
-        }
-    }
 
     #[tokio::test]
     async fn check_last_saved_when_nothing_currently_saved_should_update_last_saved() {
@@ -158,7 +139,7 @@ mod tests {
         ynab_scheduled_transaction_meta_repo
             .expect_get_last_saved()
             .once()
-            .returning(|| Err(AppError::ResourceNotFound));
+            .returning(|| Err(DbError::NotFound));
 
         let expected = Local::now().date_naive();
         ynab_scheduled_transaction_meta_repo
@@ -167,7 +148,7 @@ mod tests {
             .with(eq(expected.to_string()))
             .returning(|_| Ok(()));
 
-        let ynab_client = MockYnabClient::new();
+        let ynab_client = MockScheduledTransactionRequests::new();
 
         let mut scheduled_transaction_service = ScheduledTransactionService {
             ynab_scheduled_transaction_repo,
@@ -196,7 +177,7 @@ mod tests {
             .expect_set_last_saved()
             .never();
 
-        let ynab_client = MockYnabClient::new();
+        let ynab_client = MockScheduledTransactionRequests::new();
 
         let mut scheduled_transaction_service = ScheduledTransactionService {
             ynab_scheduled_transaction_repo,
@@ -236,7 +217,7 @@ mod tests {
             .once()
             .returning(|| Ok(Faker.fake()));
 
-        let ynab_client = MockYnabClient::new();
+        let ynab_client = MockScheduledTransactionRequests::new();
 
         let mut scheduled_transaction_service = ScheduledTransactionService {
             ynab_scheduled_transaction_repo,
@@ -254,7 +235,7 @@ mod tests {
             Box::new(MockYnabScheduledTransactionRepoImpl::new());
         let mut ynab_scheduled_transaction_meta_repo =
             Box::new(MockYnabScheduledTransactionMetaRepoImpl::new());
-        let mut ynab_client = MockYnabClient::new();
+        let mut ynab_client = MockScheduledTransactionRequests::new();
 
         let saved_date = Local::now().date_naive();
         ynab_scheduled_transaction_meta_repo
@@ -265,49 +246,9 @@ mod tests {
         ynab_scheduled_transaction_meta_repo
             .expect_get_delta()
             .once()
-            .returning(move || Err(AppError::ResourceNotFound));
+            .returning(move || Err(DbError::NotFound));
 
-        let expected = ScheduledTransactionsDetailDelta {
-            server_knowledge: Faker.fake(),
-            scheduled_transactions: vec![
-                ScheduledTransactionDetail {
-                    id: Faker.fake(),
-                    date_first: Faker.fake(),
-                    date_next: Faker.fake(),
-                    frequency: None,
-                    amount: Faker.fake(),
-                    memo: Faker.fake(),
-                    flag_color: Faker.fake(),
-                    account_id: Faker.fake(),
-                    payee_id: Faker.fake(),
-                    category_id: Faker.fake(),
-                    transfer_account_id: Faker.fake(),
-                    deleted: Faker.fake(),
-                    account_name: Faker.fake(),
-                    payee_name: Faker.fake(),
-                    category_name: Faker.fake(),
-                    subtransactions: vec![],
-                },
-                ScheduledTransactionDetail {
-                    id: Faker.fake(),
-                    date_first: Faker.fake(),
-                    date_next: Faker.fake(),
-                    frequency: None,
-                    amount: Faker.fake(),
-                    memo: Faker.fake(),
-                    flag_color: Faker.fake(),
-                    account_id: Faker.fake(),
-                    payee_id: Faker.fake(),
-                    category_id: Faker.fake(),
-                    transfer_account_id: Faker.fake(),
-                    deleted: Faker.fake(),
-                    account_name: Faker.fake(),
-                    payee_name: Faker.fake(),
-                    category_name: Faker.fake(),
-                    subtransactions: vec![],
-                },
-            ],
-        };
+        let expected: ScheduledTransactionsDetailDelta = Faker.fake();
         let expected_cloned = expected.clone();
         ynab_client
             .expect_get_scheduled_transactions_delta()

@@ -1,13 +1,7 @@
+use datamize_domain::{async_trait, db::DynExpenseCategorizationRepo, ExpenseCategorization, Uuid};
 use std::sync::Arc;
 
-use async_trait::async_trait;
-use uuid::Uuid;
-
-use crate::{
-    db::budget_template::DynExpenseCategorizationRepo,
-    error::{AppError, DatamizeResult},
-    models::budget_template::ExpenseCategorization,
-};
+use crate::error::{AppError, DatamizeResult};
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -45,7 +39,7 @@ impl ExpenseCategorizationService {
 impl ExpenseCategorizationServiceExt for ExpenseCategorizationService {
     #[tracing::instrument(skip(self))]
     async fn get_all_expenses_categorization(&self) -> DatamizeResult<Vec<ExpenseCategorization>> {
-        self.expense_categorization_repo.get_all().await
+        Ok(self.expense_categorization_repo.get_all().await?)
     }
 
     #[tracing::instrument(skip_all)]
@@ -65,9 +59,10 @@ impl ExpenseCategorizationServiceExt for ExpenseCategorizationService {
         &self,
         expense_categorization_id: Uuid,
     ) -> DatamizeResult<ExpenseCategorization> {
-        self.expense_categorization_repo
+        Ok(self
+            .expense_categorization_repo
             .get(expense_categorization_id)
-            .await
+            .await?)
     }
 
     #[tracing::instrument(skip_all)]
@@ -93,10 +88,10 @@ impl ExpenseCategorizationServiceExt for ExpenseCategorizationService {
 
 #[cfg(test)]
 mod tests {
+    use datamize_domain::db::{DbError, MockExpenseCategorizationRepoImpl};
     use fake::{Fake, Faker};
 
     use super::*;
-    use crate::db::budget_template::MockExpenseCategorizationRepoImpl;
 
     #[tokio::test]
     async fn update_expense_categorization_success() {
@@ -129,7 +124,7 @@ mod tests {
         let mut expense_categorization_repo = Box::new(MockExpenseCategorizationRepoImpl::new());
         expense_categorization_repo
             .expect_get()
-            .return_once(|_| Err(AppError::ResourceNotFound));
+            .return_once(|_| Err(DbError::NotFound));
         expense_categorization_repo.expect_update().never();
 
         let expense_categorization_service = ExpenseCategorizationService {

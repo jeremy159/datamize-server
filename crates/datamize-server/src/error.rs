@@ -4,6 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use datamize_domain::db::DbError;
 use serde_json::json;
 
 pub type DatamizeResult<T> = Result<T, AppError>;
@@ -31,17 +32,27 @@ impl std::fmt::Debug for AppError {
     }
 }
 
+impl From<DbError> for AppError {
+    fn from(value: DbError) -> Self {
+        match value {
+            DbError::NotFound => AppError::ResourceNotFound,
+            DbError::AlreadyExists => AppError::ResourceAlreadyExist,
+            e => AppError::InternalServerError(e.into()),
+        }
+    }
+}
+
 impl From<sqlx::Error> for AppError {
     fn from(value: sqlx::Error) -> Self {
         AppError::from_sqlx(value)
     }
 }
 
-impl From<redis::RedisError> for AppError {
-    fn from(value: redis::RedisError) -> Self {
-        AppError::InternalServerError(value.into())
-    }
-}
+// impl From<redis::RedisError> for AppError {
+//     fn from(value: redis::RedisError) -> Self {
+//         AppError::InternalServerError(value.into())
+//     }
+// }
 
 impl From<config::ConfigError> for AppError {
     fn from(value: config::ConfigError) -> Self {

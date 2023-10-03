@@ -1,11 +1,9 @@
-use crate::{
-    models::budget_template::{BudgetDetails, TemplateParams},
-    services::budget_template::DynTemplateDetailService,
-};
+use crate::services::budget_template::DynTemplateDetailService;
 use axum::{
     extract::{Query, State},
     Json,
 };
+use datamize_domain::{BudgetDetails, TemplateParams};
 
 use crate::error::HttpJsonDatamizeResult;
 
@@ -27,17 +25,16 @@ pub async fn template_details(
 
 #[cfg(test)]
 mod tests {
-    use async_trait::async_trait;
     use axum::{
         body::Body,
         http::{Request, StatusCode},
     };
+    use datamize_domain::{async_trait, MonthTarget};
     use fake::{Fake, Faker};
     use tower::ServiceExt;
 
     use crate::{
         error::{AppError, DatamizeResult},
-        models::budget_template::MonthTarget,
         routes::api::budget_template::get_detail_routes,
         services::budget_template::TemplateDetailServiceExt,
     };

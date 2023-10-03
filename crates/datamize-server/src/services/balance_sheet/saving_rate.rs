@@ -1,13 +1,15 @@
-use async_trait::async_trait;
 use dyn_clone::{clone_trait_object, DynClone};
 use futures::{stream::FuturesUnordered, StreamExt};
-use uuid::Uuid;
 use ynab::TransactionDetail;
 
+use datamize_domain::{
+    async_trait,
+    db::{DbError, DynSavingRateRepo},
+    SaveSavingRate, SavingRate, Uuid,
+};
+
 use crate::{
-    db::balance_sheet::DynSavingRateRepo,
     error::{AppError, DatamizeResult},
-    models::balance_sheet::{SaveSavingRate, SavingRate},
     services::budget_providers::DynTransactionService,
 };
 
@@ -72,7 +74,7 @@ impl SavingRateServiceExt for SavingRateService {
         &mut self,
         new_saving_rate: SaveSavingRate,
     ) -> DatamizeResult<SavingRate> {
-        let Err(AppError::ResourceNotFound) = self
+        let Err(DbError::NotFound) = self
             .saving_rate_repo
             .get_by_name(&new_saving_rate.name)
             .await

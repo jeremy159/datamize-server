@@ -2,17 +2,15 @@ use std::fmt;
 
 use anyhow::Context;
 use clap::{Args, Parser, Subcommand, ValueEnum};
-use datamize_server::db::budget_providers::external::{
-    PostgresExternalAccountRepo, RedisEncryptionKeyRepo,
-};
-use datamize_server::models::budget_providers::{EncryptedPassword, WebScrapingAccount};
+use datamize_domain::{secrecy::Secret, EncryptedPassword, Uuid, WebScrapingAccount};
 use datamize_server::services::budget_providers::{
     ExternalAccountService, ExternalAccountServiceExt,
 };
-use datamize_server::{get_redis_connection_manager, secrecy::Secret, sqlx_error::Error};
+use datamize_server::{get_redis_connection_manager, sqlx_error::Error};
+use db_postgres::budget_providers::external::PostgresExternalAccountRepo;
+use db_redis::budget_providers::external::RedisEncryptionKeyRepo;
 use orion::aead;
 use orion::kex::SecretKey;
-use uuid::Uuid;
 
 /// Simple program to quickly perform some operations
 /// on some Datamize functionnality without a GUI.

@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
-use uuid::Uuid;
-
-use crate::{
-    db::balance_sheet::{DynFinResRepo, DynMonthRepo, DynYearRepo},
-    error::{AppError, DatamizeResult},
-    models::balance_sheet::{FinancialResourceYearly, Month, SaveResource},
+use datamize_domain::{
+    async_trait,
+    db::{DbError, DynFinResRepo, DynMonthRepo, DynYearRepo},
+    FinancialResourceYearly, Month, SaveResource, Uuid,
 };
+
+use crate::error::DatamizeResult;
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -56,7 +55,7 @@ impl FinResService {
 impl FinResServiceExt for FinResService {
     #[tracing::instrument(skip(self))]
     async fn get_all_fin_res(&self) -> DatamizeResult<Vec<FinancialResourceYearly>> {
-        self.fin_res_repo.get_from_all_years().await
+        Ok(self.fin_res_repo.get_from_all_years().await?)
     }
 
     #[tracing::instrument(skip(self))]
@@ -64,7 +63,7 @@ impl FinResServiceExt for FinResService {
         &self,
         year: i32,
     ) -> DatamizeResult<Vec<FinancialResourceYearly>> {
-        self.fin_res_repo.get_from_year(year).await
+        Ok(self.fin_res_repo.get_from_year(year).await?)
     }
 
     #[tracing::instrument(skip_all)]
@@ -76,7 +75,7 @@ impl FinResServiceExt for FinResService {
 
         if !resource.balance_per_month.is_empty() {
             for month in resource.balance_per_month.keys() {
-                if let Err(AppError::ResourceNotFound) = self
+                if let Err(DbError::NotFound) = self
                     .month_repo
                     .get_month_data_by_number(*month, resource.year)
                     .await
@@ -107,7 +106,7 @@ impl FinResServiceExt for FinResService {
 
     #[tracing::instrument(skip(self))]
     async fn get_fin_res(&self, fin_res_id: Uuid) -> DatamizeResult<FinancialResourceYearly> {
-        self.fin_res_repo.get(fin_res_id).await
+        Ok(self.fin_res_repo.get(fin_res_id).await?)
     }
 
     #[tracing::instrument(skip(self, new_fin_res))]
@@ -123,7 +122,7 @@ impl FinResServiceExt for FinResService {
 
         if !resource.balance_per_month.is_empty() {
             for month in resource.balance_per_month.keys() {
-                if let Err(AppError::ResourceNotFound) = self
+                if let Err(DbError::NotFound) = self
                     .month_repo
                     .get_month_data_by_number(*month, resource.year)
                     .await

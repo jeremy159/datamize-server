@@ -5,10 +5,10 @@ use axum::{
     Json,
 };
 use axum_extra::extract::WithRejection;
+use datamize_domain::{Month, SaveMonth};
 
 use crate::{
     error::{AppError, HttpJsonDatamizeResult, JsonError},
-    models::balance_sheet::{Month, SaveMonth},
     services::balance_sheet::DynMonthService,
 };
 
@@ -52,14 +52,13 @@ mod tests {
         http::{Request, StatusCode},
     };
     use chrono::{Datelike, NaiveDate};
+    use datamize_domain::{MonthNum, Uuid};
     use fake::{faker::chrono::en::Date, Dummy, Fake, Faker};
     use serde::Serialize;
     use tower::ServiceExt;
-    use uuid::Uuid;
 
     use crate::{
-        models::balance_sheet::MonthNum, routes::api::balance_sheet::get_month_routes,
-        services::balance_sheet::MockMonthServiceExt,
+        routes::api::balance_sheet::get_month_routes, services::balance_sheet::MockMonthServiceExt,
     };
 
     use super::*;

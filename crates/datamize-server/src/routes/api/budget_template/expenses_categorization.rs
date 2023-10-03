@@ -1,9 +1,9 @@
 use axum::{extract::State, Json};
 use axum_extra::extract::WithRejection;
+use datamize_domain::ExpenseCategorization;
 
 use crate::{
     error::{HttpJsonDatamizeResult, JsonError},
-    models::budget_template::ExpenseCategorization,
     services::budget_template::DynExpenseCategorizationService,
 };
 
@@ -40,15 +40,13 @@ mod tests {
         body::Body,
         http::{Request, StatusCode},
     };
+    use datamize_domain::{ExpenseType, SubExpenseType, Uuid};
     use fake::{Dummy, Fake, Faker};
     use serde::Serialize;
     use tower::ServiceExt;
-    use uuid::Uuid;
 
     use crate::{
-        error::AppError,
-        models::budget_template::{ExpenseType, SubExpenseType},
-        routes::api::budget_template::get_expense_categorization_routes,
+        error::AppError, routes::api::budget_template::get_expense_categorization_routes,
         services::budget_template::MockExpenseCategorizationServiceExt,
     };
 

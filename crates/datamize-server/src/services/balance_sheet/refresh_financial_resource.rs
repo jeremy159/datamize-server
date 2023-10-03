@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use chrono::{Datelike, Local};
+use datamize_domain::{
+    async_trait,
+    db::{DbError, DynFinResRepo, DynMonthRepo, DynYearRepo},
+    Month, MonthNum, Uuid,
+};
 use dyn_clone::{clone_trait_object, DynClone};
-use uuid::Uuid;
 use ynab::AccountRequests;
 
 use crate::{
-    db::balance_sheet::{DynFinResRepo, DynMonthRepo, DynYearRepo},
-    error::{AppError, DatamizeResult},
-    models::balance_sheet::{Month, MonthNum},
-    services::budget_providers::DynExternalAccountService,
+    error::DatamizeResult, services::budget_providers::DynExternalAccountService,
     telemetry::spawn_blocking_with_tracing,
 };
 
@@ -42,7 +42,7 @@ impl RefreshFinResServiceExt for RefreshFinResService {
         let mut year_data = self.year_repo.get_year_data_by_number(current_year).await?;
 
         let current_month: MonthNum = current_date.month().try_into().unwrap();
-        if let Err(AppError::ResourceNotFound) = self
+        if let Err(DbError::NotFound) = self
             .month_repo
             .get_month_data_by_number(current_month, current_year)
             .await

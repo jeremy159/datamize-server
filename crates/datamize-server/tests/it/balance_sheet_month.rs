@@ -1,7 +1,6 @@
 use chrono::{Datelike, NaiveDate};
-use datamize_server::models::balance_sheet::Month;
+use datamize_domain::Month;
 use fake::{faker::chrono::en::Date, Fake};
-use rand::Rng;
 use sqlx::PgPool;
 
 use crate::{

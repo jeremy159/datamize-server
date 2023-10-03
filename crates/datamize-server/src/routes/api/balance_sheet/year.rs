@@ -2,11 +2,9 @@ use axum::{
     extract::{Path, State},
     Json,
 };
+use datamize_domain::Year;
 
-use crate::{
-    error::HttpJsonDatamizeResult, models::balance_sheet::Year,
-    services::balance_sheet::DynYearService,
-};
+use crate::{error::HttpJsonDatamizeResult, services::balance_sheet::DynYearService};
 
 /// Returns a detailed year with its balance sheet, its saving rates, its months and its financial resources.
 #[tracing::instrument(name = "Get a detailed year", skip_all)]
@@ -35,9 +33,9 @@ mod tests {
         http::{Request, StatusCode},
     };
     use chrono::{Datelike, NaiveDate};
+    use datamize_domain::Uuid;
     use fake::{faker::chrono::en::Date, Fake, Faker};
     use tower::ServiceExt;
-    use uuid::Uuid;
 
     use crate::{
         error::AppError, routes::api::balance_sheet::get_year_routes,

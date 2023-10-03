@@ -1,5 +1,5 @@
 use axum::{extract::State, Json};
-use uuid::Uuid;
+use datamize_domain::Uuid;
 
 use crate::{error::HttpJsonDatamizeResult, services::balance_sheet::DynRefreshFinResService};
 
@@ -17,11 +17,11 @@ pub async fn refresh_balance_sheet_resources(
 
 #[cfg(test)]
 mod tests {
-    use async_trait::async_trait;
     use axum::{
         body::Body,
         http::{Request, StatusCode},
     };
+    use datamize_domain::async_trait;
     use fake::{Fake, Faker};
     use tower::ServiceExt;
 

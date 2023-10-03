@@ -2,12 +2,9 @@ use axum::{
     extract::{Path, State},
     Json,
 };
+use datamize_domain::{Month, MonthNum};
 
-use crate::{
-    error::HttpJsonDatamizeResult,
-    models::balance_sheet::{Month, MonthNum},
-    services::balance_sheet::DynMonthService,
-};
+use crate::{error::HttpJsonDatamizeResult, services::balance_sheet::DynMonthService};
 
 /// Returns a specific month with its financial resources and net totals.
 #[tracing::instrument(name = "Get a month", skip_all)]
@@ -36,9 +33,9 @@ mod tests {
         http::{Request, StatusCode},
     };
     use chrono::{Datelike, NaiveDate};
+    use datamize_domain::Uuid;
     use fake::{faker::chrono::en::Date, Fake, Faker};
     use tower::ServiceExt;
-    use uuid::Uuid;
 
     use crate::{
         error::AppError, routes::api::balance_sheet::get_month_routes,

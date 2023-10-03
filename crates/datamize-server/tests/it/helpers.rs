@@ -1,17 +1,17 @@
 use std::fmt::Display;
 
 use chrono::{Datelike, NaiveDate, Utc};
+use datamize_domain::Uuid;
 use datamize_server::{
     config, get_redis_connection_manager,
     startup::Application,
     telemetry::{get_subscriber, init_subscriber},
 };
+use db_redis::redis::aio::ConnectionManager;
 use fake::{faker::chrono::en::Date, Fake, Faker};
 use once_cell::sync::Lazy;
-use redis::aio::ConnectionManager;
 use serde::Serialize;
 use sqlx::PgPool;
-use uuid::Uuid;
 use wiremock::MockServer;
 
 use crate::dummy_types::{
@@ -249,7 +249,7 @@ impl TestApp {
     }
 
     pub async fn insert_year(&self, year: i32) -> Uuid {
-        let year_id = uuid::Uuid::new_v4();
+        let year_id = Uuid::new_v4();
         sqlx::query!(
             r#"
             INSERT INTO balance_sheet_years (id, year, refreshed_at)
@@ -296,7 +296,7 @@ impl TestApp {
     }
 
     pub async fn insert_month(&self, year_id: Uuid, month: i16) -> Uuid {
-        let month_id = uuid::Uuid::new_v4();
+        let month_id = Uuid::new_v4();
 
         sqlx::query!(
             r#"
@@ -315,7 +315,7 @@ impl TestApp {
     }
 
     pub async fn insert_random_month(&self, year_id: Uuid) -> (Uuid, DummyMonthNum) {
-        let month_id = uuid::Uuid::new_v4();
+        let month_id = Uuid::new_v4();
         let month: DummyMonthNum = Date().fake::<NaiveDate>().month().try_into().unwrap();
 
         sqlx::query!(

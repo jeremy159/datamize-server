@@ -1,5 +1,5 @@
 use chrono::{Datelike, NaiveDate};
-use datamize_server::models::balance_sheet::Year;
+use datamize_domain::Year;
 use fake::{faker::chrono::en::Date, Fake};
 use sqlx::PgPool;
 

@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
-
-use crate::{
-    db::balance_sheet::DynYearRepo,
-    error::{AppError, DatamizeResult},
-    models::balance_sheet::{SaveYear, Year},
+use datamize_domain::{
+    async_trait,
+    db::{DbError, DynYearRepo},
+    SaveYear, Year,
 };
+
+use crate::error::{AppError, DatamizeResult};
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -33,13 +33,12 @@ impl YearService {
 impl YearServiceExt for YearService {
     #[tracing::instrument(skip(self))]
     async fn get_all_years(&self) -> DatamizeResult<Vec<Year>> {
-        self.year_repo.get_years().await
+        Ok(self.year_repo.get_years().await?)
     }
 
     #[tracing::instrument(skip_all)]
     async fn create_year(&self, new_year: SaveYear) -> DatamizeResult<Year> {
-        let Err(AppError::ResourceNotFound) =
-            self.year_repo.get_year_data_by_number(new_year.year).await
+        let Err(DbError::NotFound) = self.year_repo.get_year_data_by_number(new_year.year).await
         else {
             return Err(AppError::YearAlreadyExist);
         };
@@ -49,12 +48,12 @@ impl YearServiceExt for YearService {
 
         self.year_repo.update_net_totals(new_year.year).await?;
 
-        self.year_repo.get(new_year.year).await
+        Ok(self.year_repo.get(new_year.year).await?)
     }
 
     #[tracing::instrument(skip(self))]
     async fn get_year(&self, year: i32) -> DatamizeResult<Year> {
-        self.year_repo.get(year).await
+        Ok(self.year_repo.get(year).await?)
     }
 
     #[tracing::instrument(skip(self))]

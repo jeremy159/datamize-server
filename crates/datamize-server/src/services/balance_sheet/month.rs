@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
-
-use crate::{
-    db::balance_sheet::DynMonthRepo,
-    error::{AppError, DatamizeResult},
-    models::balance_sheet::{Month, MonthNum, SaveMonth},
+use datamize_domain::{
+    async_trait,
+    db::{DbError, DynMonthRepo},
+    Month, MonthNum, SaveMonth,
 };
+
+use crate::error::{AppError, DatamizeResult};
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -34,19 +34,19 @@ impl MonthService {
 impl MonthServiceExt for MonthService {
     #[tracing::instrument(skip(self))]
     async fn get_all_months(&self) -> DatamizeResult<Vec<Month>> {
-        self.month_repo.get_months().await
+        Ok(self.month_repo.get_months().await?)
     }
 
     #[tracing::instrument(skip(self))]
     async fn get_all_months_from_year(&self, year: i32) -> DatamizeResult<Vec<Month>> {
-        self.month_repo.get_months_of_year(year).await
+        Ok(self.month_repo.get_months_of_year(year).await?)
     }
 
     #[tracing::instrument(skip(self, new_month))]
     async fn create_month(&self, year: i32, new_month: SaveMonth) -> DatamizeResult<Month> {
         self.month_repo.get_year_data_by_number(year).await?;
 
-        let Err(AppError::ResourceNotFound) = self
+        let Err(DbError::NotFound) = self
             .month_repo
             .get_month_data_by_number(new_month.month, year)
             .await
@@ -61,12 +61,12 @@ impl MonthServiceExt for MonthService {
             .update_net_totals(new_month.month, year)
             .await?;
 
-        self.month_repo.get(new_month.month, year).await
+        Ok(self.month_repo.get(new_month.month, year).await?)
     }
 
     #[tracing::instrument(skip(self))]
     async fn get_month(&self, month: MonthNum, year: i32) -> DatamizeResult<Month> {
-        self.month_repo.get(month, year).await
+        Ok(self.month_repo.get(month, year).await?)
     }
 
     #[tracing::instrument(skip(self))]

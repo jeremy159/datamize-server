@@ -14,6 +14,15 @@ use axum::{
 };
 use budgeter::*;
 use budgeters::*;
+use db_postgres::{
+    budget_providers::ynab::{PostgresYnabCategoryRepo, PostgresYnabScheduledTransactionRepo},
+    budget_template::{
+        PostgresBudgeterConfigRepo, PostgresExpenseCategorizationRepo, PostgresExternalExpenseRepo,
+    },
+};
+use db_redis::budget_providers::ynab::{
+    RedisYnabCategoryMetaRepo, RedisYnabScheduledTransactionMetaRepo,
+};
 use details::*;
 use expense_categorization::*;
 use expenses_categorization::*;
@@ -23,16 +32,6 @@ use summary::*;
 use transactions::*;
 
 use crate::{
-    db::{
-        budget_providers::ynab::{
-            PostgresYnabCategoryRepo, PostgresYnabScheduledTransactionRepo,
-            RedisYnabCategoryMetaRepo, RedisYnabScheduledTransactionMetaRepo,
-        },
-        budget_template::{
-            PostgresBudgeterConfigRepo, PostgresExpenseCategorizationRepo,
-            PostgresExternalExpenseRepo,
-        },
-    },
     services::budget_template::{
         BudgeterService, CategoryService, DynBudgeterService, DynExpenseCategorizationService,
         DynExternalExpenseService, DynTemplateDetailService, DynTemplateSummaryService,

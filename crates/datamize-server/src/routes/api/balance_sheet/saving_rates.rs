@@ -7,10 +7,10 @@ use axum::{
     Json,
 };
 use axum_extra::extract::WithRejection;
+use datamize_domain::{SaveSavingRate, SavingRate};
 
 use crate::{
     error::{AppError, HttpJsonDatamizeResult, JsonError},
-    models::balance_sheet::{SaveSavingRate, SavingRate},
     services::balance_sheet::DynSavingRateService,
 };
 

@@ -1,6 +1,5 @@
-use datamize_server::models::budget_providers::ExternalAccount;
+use datamize_domain::{ExternalAccount, Uuid};
 use sqlx::PgPool;
-use uuid::Uuid;
 
 use crate::helpers::spawn_app;
 

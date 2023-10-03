@@ -1,9 +1,9 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use axum_extra::extract::WithRejection;
+use datamize_domain::{SaveYear, Year};
 
 use crate::{
     error::{AppError, HttpJsonDatamizeResult, JsonError},
-    models::balance_sheet::{SaveYear, Year},
     services::balance_sheet::DynYearService,
 };
 
@@ -36,13 +36,13 @@ mod tests {
         body::Body,
         http::{Request, StatusCode},
     };
+    use datamize_domain::Uuid;
     use fake::{Dummy, Fake, Faker};
     use serde::Serialize;
     use tower::ServiceExt;
-    use uuid::Uuid;
 
     use crate::{
-        error::AppError, models::balance_sheet::Year, routes::api::balance_sheet::get_year_routes,
+        error::AppError, routes::api::balance_sheet::get_year_routes,
         services::balance_sheet::MockYearServiceExt,
     };
 

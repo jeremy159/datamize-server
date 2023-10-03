@@ -3,11 +3,10 @@ use axum::{
     Json,
 };
 use axum_extra::extract::WithRejection;
-use uuid::Uuid;
+use datamize_domain::{FinancialResourceYearly, SaveResource, Uuid};
 
 use crate::{
     error::{HttpJsonDatamizeResult, JsonError},
-    models::balance_sheet::{FinancialResourceYearly, SaveResource},
     services::balance_sheet::DynFinResService,
 };
 
@@ -50,15 +49,13 @@ mod tests {
         body::Body,
         http::{Request, StatusCode},
     };
+    use datamize_domain::{MonthNum, ResourceCategory, ResourceType};
     use fake::{Dummy, Fake, Faker};
     use serde::Serialize;
     use tower::ServiceExt;
-    use uuid::Uuid;
 
     use crate::{
-        error::AppError,
-        models::balance_sheet::{MonthNum, ResourceCategory, ResourceType},
-        routes::api::balance_sheet::get_fin_res_routes,
+        error::AppError, routes::api::balance_sheet::get_fin_res_routes,
         services::balance_sheet::MockFinResServiceExt,
     };
 

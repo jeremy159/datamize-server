@@ -1,0 +1,21 @@
+[package]
+name = "db-redis"
+version = "0.1.0"
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[lib]
+doctest = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# Local Deps
+datamize-domain.workspace = true
+
+# Non-Local Deps
+tracing.workspace = true
+
+redis = { workspace = true, features = ["tokio-comp", "r2d2", "aio", "connection-manager"] }

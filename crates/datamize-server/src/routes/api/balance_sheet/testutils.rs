@@ -1,21 +1,21 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
+use datamize_domain::{
+    async_trait,
+    db::{
+        ynab::{MockYnabTransactionMetaRepoImpl, MockYnabTransactionRepoImpl},
+        MockSavingRateRepo,
+    },
+};
 use mockall::mock;
 use ynab::{
     SaveTransaction, TransactionDetail, TransactionRequests, TransactionType,
     TransationsDetailDelta, UpdateTransaction, YnabResult,
 };
 
-use crate::{
-    db::{
-        balance_sheet::MockSavingRateRepo,
-        budget_providers::ynab::{MockYnabTransactionMetaRepoImpl, MockYnabTransactionRepoImpl},
-    },
-    services::{
-        balance_sheet::{DynSavingRateService, SavingRateService},
-        budget_providers::TransactionService,
-    },
+use crate::services::{
+    balance_sheet::{DynSavingRateService, SavingRateService},
+    budget_providers::TransactionService,
 };
 
 pub(crate) fn saving_rate_service() -> (

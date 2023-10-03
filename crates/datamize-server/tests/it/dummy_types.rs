@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
+use datamize_domain::Uuid;
 use fake::Dummy;
 use rand::distributions::OpenClosed01;
 use rand::prelude::*;
 use serde::Serialize;
 use serde_repr::{Deserialize_repr, Serialize_repr};
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Dummy)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]

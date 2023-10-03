@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use uuid::Uuid;
-
-use crate::{
-    db::budget_template::DynBudgeterConfigRepo,
-    error::{AppError, DatamizeResult},
-    models::budget_template::{BudgeterConfig, SaveBudgeterConfig},
+use datamize_domain::{
+    db::{DbError, DynBudgeterConfigRepo},
+    BudgeterConfig, SaveBudgeterConfig, Uuid,
 };
+
+use crate::error::{AppError, DatamizeResult};
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -41,7 +40,7 @@ impl BudgeterService {
 impl BudgeterServiceExt for BudgeterService {
     #[tracing::instrument(skip(self))]
     async fn get_all_budgeters(&self) -> DatamizeResult<Vec<BudgeterConfig>> {
-        self.budgeter_config_repo.get_all().await
+        Ok(self.budgeter_config_repo.get_all().await?)
     }
 
     #[tracing::instrument(skip_all)]
@@ -49,7 +48,7 @@ impl BudgeterServiceExt for BudgeterService {
         &self,
         new_budgeter: SaveBudgeterConfig,
     ) -> DatamizeResult<BudgeterConfig> {
-        let Err(AppError::ResourceNotFound) = self
+        let Err(DbError::NotFound) = self
             .budgeter_config_repo
             .get_by_name(&new_budgeter.name)
             .await
@@ -65,7 +64,7 @@ impl BudgeterServiceExt for BudgeterService {
 
     #[tracing::instrument(skip(self))]
     async fn get_budgeter(&self, budgeter_id: Uuid) -> DatamizeResult<BudgeterConfig> {
-        self.budgeter_config_repo.get(budgeter_id).await
+        Ok(self.budgeter_config_repo.get(budgeter_id).await?)
     }
 
     #[tracing::instrument(skip(self, new_budgeter))]
@@ -96,10 +95,10 @@ impl BudgeterServiceExt for BudgeterService {
 
 #[cfg(test)]
 mod tests {
+    use datamize_domain::db::MockBudgeterConfigRepoImpl;
     use fake::{Fake, Faker};
 
     use super::*;
-    use crate::db::budget_template::MockBudgeterConfigRepoImpl;
 
     #[tokio::test]
     async fn create_budgeter_success() {
@@ -107,7 +106,7 @@ mod tests {
         budgeter_config_repo
             .expect_get_by_name()
             .once()
-            .returning(|_| Err(AppError::ResourceNotFound));
+            .returning(|_| Err(DbError::NotFound));
         budgeter_config_repo
             .expect_update()
             .once()
@@ -177,7 +176,7 @@ mod tests {
         let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepoImpl::new());
         budgeter_config_repo
             .expect_get()
-            .return_once(|_| Err(AppError::ResourceNotFound));
+            .return_once(|_| Err(DbError::NotFound));
         budgeter_config_repo.expect_update().never();
 
         let budgeter_service = BudgeterService {
@@ -222,7 +221,7 @@ mod tests {
         let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepoImpl::new());
         budgeter_config_repo
             .expect_get()
-            .return_once(|_| Err(AppError::ResourceNotFound));
+            .return_once(|_| Err(DbError::NotFound));
         budgeter_config_repo.expect_delete().never();
 
         let budgeter_service = BudgeterService {

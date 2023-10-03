@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{client::Response, error::YnabResult, Client, Payee, PayeesDelta};
 
-#[cfg_attr(test, mockall::automock)]
+#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait PayeeRequests {
     async fn get_payees(&self) -> YnabResult<Vec<Payee>>;

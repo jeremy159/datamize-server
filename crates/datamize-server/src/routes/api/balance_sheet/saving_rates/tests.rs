@@ -3,12 +3,12 @@ use axum::{
     http::{Request, StatusCode},
 };
 use chrono::{Datelike, NaiveDate};
+use datamize_domain::SavingRate;
 use fake::{faker::chrono::en::Date, Dummy, Fake, Faker};
 use tower::ServiceExt;
 
 use crate::{
     error::{AppError, DatamizeResult},
-    models::balance_sheet::SavingRate,
     routes::api::balance_sheet::{get_saving_rate_routes, testutils::saving_rate_service},
 };
 

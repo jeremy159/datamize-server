@@ -1,13 +1,14 @@
 use axum::Router;
+use db_postgres::budget_providers::{
+    external::PostgresExternalAccountRepo,
+    ynab::{PostgresYnabAccountRepo, PostgresYnabPayeeRepo},
+};
+use db_redis::budget_providers::{
+    external::RedisEncryptionKeyRepo,
+    ynab::{RedisYnabAccountMetaRepo, RedisYnabPayeeMetaRepo},
+};
 
 use crate::{
-    db::budget_providers::{
-        external::{PostgresExternalAccountRepo, RedisEncryptionKeyRepo},
-        ynab::{
-            PostgresYnabAccountRepo, PostgresYnabPayeeRepo, RedisYnabAccountMetaRepo,
-            RedisYnabPayeeMetaRepo,
-        },
-    },
     services::budget_providers::{ExternalAccountService, YnabAccountService, YnabPayeeService},
     startup::AppState,
 };

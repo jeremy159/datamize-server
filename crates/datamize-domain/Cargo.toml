@@ -1,0 +1,43 @@
+[package]
+name = "datamize-domain"
+version = "0.1.0"
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[lib]
+doctest = false
+
+[features]
+default = []
+testutils = ["dep:mockall", "dep:fake"]
+
+[dependencies]
+# Local Deps
+ynab.workspace = true
+
+# Non-Local Deps
+async-trait.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+sqlx.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+rrule.workspace = true
+redis.workspace = true
+dyn-clone.workspace = true
+
+serde_repr = "^0.1.14"
+secrecy = { version = "0.8.0", features = ["serde"] }
+
+mockall = { version = "0.11.4", optional = true }
+fake = { version = "^2.6.1", optional = true, features = ["chrono", "derive", "uuid"] }
+
+[dev-dependencies]
+# Local Deps
+# ynab = { workspace = true, features = ["testutils"] } TODO: not needed at the moment, but will be once I bring in tests for models.
+
+fake = { version = "^2.6.1", features = ["chrono", "derive", "uuid"] }
+mockall = "0.11.4"

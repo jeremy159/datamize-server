@@ -3,11 +3,10 @@ use axum::{
     Json,
 };
 use axum_extra::extract::WithRejection;
-use uuid::Uuid;
+use datamize_domain::{SavingRate, Uuid};
 
 use crate::{
     error::{HttpJsonDatamizeResult, JsonError},
-    models::balance_sheet::SavingRate,
     services::balance_sheet::DynSavingRateService,
 };
 

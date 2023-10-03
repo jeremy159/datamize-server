@@ -11,23 +11,27 @@ rust-version.workspace = true
 doctest = false # TODO: To revolve test failing.
 
 [features]
+default = []
 # Postgres support through sqlx. Useful for transforming data from sqlx::Postgres into the exposed structs of this crate.
 sqlx-postgres = ["dep:sqlx"]
+testutils = ["dep:mockall", "dep:fake"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serde = { workspace = true }
-serde_json = { workspace = true }
-reqwest = { workspace = true }
-rrule = { workspace = true }
-thiserror = { workspace = true }
-uuid = { workspace = true }
-sqlx = { version = "^0.7.0", features = ["postgres", "uuid", "chrono", "json"], optional = true }
+serde.workspace = true
+serde_json.workspace = true
+rrule.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
 chrono = { workspace = true, features = ["serde"] }
 async-trait.workspace = true
+reqwest = { version = "^0.11.18", default-features = false, features = ["json", "cookies", "rustls-tls"] }
+
+sqlx = { workspace = true, features = ["postgres"], optional = true }
+mockall = { version = "0.11.4", optional = true }
+fake = { version = "^2.6.1", optional = true, features = ["chrono", "derive", "uuid"] }
 
 [dev-dependencies]
 fake = { version = "^2.6.1", features = ["chrono", "derive", "uuid"] }
 mockall = "0.11.4"
-rand = "^0.8.5"

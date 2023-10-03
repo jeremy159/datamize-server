@@ -3,11 +3,10 @@ use axum::{
     Json,
 };
 use axum_extra::extract::WithRejection;
-use uuid::Uuid;
+use datamize_domain::{ExternalExpense, Uuid};
 
 use crate::{
     error::{HttpJsonDatamizeResult, JsonError},
-    models::budget_template::ExternalExpense,
     services::budget_template::DynExternalExpenseService,
 };
 
@@ -58,7 +57,6 @@ mod tests {
     use fake::{Dummy, Fake, Faker};
     use serde::Serialize;
     use tower::ServiceExt;
-    use uuid::Uuid;
 
     use crate::{
         error::AppError, routes::api::budget_template::get_external_expense_routes,

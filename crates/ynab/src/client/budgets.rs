@@ -6,7 +6,7 @@ use crate::{
     BudgetSettings, BudgetSummary, BudgetSummaryWithAccounts, Client,
 };
 
-#[cfg_attr(test, mockall::automock)]
+#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait BudgetRequests {
     async fn get_budgets(&self) -> YnabResult<Vec<BudgetSummary>>;

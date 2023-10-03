@@ -6,7 +6,7 @@ use crate::{
     CategoryGroupWithCategoriesDelta, Client, SaveMonthCategory,
 };
 
-#[cfg_attr(test, mockall::automock)]
+#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait CategoryRequests {
     async fn get_categories(&self) -> YnabResult<Vec<CategoryGroupWithCategories>>;

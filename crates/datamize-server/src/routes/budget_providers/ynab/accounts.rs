@@ -20,11 +20,11 @@ mod tests {
     };
 
     use super::*;
-    use async_trait::async_trait;
     use axum::{
         body::Body,
         http::{Request, StatusCode},
     };
+    use datamize_domain::async_trait;
     use fake::{Fake, Faker};
     use tower::ServiceExt; // for `oneshot` and `ready`
     use ynab::AccountType;

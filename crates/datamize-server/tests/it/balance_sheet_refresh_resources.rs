@@ -1,10 +1,9 @@
 use chrono::{Datelike, Local};
-use datamize_server::models::balance_sheet::Month;
+use datamize_domain::{Month, Uuid};
 use fake::{Fake, Faker};
 use num_traits::FromPrimitive;
 use serde::Serialize;
 use sqlx::PgPool;
-use uuid::Uuid;
 use wiremock::{
     matchers::{any, path_regex},
     Mock, ResponseTemplate,

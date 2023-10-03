@@ -6,7 +6,7 @@ use crate::{
     ScheduledTransactionsDetailDelta,
 };
 
-#[cfg_attr(test, mockall::automock)]
+#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait ScheduledTransactionRequests {
     async fn get_scheduled_transactions(&self) -> YnabResult<Vec<ScheduledTransactionDetail>>;

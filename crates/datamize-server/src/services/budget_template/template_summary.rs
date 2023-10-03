@@ -1,11 +1,11 @@
-use async_trait::async_trait;
+use datamize_domain::{
+    async_trait,
+    db::{DynBudgeterConfigRepo, DynExternalExpenseRepo},
+    BudgetDetails, BudgetSummary, Budgeter, Configured, MonthTarget,
+};
 use dyn_clone::{clone_trait_object, DynClone};
 
-use crate::{
-    db::budget_template::{DynBudgeterConfigRepo, DynExternalExpenseRepo},
-    error::DatamizeResult,
-    models::budget_template::{BudgetDetails, BudgetSummary, Budgeter, Configured, MonthTarget},
-};
+use crate::error::DatamizeResult;
 
 use super::{DynCategoryService, DynScheduledTransactionService};
 
@@ -76,16 +76,16 @@ impl TemplateSummaryServiceExt for TemplateSummaryService {
 
 #[cfg(test)]
 mod tests {
+    use datamize_domain::{
+        db::{MockBudgeterConfigRepoImpl, MockExternalExpenseRepoImpl},
+        DatamizeScheduledTransaction, ExpenseCategorization,
+    };
     use fake::{Fake, Faker};
-    use ynab::{Category, ScheduledTransactionDetail};
+    use ynab::Category;
 
     use super::*;
-    use crate::{
-        db::budget_template::{MockBudgeterConfigRepoImpl, MockExternalExpenseRepoImpl},
-        models::budget_template::{DatamizeScheduledTransaction, ExpenseCategorization},
-        services::budget_template::{
-            category::CategoryServiceExt, scheduled_transaction::ScheduledTransactionServiceExt,
-        },
+    use crate::services::budget_template::{
+        category::CategoryServiceExt, scheduled_transaction::ScheduledTransactionServiceExt,
     };
 
     #[tokio::test]
@@ -99,32 +99,8 @@ mod tests {
                 _month: MonthTarget,
             ) -> DatamizeResult<(Vec<Category>, Vec<ExpenseCategorization>)> {
                 Ok((
-                    vec![Category {
-                        id: Faker.fake(),
-                        category_group_id: Faker.fake(),
-                        category_group_name: Faker.fake(),
-                        name: Faker.fake(),
-                        hidden: false,
-                        original_category_group_id: None,
-                        note: Faker.fake(),
-                        budgeted: Faker.fake(),
-                        activity: Faker.fake(),
-                        balance: Faker.fake(),
-                        goal_type: None,
-                        goal_day: None,
-                        goal_cadence: None,
-                        goal_cadence_frequency: None,
-                        goal_creation_month: None,
-                        goal_target: Faker.fake(),
-                        goal_target_month: None,
-                        goal_percentage_complete: None,
-                        goal_months_to_budget: None,
-                        goal_under_funded: None,
-                        goal_overall_funded: None,
-                        goal_overall_left: None,
-                        deleted: false,
-                    }],
-                    vec![Faker.fake()],
+                    fake::vec![Category; 1..5],
+                    fake::vec![ExpenseCategorization; 1..3],
                 ))
             }
         }
@@ -137,24 +113,7 @@ mod tests {
             async fn get_latest_scheduled_transactions(
                 &mut self,
             ) -> DatamizeResult<Vec<DatamizeScheduledTransaction>> {
-                Ok(vec![Into::into(ScheduledTransactionDetail {
-                    id: Faker.fake(),
-                    date_first: Faker.fake(),
-                    date_next: Faker.fake(),
-                    frequency: None,
-                    amount: Faker.fake(),
-                    memo: Faker.fake(),
-                    flag_color: Faker.fake(),
-                    account_id: Faker.fake(),
-                    payee_id: Faker.fake(),
-                    category_id: Faker.fake(),
-                    transfer_account_id: Faker.fake(),
-                    deleted: Faker.fake(),
-                    account_name: Faker.fake(),
-                    payee_name: Faker.fake(),
-                    category_name: Faker.fake(),
-                    subtransactions: vec![],
-                })])
+                Ok(fake::vec![DatamizeScheduledTransaction; 1..5])
             }
         }
 

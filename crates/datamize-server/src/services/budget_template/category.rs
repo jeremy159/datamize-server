@@ -1,19 +1,19 @@
 use std::{collections::HashSet, sync::Arc};
 
 use anyhow::Context;
-use async_trait::async_trait;
 use chrono::{DateTime, Datelike, Local, NaiveDate};
+use datamize_domain::{
+    async_trait,
+    db::{
+        ynab::{DynYnabCategoryMetaRepo, DynYnabCategoryRepo},
+        DbError, DynExpenseCategorizationRepo,
+    },
+    ExpenseCategorization, MonthTarget,
+};
 use dyn_clone::{clone_trait_object, DynClone};
 use ynab::{Category, CategoryGroup, CategoryRequests, MonthRequests};
 
-use crate::{
-    db::{
-        budget_providers::ynab::{DynYnabCategoryMetaRepo, DynYnabCategoryRepo},
-        budget_template::DynExpenseCategorizationRepo,
-    },
-    error::{AppError, DatamizeResult},
-    models::budget_template::{ExpenseCategorization, MonthTarget},
-};
+use crate::error::DatamizeResult;
 
 #[async_trait]
 pub trait CategoryServiceExt: DynClone + Send + Sync {
@@ -160,7 +160,7 @@ where
                 {
                     // TODO: Make sure to delete those newly hidden or deleted (Applies to all data coming from YNAB)
                     Ok(ec) => ec,
-                    Err(AppError::ResourceNotFound) => {
+                    Err(DbError::NotFound) => {
                         self.expense_categorization_repo.update(&ec).await?;
                         ec
                     }
@@ -207,6 +207,10 @@ where
 #[cfg(test)]
 mod tests {
     use chrono::Months;
+    use datamize_domain::db::{
+        ynab::{MockYnabCategoryMetaRepoImpl, MockYnabCategoryRepoImpl},
+        MockExpenseCategorizationRepoImpl,
+    };
     use fake::{Fake, Faker};
     use mockall::{mock, predicate::eq};
     use ynab::{
@@ -215,13 +219,6 @@ mod tests {
     };
 
     use super::*;
-    use crate::{
-        db::{
-            budget_providers::ynab::{MockYnabCategoryMetaRepoImpl, MockYnabCategoryRepoImpl},
-            budget_template::MockExpenseCategorizationRepoImpl,
-        },
-        error::AppError,
-    };
 
     mock! {
         YnabClient {}
@@ -268,7 +265,7 @@ mod tests {
         ynab_category_meta_repo
             .expect_get_last_saved()
             .once()
-            .returning(|| Err(AppError::ResourceNotFound));
+            .returning(|| Err(DbError::NotFound));
 
         let expected = Local::now().date_naive();
         ynab_category_meta_repo
@@ -368,7 +365,7 @@ mod tests {
         expense_categorization_repo
             .expect_get()
             .times(2)
-            .returning(|_| Err(AppError::ResourceNotFound));
+            .returning(|_| Err(DbError::NotFound));
         expense_categorization_repo
             .expect_update()
             .times(2)
@@ -385,16 +382,14 @@ mod tests {
 
         let category_groups = vec![
             CategoryGroup {
-                id: Faker.fake(),
-                name: Faker.fake(),
                 deleted: false,
                 hidden: false,
+                ..Faker.fake()
             },
             CategoryGroup {
-                id: Faker.fake(),
-                name: Faker.fake(),
                 deleted: false,
                 hidden: false,
+                ..Faker.fake()
             },
         ];
 
@@ -417,7 +412,7 @@ mod tests {
         expense_categorization_repo
             .expect_get()
             .times(1)
-            .returning(|_| Err(AppError::ResourceNotFound));
+            .returning(|_| Err(DbError::NotFound));
         expense_categorization_repo
             .expect_update()
             .times(1)
@@ -433,10 +428,9 @@ mod tests {
         };
 
         let cat_group = CategoryGroup {
-            id: Faker.fake(),
-            name: Faker.fake(),
             deleted: false,
             hidden: false,
+            ..Faker.fake()
         };
         let category_groups = vec![cat_group.clone(), cat_group.clone()];
 
@@ -506,126 +500,20 @@ mod tests {
         ynab_category_meta_repo
             .expect_get_delta()
             .once()
-            .returning(move || Err(AppError::ResourceNotFound));
+            .returning(move || Err(DbError::NotFound));
 
         let expected = CategoryGroupWithCategoriesDelta {
             server_knowledge: Faker.fake(),
             category_groups: vec![
                 CategoryGroupWithCategories {
-                    id: Faker.fake(),
-                    name: Faker.fake(),
-                    hidden: false,
                     deleted: false,
-                    categories: vec![
-                        Category {
-                            id: Faker.fake(),
-                            category_group_id: Faker.fake(),
-                            category_group_name: Faker.fake(),
-                            name: Faker.fake(),
-                            hidden: false,
-                            original_category_group_id: None,
-                            note: Faker.fake(),
-                            budgeted: Faker.fake(),
-                            activity: Faker.fake(),
-                            balance: Faker.fake(),
-                            goal_type: None,
-                            goal_day: None,
-                            goal_cadence: None,
-                            goal_cadence_frequency: None,
-                            goal_creation_month: None,
-                            goal_target: Faker.fake(),
-                            goal_target_month: None,
-                            goal_percentage_complete: None,
-                            goal_months_to_budget: None,
-                            goal_under_funded: None,
-                            goal_overall_funded: None,
-                            goal_overall_left: None,
-                            deleted: false,
-                        },
-                        Category {
-                            id: Faker.fake(),
-                            category_group_id: Faker.fake(),
-                            category_group_name: Faker.fake(),
-                            name: Faker.fake(),
-                            hidden: false,
-                            original_category_group_id: None,
-                            note: Faker.fake(),
-                            budgeted: Faker.fake(),
-                            activity: Faker.fake(),
-                            balance: Faker.fake(),
-                            goal_type: None,
-                            goal_day: None,
-                            goal_cadence: None,
-                            goal_cadence_frequency: None,
-                            goal_creation_month: None,
-                            goal_target: Faker.fake(),
-                            goal_target_month: None,
-                            goal_percentage_complete: None,
-                            goal_months_to_budget: None,
-                            goal_under_funded: None,
-                            goal_overall_funded: None,
-                            goal_overall_left: None,
-                            deleted: false,
-                        },
-                    ],
+                    hidden: false,
+                    ..Faker.fake()
                 },
                 CategoryGroupWithCategories {
-                    id: Faker.fake(),
-                    name: Faker.fake(),
-                    hidden: false,
                     deleted: false,
-                    categories: vec![
-                        Category {
-                            id: Faker.fake(),
-                            category_group_id: Faker.fake(),
-                            category_group_name: Faker.fake(),
-                            name: Faker.fake(),
-                            hidden: false,
-                            original_category_group_id: None,
-                            note: Faker.fake(),
-                            budgeted: Faker.fake(),
-                            activity: Faker.fake(),
-                            balance: Faker.fake(),
-                            goal_type: None,
-                            goal_day: None,
-                            goal_cadence: None,
-                            goal_cadence_frequency: None,
-                            goal_creation_month: None,
-                            goal_target: Faker.fake(),
-                            goal_target_month: None,
-                            goal_percentage_complete: None,
-                            goal_months_to_budget: None,
-                            goal_under_funded: None,
-                            goal_overall_funded: None,
-                            goal_overall_left: None,
-                            deleted: false,
-                        },
-                        Category {
-                            id: Faker.fake(),
-                            category_group_id: Faker.fake(),
-                            category_group_name: Faker.fake(),
-                            name: Faker.fake(),
-                            hidden: false,
-                            original_category_group_id: None,
-                            note: Faker.fake(),
-                            budgeted: Faker.fake(),
-                            activity: Faker.fake(),
-                            balance: Faker.fake(),
-                            goal_type: None,
-                            goal_day: None,
-                            goal_cadence: None,
-                            goal_cadence_frequency: None,
-                            goal_creation_month: None,
-                            goal_target: Faker.fake(),
-                            goal_target_month: None,
-                            goal_percentage_complete: None,
-                            goal_months_to_budget: None,
-                            goal_under_funded: None,
-                            goal_overall_funded: None,
-                            goal_overall_left: None,
-                            deleted: false,
-                        },
-                    ],
+                    hidden: false,
+                    ..Faker.fake()
                 },
             ],
         };
@@ -688,67 +576,14 @@ mod tests {
         ynab_category_meta_repo
             .expect_get_delta()
             .once()
-            .returning(move || Err(AppError::ResourceNotFound));
+            .returning(move || Err(DbError::NotFound));
 
         let expected = CategoryGroupWithCategoriesDelta {
             server_knowledge: Faker.fake(),
             category_groups: vec![CategoryGroupWithCategories {
-                id: Faker.fake(),
-                name: Faker.fake(),
-                hidden: false,
                 deleted: false,
-                categories: vec![
-                    Category {
-                        id: Faker.fake(),
-                        category_group_id: Faker.fake(),
-                        category_group_name: Faker.fake(),
-                        name: Faker.fake(),
-                        hidden: false,
-                        original_category_group_id: None,
-                        note: Faker.fake(),
-                        budgeted: Faker.fake(),
-                        activity: Faker.fake(),
-                        balance: Faker.fake(),
-                        goal_type: None,
-                        goal_day: None,
-                        goal_cadence: None,
-                        goal_cadence_frequency: None,
-                        goal_creation_month: None,
-                        goal_target: Faker.fake(),
-                        goal_target_month: None,
-                        goal_percentage_complete: None,
-                        goal_months_to_budget: None,
-                        goal_under_funded: None,
-                        goal_overall_funded: None,
-                        goal_overall_left: None,
-                        deleted: false,
-                    },
-                    Category {
-                        id: Faker.fake(),
-                        category_group_id: Faker.fake(),
-                        category_group_name: Faker.fake(),
-                        name: Faker.fake(),
-                        hidden: false,
-                        original_category_group_id: None,
-                        note: Faker.fake(),
-                        budgeted: Faker.fake(),
-                        activity: Faker.fake(),
-                        balance: Faker.fake(),
-                        goal_type: None,
-                        goal_day: None,
-                        goal_cadence: None,
-                        goal_cadence_frequency: None,
-                        goal_creation_month: None,
-                        goal_target: Faker.fake(),
-                        goal_target_month: None,
-                        goal_percentage_complete: None,
-                        goal_months_to_budget: None,
-                        goal_under_funded: None,
-                        goal_overall_funded: None,
-                        goal_overall_left: None,
-                        deleted: false,
-                    },
-                ],
+                hidden: false,
+                ..Faker.fake()
             }],
         };
         let expected_cloned = expected.clone();
@@ -811,65 +646,8 @@ mod tests {
             .to_string();
         let expected = MonthDetail {
             month: expected_date.clone(),
-            note: Faker.fake(),
-            income: Faker.fake(),
-            budgeted: Faker.fake(),
-            activity: Faker.fake(),
-            to_be_budgeted: Faker.fake(),
-            age_of_money: Faker.fake(),
             deleted: false,
-            categories: vec![
-                Category {
-                    id: Faker.fake(),
-                    category_group_id: Faker.fake(),
-                    category_group_name: Faker.fake(),
-                    name: Faker.fake(),
-                    hidden: false,
-                    original_category_group_id: None,
-                    note: Faker.fake(),
-                    budgeted: Faker.fake(),
-                    activity: Faker.fake(),
-                    balance: Faker.fake(),
-                    goal_type: None,
-                    goal_day: None,
-                    goal_cadence: None,
-                    goal_cadence_frequency: None,
-                    goal_creation_month: None,
-                    goal_target: Faker.fake(),
-                    goal_target_month: None,
-                    goal_percentage_complete: None,
-                    goal_months_to_budget: None,
-                    goal_under_funded: None,
-                    goal_overall_funded: None,
-                    goal_overall_left: None,
-                    deleted: false,
-                },
-                Category {
-                    id: Faker.fake(),
-                    category_group_id: Faker.fake(),
-                    category_group_name: Faker.fake(),
-                    name: Faker.fake(),
-                    hidden: false,
-                    original_category_group_id: None,
-                    note: Faker.fake(),
-                    budgeted: Faker.fake(),
-                    activity: Faker.fake(),
-                    balance: Faker.fake(),
-                    goal_type: None,
-                    goal_day: None,
-                    goal_cadence: None,
-                    goal_cadence_frequency: None,
-                    goal_creation_month: None,
-                    goal_target: Faker.fake(),
-                    goal_target_month: None,
-                    goal_percentage_complete: None,
-                    goal_months_to_budget: None,
-                    goal_under_funded: None,
-                    goal_overall_funded: None,
-                    goal_overall_left: None,
-                    deleted: false,
-                },
-            ],
+            ..Faker.fake()
         };
         let expected_cloned = expected.clone();
         ynab_client
@@ -908,65 +686,8 @@ mod tests {
             .to_string();
         let expected = MonthDetail {
             month: expected_date.clone(),
-            note: Faker.fake(),
-            income: Faker.fake(),
-            budgeted: Faker.fake(),
-            activity: Faker.fake(),
-            to_be_budgeted: Faker.fake(),
-            age_of_money: Faker.fake(),
             deleted: false,
-            categories: vec![
-                Category {
-                    id: Faker.fake(),
-                    category_group_id: Faker.fake(),
-                    category_group_name: Faker.fake(),
-                    name: Faker.fake(),
-                    hidden: false,
-                    original_category_group_id: None,
-                    note: Faker.fake(),
-                    budgeted: Faker.fake(),
-                    activity: Faker.fake(),
-                    balance: Faker.fake(),
-                    goal_type: None,
-                    goal_day: None,
-                    goal_cadence: None,
-                    goal_cadence_frequency: None,
-                    goal_creation_month: None,
-                    goal_target: Faker.fake(),
-                    goal_target_month: None,
-                    goal_percentage_complete: None,
-                    goal_months_to_budget: None,
-                    goal_under_funded: None,
-                    goal_overall_funded: None,
-                    goal_overall_left: None,
-                    deleted: false,
-                },
-                Category {
-                    id: Faker.fake(),
-                    category_group_id: Faker.fake(),
-                    category_group_name: Faker.fake(),
-                    name: Faker.fake(),
-                    hidden: false,
-                    original_category_group_id: None,
-                    note: Faker.fake(),
-                    budgeted: Faker.fake(),
-                    activity: Faker.fake(),
-                    balance: Faker.fake(),
-                    goal_type: None,
-                    goal_day: None,
-                    goal_cadence: None,
-                    goal_cadence_frequency: None,
-                    goal_creation_month: None,
-                    goal_target: Faker.fake(),
-                    goal_target_month: None,
-                    goal_percentage_complete: None,
-                    goal_months_to_budget: None,
-                    goal_under_funded: None,
-                    goal_overall_funded: None,
-                    goal_overall_left: None,
-                    deleted: false,
-                },
-            ],
+            ..Faker.fake()
         };
         let expected_cloned = expected.clone();
         ynab_client

@@ -1,13 +1,11 @@
+use datamize_domain::{
+    async_trait,
+    db::{DbError, DynExternalExpenseRepo},
+    ExternalExpense, SaveExternalExpense, Uuid,
+};
 use std::sync::Arc;
 
-use async_trait::async_trait;
-use uuid::Uuid;
-
-use crate::{
-    db::budget_template::DynExternalExpenseRepo,
-    error::{AppError, DatamizeResult},
-    models::budget_template::{ExternalExpense, SaveExternalExpense},
-};
+use crate::error::{AppError, DatamizeResult};
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -43,7 +41,7 @@ impl ExternalExpenseService {
 impl ExternalExpenseServiceExt for ExternalExpenseService {
     #[tracing::instrument(skip(self))]
     async fn get_all_external_expenses(&self) -> DatamizeResult<Vec<ExternalExpense>> {
-        self.external_expense_repo.get_all().await
+        Ok(self.external_expense_repo.get_all().await?)
     }
 
     #[tracing::instrument(skip_all)]
@@ -51,7 +49,7 @@ impl ExternalExpenseServiceExt for ExternalExpenseService {
         &self,
         new_expense: SaveExternalExpense,
     ) -> DatamizeResult<ExternalExpense> {
-        let Err(AppError::ResourceNotFound) = self
+        let Err(DbError::NotFound) = self
             .external_expense_repo
             .get_by_name(&new_expense.name)
             .await
@@ -67,7 +65,7 @@ impl ExternalExpenseServiceExt for ExternalExpenseService {
 
     #[tracing::instrument(skip(self))]
     async fn get_external_expense(&self, expense_id: Uuid) -> DatamizeResult<ExternalExpense> {
-        self.external_expense_repo.get(expense_id).await
+        Ok(self.external_expense_repo.get(expense_id).await?)
     }
 
     #[tracing::instrument(skip(self, new_expense))]
@@ -98,10 +96,10 @@ impl ExternalExpenseServiceExt for ExternalExpenseService {
 
 #[cfg(test)]
 mod tests {
+    use datamize_domain::db::MockExternalExpenseRepoImpl;
     use fake::{Fake, Faker};
 
     use super::*;
-    use crate::db::budget_template::MockExternalExpenseRepoImpl;
 
     #[tokio::test]
     async fn create_external_expense_success() {
@@ -109,7 +107,7 @@ mod tests {
         external_expense_repo
             .expect_get_by_name()
             .once()
-            .returning(|_| Err(AppError::ResourceNotFound));
+            .returning(|_| Err(DbError::NotFound));
         external_expense_repo
             .expect_update()
             .once()
@@ -183,7 +181,7 @@ mod tests {
         let mut external_expense_repo = Box::new(MockExternalExpenseRepoImpl::new());
         external_expense_repo
             .expect_get()
-            .return_once(|_| Err(AppError::ResourceNotFound));
+            .return_once(|_| Err(DbError::NotFound));
         external_expense_repo.expect_update().never();
 
         let external_expense_service = ExternalExpenseService {
@@ -228,7 +226,7 @@ mod tests {
         let mut external_expense_repo = Box::new(MockExternalExpenseRepoImpl::new());
         external_expense_repo
             .expect_get()
-            .return_once(|_| Err(AppError::ResourceNotFound));
+            .return_once(|_| Err(DbError::NotFound));
         external_expense_repo.expect_delete().never();
 
         let external_expense_service = ExternalExpenseService {

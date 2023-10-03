@@ -1,11 +1,10 @@
 use std::collections::BTreeMap;
 
 use chrono::{Datelike, NaiveDate};
-use datamize_server::models::balance_sheet::FinancialResourceYearly;
+use datamize_domain::{FinancialResourceYearly, Uuid};
 use fake::{faker::chrono::en::Date, Dummy, Fake, Faker};
 use serde::Serialize;
 use sqlx::PgPool;
-use uuid::Uuid;
 
 use crate::{
     dummy_types::{DummyMonthNum, DummyNetTotalType, DummyResourceCategory, DummyResourceType},

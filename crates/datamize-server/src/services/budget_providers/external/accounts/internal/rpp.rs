@@ -1,11 +1,9 @@
 use std::time::Duration;
 
+use datamize_domain::{secrecy::ExposeSecret, WebScrapingAccount};
 use fantoccini::{ClientBuilder, Locator};
 use orion::{aead, kex::SecretKey};
-use secrecy::ExposeSecret;
 use tokio::time::sleep;
-
-use crate::models::budget_providers::WebScrapingAccount;
 
 use super::parsing::parse_balance;
 

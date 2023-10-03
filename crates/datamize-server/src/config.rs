@@ -1,4 +1,4 @@
-use secrecy::{ExposeSecret, Secret};
+use datamize_domain::secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use sqlx::{
     postgres::{PgConnectOptions, PgSslMode},

@@ -1,8 +1,8 @@
 use axum::{extract::State, Json};
+use datamize_domain::ScheduledTransactionsDistribution;
 
 use crate::{
-    error::HttpJsonDatamizeResult, models::budget_template::ScheduledTransactionsDistribution,
-    services::budget_template::DynTemplateTransactionService,
+    error::HttpJsonDatamizeResult, services::budget_template::DynTemplateTransactionService,
 };
 
 /// Returns a budget template transactions, i.e. all the scheduled transactions in the upcoming 30 days.
@@ -18,11 +18,11 @@ pub async fn template_transactions(
 
 #[cfg(test)]
 mod tests {
-    use async_trait::async_trait;
     use axum::{
         body::Body,
         http::{Request, StatusCode},
     };
+    use datamize_domain::async_trait;
     use fake::{Fake, Faker};
     use tower::ServiceExt;
 

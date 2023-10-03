@@ -1,9 +1,9 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use axum_extra::extract::WithRejection;
+use datamize_domain::{ExternalExpense, SaveExternalExpense};
 
 use crate::{
     error::{DatamizeResult, HttpJsonDatamizeResult, JsonError},
-    models::budget_template::{ExternalExpense, SaveExternalExpense},
     services::budget_template::DynExternalExpenseService,
 };
 
@@ -41,14 +41,13 @@ mod tests {
         body::Body,
         http::{Request, StatusCode},
     };
+    use datamize_domain::{ExpenseType, SubExpenseType};
     use fake::{Dummy, Fake, Faker};
     use serde::Serialize;
     use tower::ServiceExt;
 
     use crate::{
-        error::AppError,
-        models::budget_template::{ExpenseType, SubExpenseType},
-        routes::api::budget_template::get_external_expense_routes,
+        error::AppError, routes::api::budget_template::get_external_expense_routes,
         services::budget_template::MockExternalExpenseServiceExt,
     };
 

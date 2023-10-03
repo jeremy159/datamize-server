@@ -22,7 +22,7 @@ use crate::{
 pub struct AppState {
     pub ynab_client: Arc<ynab::Client>,
     pub db_conn_pool: Pool<Postgres>,
-    pub redis_conn: redis::aio::ConnectionManager,
+    pub redis_conn: db_redis::redis::aio::ConnectionManager,
 }
 
 pub struct Application {

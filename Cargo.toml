@@ -23,8 +23,14 @@ debug = 0
 [workspace.dependencies]
 # Local Crates
 ynab = { path = "./crates/ynab", features = ["sqlx-postgres"] }
+datamize-domain = { path = "./crates/datamize-domain" }
+db-postgres = { path = "./crates/db-postgres" }
+db-redis = { path = "./crates/db-redis" }
+datamize-server = { path = "./crates/datamize-server" }
 
 # Non-Local Crates
+sqlx = { version = "^0.7.0", features = ["runtime-tokio", "tls-rustls", "macros", "uuid", "chrono", "migrate", "json"] }
+redis = { version = "0.23" }
 tokio = { version = "1.29", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -32,7 +38,9 @@ chrono = { version = "^0.4.26", default-features = false, features = ["clock", "
 rrule = "^0.10.0"
 anyhow = { version = "1.0", features = ["backtrace"] }
 thiserror = "1.0"
-reqwest = { version = "^0.11.18", default-features = false, features = ["json", "cookies", "rustls-tls"] }
 uuid = { version = "1.4", features = ["serde", "v4"] }
 orion = "^0.17.5"
 async-trait = "0.1.72"
+tracing = "0.1.37"
+futures = "^0.3.28"
+dyn-clone = "1.0.12"

@@ -7,7 +7,7 @@ use crate::{
     UpdateTransaction,
 };
 
-#[cfg_attr(test, mockall::automock)]
+#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait TransactionRequests {
     async fn get_transactions(&self) -> YnabResult<Vec<TransactionDetail>>;

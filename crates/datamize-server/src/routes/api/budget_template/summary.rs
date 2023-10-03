@@ -2,12 +2,9 @@ use axum::{
     extract::{Query, State},
     Json,
 };
+use datamize_domain::{BudgetSummary, TemplateParams};
 
-use crate::{
-    error::HttpJsonDatamizeResult,
-    models::budget_template::{BudgetSummary, TemplateParams},
-    services::budget_template::DynTemplateSummaryService,
-};
+use crate::{error::HttpJsonDatamizeResult, services::budget_template::DynTemplateSummaryService};
 
 /// Returns a budget template summary.
 /// Can specify the month to get summary from.
@@ -27,17 +24,16 @@ pub async fn template_summary(
 
 #[cfg(test)]
 mod tests {
-    use async_trait::async_trait;
     use axum::{
         body::Body,
         http::{Request, StatusCode},
     };
+    use datamize_domain::{async_trait, MonthTarget};
     use fake::{Fake, Faker};
     use tower::ServiceExt;
 
     use crate::{
         error::{AppError, DatamizeResult},
-        models::budget_template::MonthTarget,
         routes::api::budget_template::get_summary_routes,
         services::budget_template::TemplateSummaryServiceExt,
     };

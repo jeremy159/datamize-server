@@ -5,7 +5,7 @@ use crate::{
     client::Response, error::YnabResult, Client, MonthDetail, MonthSummary, MonthSummaryDelta,
 };
 
-#[cfg_attr(test, mockall::automock)]
+#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait MonthRequests {
     async fn get_months(&self) -> YnabResult<Vec<MonthSummary>>;

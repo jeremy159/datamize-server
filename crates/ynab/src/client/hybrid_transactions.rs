@@ -5,7 +5,7 @@ use crate::{
     TransactionType, TransactionsParentPath, TransactionsRequestQuery,
 };
 
-#[cfg_attr(test, mockall::automock)]
+#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait HybridTransactionRequests {
     async fn get_transactions_by_category_id(

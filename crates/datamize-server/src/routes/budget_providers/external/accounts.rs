@@ -1,7 +1,7 @@
 use axum::{extract::State, Json};
+use datamize_domain::ExternalAccount;
 
 use crate::error::HttpJsonDatamizeResult;
-use crate::models::budget_providers::ExternalAccount;
 use crate::services::budget_providers::DynExternalAccountService;
 
 /// Returns all external accounts. Those are accounts that can be web scrapped.

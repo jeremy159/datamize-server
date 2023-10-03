@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
 use anyhow::Context;
-use async_trait::async_trait;
+use datamize_domain::{
+    async_trait,
+    db::ynab::{DynYnabTransactionMetaRepo, DynYnabTransactionRepo},
+    Uuid,
+};
 use dyn_clone::{clone_trait_object, DynClone};
-use uuid::Uuid;
 use ynab::{TransactionDetail, TransactionRequests};
 
-use crate::{
-    db::budget_providers::ynab::{DynYnabTransactionMetaRepo, DynYnabTransactionRepo},
-    error::DatamizeResult,
-};
+use crate::error::DatamizeResult;
 
 #[async_trait]
 pub trait TransactionServiceExt: DynClone + Send + Sync {
@@ -80,9 +80,10 @@ impl TransactionServiceExt for TransactionService {
         &self,
         category_id: Uuid,
     ) -> DatamizeResult<Vec<TransactionDetail>> {
-        self.ynab_transaction_repo
+        Ok(self
+            .ynab_transaction_repo
             .get_all_with_category_id(category_id)
-            .await
+            .await?)
     }
 
     #[tracing::instrument(skip(self))]
@@ -90,9 +91,10 @@ impl TransactionServiceExt for TransactionService {
         &self,
         payee_id: Uuid,
     ) -> DatamizeResult<Vec<TransactionDetail>> {
-        self.ynab_transaction_repo
+        Ok(self
+            .ynab_transaction_repo
             .get_all_with_payee_id(payee_id)
-            .await
+            .await?)
     }
 }
 
