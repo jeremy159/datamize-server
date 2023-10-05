@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                id as \"id: Uuid\",\n                name,\n                type as \"expense_type: ExpenseType\",\n                sub_type as \"sub_expense_type: SubExpenseType\",\n                projected_amount\n            FROM external_expenses\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "expense_type: ExpenseType",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "sub_expense_type: SubExpenseType",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "projected_amount",
+        "ordinal": 4,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "5829904c9c621fbd349e8b0e5978387101e94383d91435dae14d8ae42760466c"
+}

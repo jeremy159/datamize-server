@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                id AS \"id: Uuid\",\n                type AS \"net_type: NetTotalType\",\n                total,\n                percent_var as \"percent_var: f32\",\n                balance_var\n            FROM balance_sheet_net_totals_months\n            WHERE month_id = $1;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "net_type: NetTotalType",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "total",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "percent_var: f32",
+        "ordinal": 3,
+        "type_info": "Float"
+      },
+      {
+        "name": "balance_var",
+        "ordinal": 4,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "cafd20362986cc4b79184f825fa19e81984eb44dbbec2d461a0309f3ec9a2ad3"
+}

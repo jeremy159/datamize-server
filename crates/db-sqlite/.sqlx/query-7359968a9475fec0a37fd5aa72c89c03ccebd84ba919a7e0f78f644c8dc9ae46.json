@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                DELETE FROM budgeters_config\n                WHERE id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "7359968a9475fec0a37fd5aa72c89c03ccebd84ba919a7e0f78f644c8dc9ae46"
+}

@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                m.id as \"month_id: Uuid\",\n                m.month as \"month: MonthNum\",\n                n.id as \"net_total_id: Uuid\",\n                n.type as \"type: NetTotalType\",\n                n.total,\n                n.percent_var,\n                n.balance_var,\n                n.month_id as \"net_total_month_id: Uuid\",\n                y.year as \"year: i32\"\n            FROM balance_sheet_months AS m\n            JOIN balance_sheet_net_totals_months AS n ON month_id = n.month_id\n            JOIN balance_sheet_years AS y ON y.id = m.year_id;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "month_id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "month: MonthNum",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "net_total_id: Uuid",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "type: NetTotalType",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "total",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "percent_var",
+        "ordinal": 5,
+        "type_info": "Float"
+      },
+      {
+        "name": "balance_var",
+        "ordinal": 6,
+        "type_info": "Int64"
+      },
+      {
+        "name": "net_total_month_id: Uuid",
+        "ordinal": 7,
+        "type_info": "Blob"
+      },
+      {
+        "name": "year: i32",
+        "ordinal": 8,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c0d8d7f19f7b319df12204cf2b1073ca7a28d2c1a2f7d7fbb1d0efb999604699"
+}

@@ -1,0 +1,92 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT \n                id as \"id: Uuid\",\n                name,\n                type AS \"account_type: AccountType\",\n                on_budget,\n                closed,\n                note,\n                balance,\n                cleared_balance,\n                uncleared_balance,\n                transfer_payee_id as \"transfer_payee_id: Uuid\",\n                direct_import_linked,\n                direct_import_in_error,\n                deleted\n            FROM accounts\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "account_type: AccountType",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "on_budget",
+        "ordinal": 3,
+        "type_info": "Bool"
+      },
+      {
+        "name": "closed",
+        "ordinal": 4,
+        "type_info": "Bool"
+      },
+      {
+        "name": "note",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "balance",
+        "ordinal": 6,
+        "type_info": "Int64"
+      },
+      {
+        "name": "cleared_balance",
+        "ordinal": 7,
+        "type_info": "Int64"
+      },
+      {
+        "name": "uncleared_balance",
+        "ordinal": 8,
+        "type_info": "Int64"
+      },
+      {
+        "name": "transfer_payee_id: Uuid",
+        "ordinal": 9,
+        "type_info": "Blob"
+      },
+      {
+        "name": "direct_import_linked",
+        "ordinal": 10,
+        "type_info": "Bool"
+      },
+      {
+        "name": "direct_import_in_error",
+        "ordinal": 11,
+        "type_info": "Bool"
+      },
+      {
+        "name": "deleted",
+        "ordinal": 12,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "c0ee39ab5ee5c1fd45c342fc36e508f433d7d021cac2103ed3225c15d6d75f1d"
+}

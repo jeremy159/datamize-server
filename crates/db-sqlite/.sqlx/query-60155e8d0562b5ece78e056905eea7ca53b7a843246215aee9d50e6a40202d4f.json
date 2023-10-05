@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO expenses_categorization (id, name, type, sub_type)\n            VALUES ($1, $2, $3, $4)\n            ON CONFLICT (id) DO UPDATE\n            SET name = EXCLUDED.name,\n            type = EXCLUDED.type,\n            sub_type = EXCLUDED.sub_type;\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "60155e8d0562b5ece78e056905eea7ca53b7a843246215aee9d50e6a40202d4f"
+}

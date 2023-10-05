@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO external_expenses (id, name, type, sub_type, projected_amount)\n            VALUES ($1, $2, $3, $4, $5)\n            ON CONFLICT (id) DO UPDATE\n            SET name = EXCLUDED.name,\n            type = EXCLUDED.type,\n            sub_type = EXCLUDED.sub_type,\n            projected_amount = EXCLUDED.projected_amount;\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "0925832e8982336c76c9e34dd0b50b82498b601ceab6dcba3d973c427fcdcf44"
+}

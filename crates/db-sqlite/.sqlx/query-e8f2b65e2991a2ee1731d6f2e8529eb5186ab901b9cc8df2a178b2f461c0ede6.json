@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                id as \"id: Uuid\",\n                name,\n                type as \"expense_type: ExpenseType\",\n                sub_type as \"sub_expense_type: SubExpenseType\"\n            FROM expenses_categorization\n            WHERE id = $1;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "expense_type: ExpenseType",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "sub_expense_type: SubExpenseType",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e8f2b65e2991a2ee1731d6f2e8529eb5186ab901b9cc8df2a178b2f461c0ede6"
+}

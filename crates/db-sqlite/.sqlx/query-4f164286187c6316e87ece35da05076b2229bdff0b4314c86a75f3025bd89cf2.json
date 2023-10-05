@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                    INSERT INTO categories (id, category_group_id, category_group_name, name, hidden, original_category_group_id, note, budgeted, activity, balance, goal_type, goal_creation_month, goal_target, goal_target_month, goal_percentage_complete, goal_months_to_budget, goal_under_funded, goal_overall_funded, goal_overall_left, deleted, goal_day, goal_cadence, goal_cadence_frequency)\n                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23)\n                    ON CONFLICT (id) DO UPDATE SET\n                    category_group_id = EXCLUDED.category_group_id,\n                    category_group_name = EXCLUDED.category_group_name,\n                    name = EXCLUDED.name,\n                    hidden = EXCLUDED.hidden,\n                    original_category_group_id = EXCLUDED.original_category_group_id,\n                    note = EXCLUDED.note,\n                    budgeted = EXCLUDED.budgeted,\n                    activity = EXCLUDED.activity,\n                    balance = EXCLUDED.balance,\n                    goal_type = EXCLUDED.goal_type,\n                    goal_creation_month = EXCLUDED.goal_creation_month,\n                    goal_target = EXCLUDED.goal_target,\n                    goal_target_month = EXCLUDED.goal_target_month,\n                    goal_percentage_complete = EXCLUDED.goal_percentage_complete,\n                    goal_months_to_budget = EXCLUDED.goal_months_to_budget,\n                    goal_under_funded = EXCLUDED.goal_under_funded,\n                    goal_overall_funded = EXCLUDED.goal_overall_funded,\n                    goal_overall_left = EXCLUDED.goal_overall_left,\n                    deleted = EXCLUDED.deleted,\n                    goal_day = EXCLUDED.goal_day,\n                    goal_cadence = EXCLUDED.goal_cadence,\n                    goal_cadence_frequency = EXCLUDED.goal_cadence_frequency;\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 23
+    },
+    "nullable": []
+  },
+  "hash": "4f164286187c6316e87ece35da05076b2229bdff0b4314c86a75f3025bd89cf2"
+}

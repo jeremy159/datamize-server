@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)\n                SELECT r.id, m.id, $1\n                FROM balance_sheet_resources AS r\n                JOIN balance_sheet_years AS y ON y.year = $3\n                JOIN balance_sheet_months AS m ON m.month = $4 AND m.year_id = y.id\n                WHERE r.id = $2\n                ON CONFLICT (resource_id, month_id) DO UPDATE SET\n                balance = EXCLUDED.balance;\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "7b01913c998de1867329040ae3b043d159756bee074b86deaa11f5f571800889"
+}

@@ -6,7 +6,7 @@ use uuid::Uuid;
 use super::MonthNum;
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, sqlx::Type)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub enum ResourceCategory {
     /// Things you own. These can be cash or something you can convert into cash such as property, vehicles, equipment and inventory.
@@ -36,7 +36,7 @@ impl FromStr for ResourceCategory {
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, sqlx::Type)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub enum ResourceType {
     /// Refers to current cash, owned or due, like bank accounts or credit cards.

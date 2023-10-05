@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                r.id AS \"id: Uuid\",\n                r.name,\n                r.category AS \"category: ResourceCategory\",\n                r.type AS \"type: ResourceType\",\n                r.editable,\n                r.ynab_account_ids,\n                r.external_account_ids,\n                rm.balance,\n                m.month AS \"month: MonthNum\",\n                y.year AS \"year: i32\"\n            FROM balance_sheet_resources AS r\n            JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id AND r.id = $1\n            JOIN balance_sheet_months AS m ON rm.month_id = m.id\n            JOIN balance_sheet_years AS y ON y.id = m.year_id;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "category: ResourceCategory",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "type: ResourceType",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "editable",
+        "ordinal": 4,
+        "type_info": "Bool"
+      },
+      {
+        "name": "ynab_account_ids",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "external_account_ids",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "balance",
+        "ordinal": 7,
+        "type_info": "Int64"
+      },
+      {
+        "name": "month: MonthNum",
+        "ordinal": 8,
+        "type_info": "Int64"
+      },
+      {
+        "name": "year: i32",
+        "ordinal": 9,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "2111ffc24b310113b7cfc0689bfdfe457f1c1d3304485e38f147415f4c8ae19d"
+}

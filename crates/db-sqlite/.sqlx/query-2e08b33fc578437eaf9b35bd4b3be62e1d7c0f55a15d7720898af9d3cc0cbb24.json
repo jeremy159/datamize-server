@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO external_accounts (id, name, type, balance, username, encrypted_password, deleted)\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            ON CONFLICT (id) DO UPDATE SET\n            name = EXCLUDED.name,\n            type = EXCLUDED.type,\n            balance = EXCLUDED.balance,\n            username = EXCLUDED.username,\n            encrypted_password = EXCLUDED.encrypted_password,\n            deleted = EXCLUDED.deleted;\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "2e08b33fc578437eaf9b35bd4b3be62e1d7c0f55a15d7720898af9d3cc0cbb24"
+}

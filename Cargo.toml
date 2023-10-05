@@ -26,6 +26,7 @@ ynab = { path = "./crates/ynab", features = ["sqlx-postgres"] }
 datamize-domain = { path = "./crates/datamize-domain" }
 db-postgres = { path = "./crates/db-postgres" }
 db-redis = { path = "./crates/db-redis" }
+db-sqlite = { path = "./crates/db-sqlite" }
 datamize-server = { path = "./crates/datamize-server" }
 
 # Non-Local Crates

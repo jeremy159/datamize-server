@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT\n            y.id as \"year_id: Uuid\",\n            y.year as \"year: i32\",\n            y.refreshed_at as \"refreshed_at: DateTime<Utc>\",\n            n.id as \"net_total_id: Uuid\",\n            n.type as \"type: NetTotalType\",\n            n.total,\n            n.percent_var as \"percent_var: f32\",\n            n.balance_var,\n            n.year_id as \"net_total_year_id: Uuid\"\n        FROM balance_sheet_years AS y\n        JOIN balance_sheet_net_totals_years AS n ON year_id = n.year_id;\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "year_id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "year: i32",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "refreshed_at: DateTime<Utc>",
+        "ordinal": 2,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "net_total_id: Uuid",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "type: NetTotalType",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "total",
+        "ordinal": 5,
+        "type_info": "Int64"
+      },
+      {
+        "name": "percent_var: f32",
+        "ordinal": 6,
+        "type_info": "Float"
+      },
+      {
+        "name": "balance_var",
+        "ordinal": 7,
+        "type_info": "Int64"
+      },
+      {
+        "name": "net_total_year_id: Uuid",
+        "ordinal": 8,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "bc3f5f9522308b9059ae24e01aade118cf9a3e83442547e5c3a37b61efd3b9fd"
+}

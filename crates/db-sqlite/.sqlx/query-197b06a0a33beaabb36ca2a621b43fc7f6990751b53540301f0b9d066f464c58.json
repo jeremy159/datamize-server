@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                DELETE FROM balance_sheet_years\n                WHERE year = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "197b06a0a33beaabb36ca2a621b43fc7f6990751b53540301f0b9d066f464c58"
+}

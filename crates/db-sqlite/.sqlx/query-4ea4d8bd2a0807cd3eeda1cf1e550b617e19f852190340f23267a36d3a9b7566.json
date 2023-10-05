@@ -1,0 +1,152 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT \n                id as \"id: Uuid\",\n                category_group_id as \"category_group_id: Uuid\",\n                category_group_name,\n                name,\n                hidden,\n                original_category_group_id as \"original_category_group_id?: Uuid\",\n                note,\n                budgeted,\n                activity,\n                balance,\n                goal_type AS \"goal_type?: GoalType\",\n                goal_creation_month,\n                goal_target,\n                goal_target_month,\n                goal_percentage_complete as \"goal_percentage_complete?: i32\",\n                goal_months_to_budget as \"goal_months_to_budget?: i32\",\n                goal_under_funded,\n                goal_overall_funded,\n                goal_overall_left,\n                deleted,\n                goal_day as \"goal_day?: i32\",\n                goal_cadence as \"goal_cadence?: i32\",\n                goal_cadence_frequency as \"goal_cadence_frequency?: i32\"\n            FROM categories\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "category_group_id: Uuid",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "category_group_name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "hidden",
+        "ordinal": 4,
+        "type_info": "Bool"
+      },
+      {
+        "name": "original_category_group_id?: Uuid",
+        "ordinal": 5,
+        "type_info": "Blob"
+      },
+      {
+        "name": "note",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "budgeted",
+        "ordinal": 7,
+        "type_info": "Int64"
+      },
+      {
+        "name": "activity",
+        "ordinal": 8,
+        "type_info": "Int64"
+      },
+      {
+        "name": "balance",
+        "ordinal": 9,
+        "type_info": "Int64"
+      },
+      {
+        "name": "goal_type?: GoalType",
+        "ordinal": 10,
+        "type_info": "Text"
+      },
+      {
+        "name": "goal_creation_month",
+        "ordinal": 11,
+        "type_info": "Date"
+      },
+      {
+        "name": "goal_target",
+        "ordinal": 12,
+        "type_info": "Int64"
+      },
+      {
+        "name": "goal_target_month",
+        "ordinal": 13,
+        "type_info": "Date"
+      },
+      {
+        "name": "goal_percentage_complete?: i32",
+        "ordinal": 14,
+        "type_info": "Int64"
+      },
+      {
+        "name": "goal_months_to_budget?: i32",
+        "ordinal": 15,
+        "type_info": "Int64"
+      },
+      {
+        "name": "goal_under_funded",
+        "ordinal": 16,
+        "type_info": "Int64"
+      },
+      {
+        "name": "goal_overall_funded",
+        "ordinal": 17,
+        "type_info": "Int64"
+      },
+      {
+        "name": "goal_overall_left",
+        "ordinal": 18,
+        "type_info": "Int64"
+      },
+      {
+        "name": "deleted",
+        "ordinal": 19,
+        "type_info": "Bool"
+      },
+      {
+        "name": "goal_day?: i32",
+        "ordinal": 20,
+        "type_info": "Int64"
+      },
+      {
+        "name": "goal_cadence?: i32",
+        "ordinal": 21,
+        "type_info": "Int64"
+      },
+      {
+        "name": "goal_cadence_frequency?: i32",
+        "ordinal": 22,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "4ea4d8bd2a0807cd3eeda1cf1e550b617e19f852190340f23267a36d3a9b7566"
+}

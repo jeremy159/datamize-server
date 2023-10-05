@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                sr.id as \"saving_rate_id: Uuid\",\n                sr.name,\n                sr.savings,\n                sr.employer_contribution,\n                sr.employee_contribution,\n                sr.mortgage_capital,\n                sr.incomes\n            FROM balance_sheet_saving_rates AS sr\n            JOIN balance_sheet_years AS y ON y.id = sr.year_id AND y.year = $1;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "saving_rate_id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "savings",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "employer_contribution",
+        "ordinal": 3,
+        "type_info": "Int64"
+      },
+      {
+        "name": "employee_contribution",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "mortgage_capital",
+        "ordinal": 5,
+        "type_info": "Int64"
+      },
+      {
+        "name": "incomes",
+        "ordinal": 6,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f094e35941eb54c04704013725cb58abc48ed8ed9d57061ebd6ffa683193eec1"
+}

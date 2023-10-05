@@ -1,0 +1,128 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT \n                id as \"id: Uuid\",\n                date as \"date: NaiveDate\",\n                amount,\n                memo,\n                cleared as \"cleared: ClearedType\",\n                approved,\n                flag_color,\n                account_id as \"account_id: Uuid\",\n                payee_id as \"payee_id?: Uuid\",\n                category_id as \"category_id?: Uuid\",\n                transfer_account_id as \"transfer_account_id?: Uuid\",\n                transfer_transaction_id as \"transfer_transaction_id?: Uuid\",\n                matched_transaction_id as \"matched_transaction_id?: Uuid\",\n                import_id as \"import_id?: Uuid\",\n                deleted,\n                account_name,\n                payee_name,\n                category_name,\n                subtransactions\n            FROM transactions\n            WHERE category_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "date: NaiveDate",
+        "ordinal": 1,
+        "type_info": "Date"
+      },
+      {
+        "name": "amount",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "memo",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "cleared: ClearedType",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "approved",
+        "ordinal": 5,
+        "type_info": "Bool"
+      },
+      {
+        "name": "flag_color",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "account_id: Uuid",
+        "ordinal": 7,
+        "type_info": "Blob"
+      },
+      {
+        "name": "payee_id?: Uuid",
+        "ordinal": 8,
+        "type_info": "Blob"
+      },
+      {
+        "name": "category_id?: Uuid",
+        "ordinal": 9,
+        "type_info": "Blob"
+      },
+      {
+        "name": "transfer_account_id?: Uuid",
+        "ordinal": 10,
+        "type_info": "Blob"
+      },
+      {
+        "name": "transfer_transaction_id?: Uuid",
+        "ordinal": 11,
+        "type_info": "Blob"
+      },
+      {
+        "name": "matched_transaction_id?: Uuid",
+        "ordinal": 12,
+        "type_info": "Blob"
+      },
+      {
+        "name": "import_id?: Uuid",
+        "ordinal": 13,
+        "type_info": "Blob"
+      },
+      {
+        "name": "deleted",
+        "ordinal": 14,
+        "type_info": "Bool"
+      },
+      {
+        "name": "account_name",
+        "ordinal": 15,
+        "type_info": "Text"
+      },
+      {
+        "name": "payee_name",
+        "ordinal": 16,
+        "type_info": "Text"
+      },
+      {
+        "name": "category_name",
+        "ordinal": 17,
+        "type_info": "Text"
+      },
+      {
+        "name": "subtransactions",
+        "ordinal": 18,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "8a4dcb6f350cc476c6b1e8d8b30f2307a609f03a4047c99971882f1817e265c1"
+}

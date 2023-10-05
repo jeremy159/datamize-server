@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                    INSERT INTO payees (id, name, transfer_account_id, deleted)\n                    VALUES ($1, $2, $3, $4)\n                    ON CONFLICT (id) DO UPDATE SET\n                    name = EXCLUDED.name,\n                    transfer_account_id = EXCLUDED.transfer_account_id,\n                    deleted = EXCLUDED.deleted;\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "050963413d3bada86d8f23e7e920c4af266ec74002b052f00e9432613b09ca15"
+}
