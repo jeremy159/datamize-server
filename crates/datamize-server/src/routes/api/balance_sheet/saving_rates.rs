@@ -1,5 +1,16 @@
 #[cfg(test)]
-mod tests;
+mod create;
+#[cfg(test)]
+mod delete;
+#[cfg(test)]
+mod get;
+#[cfg(test)]
+mod get_all;
+#[cfg(test)]
+pub(crate) mod testutils;
+#[cfg(test)]
+mod update;
+
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -33,7 +44,3 @@ pub async fn create_balance_sheet_saving_rate(
         Json(saving_rate_service.create_saving_rate(body).await?),
     ))
 }
-
-// TODO: Introduce SQLite for unit tests. See https://jmmv.dev/2023/07/unit-testing-a-web-service.html
-// To introduce SQLite, need to split db implementations into their own crates, so making use of cargo workspace. https://github.com/launchbadge/sqlx/issues/121
-// TODO: For better tests, see https://matklad.github.io/2021/05/31/how-to-test.html

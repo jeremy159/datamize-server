@@ -238,3 +238,11 @@ struct IdsAndBalanceRecord {
     ids: Vec<Uuid>,
     extra_balance: i64,
 }
+
+pub async fn sabotage_saving_rates_table(pool: &SqlitePool) -> DbResult<()> {
+    sqlx::query!("ALTER TABLE balance_sheet_saving_rates DROP COLUMN name;",)
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}

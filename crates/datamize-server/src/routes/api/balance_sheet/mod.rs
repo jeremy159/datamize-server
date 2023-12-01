@@ -5,8 +5,6 @@ mod resource;
 mod resources;
 mod saving_rate;
 mod saving_rates;
-#[cfg(test)]
-pub mod testutils;
 mod year;
 mod years;
 

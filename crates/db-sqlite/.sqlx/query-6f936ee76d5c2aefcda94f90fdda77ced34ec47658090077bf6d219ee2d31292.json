@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "ALTER TABLE balance_sheet_saving_rates DROP COLUMN name;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "6f936ee76d5c2aefcda94f90fdda77ced34ec47658090077bf6d219ee2d31292"
+}

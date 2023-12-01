@@ -7,7 +7,6 @@ use crate::{
     UpdateTransaction,
 };
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait TransactionRequests {
     async fn get_transactions(&self) -> YnabResult<Vec<TransactionDetail>>;
@@ -507,5 +506,109 @@ impl Client {
 
         let resp: Response<TransationsDetailDelta> = Client::convert_resp(body)?;
         Ok(resp.data)
+    }
+}
+
+#[cfg(any(feature = "testutils", test))]
+mockall::mock! {
+    pub TransactionRequestsImpl {}
+
+    impl Clone for TransactionRequestsImpl {
+        fn clone(&self) -> Self;
+    }
+
+    #[async_trait]
+    impl TransactionRequests for TransactionRequestsImpl {
+        async fn get_transactions(&self) -> YnabResult<Vec<TransactionDetail>>;
+        async fn get_transactions_delta(
+            &self,
+            last_knowledge_of_server: Option<i64>,
+        ) -> YnabResult<TransationsDetailDelta>;
+        async fn get_transactions_since(&self, since_date: &str) -> YnabResult<Vec<TransactionDetail>>;
+        async fn get_transactions_since_delta(
+            &self,
+            since_date: &str,
+            last_knowledge_of_server: Option<i64>,
+        ) -> YnabResult<TransationsDetailDelta>;
+        async fn get_transactions_of(
+            &self,
+            transaction_type: TransactionType,
+        ) -> YnabResult<Vec<TransactionDetail>>;
+        async fn get_transactions_of_delta(
+            &self,
+            transaction_type: TransactionType,
+            last_knowledge_of_server: Option<i64>,
+        ) -> YnabResult<TransationsDetailDelta>;
+        async fn get_transactions_since_date_of(
+            &self,
+            since_date: &str,
+            transaction_type: TransactionType,
+        ) -> YnabResult<Vec<TransactionDetail>>;
+        async fn get_transactions_since_date_of_delta(
+            &self,
+            since_date: &str,
+            transaction_type: TransactionType,
+            last_knowledge_of_server: Option<i64>,
+        ) -> YnabResult<TransationsDetailDelta>;
+        async fn get_transactions_by_account_id(
+            &self,
+            account_id: &str,
+        ) -> YnabResult<Vec<TransactionDetail>>;
+        async fn get_transactions_by_account_id_delta(
+            &self,
+            account_id: &str,
+            last_knowledge_of_server: Option<i64>,
+        ) -> YnabResult<TransationsDetailDelta>;
+        async fn get_transactions_by_account_id_since(
+            &self,
+            account_id: &str,
+            since_date: &str,
+        ) -> YnabResult<Vec<TransactionDetail>>;
+        async fn get_transactions_by_account_id_since_delta(
+            &self,
+            account_id: &str,
+            since_date: &str,
+            last_knowledge_of_server: Option<i64>,
+        ) -> YnabResult<TransationsDetailDelta>;
+        async fn get_transactions_by_account_id_of(
+            &self,
+            account_id: &str,
+            transaction_type: TransactionType,
+        ) -> YnabResult<Vec<TransactionDetail>>;
+        async fn get_transactions_by_account_id_of_delta(
+            &self,
+            account_id: &str,
+            transaction_type: TransactionType,
+            last_knowledge_of_server: Option<i64>,
+        ) -> YnabResult<TransationsDetailDelta>;
+        async fn get_transactions_by_account_id_since_date_of(
+            &self,
+            account_id: &str,
+            since_date: &str,
+            transaction_type: TransactionType,
+        ) -> YnabResult<Vec<TransactionDetail>>;
+        async fn get_transactions_by_account_id_since_date_of_delta(
+            &self,
+            account_id: &str,
+            since_date: &str,
+            transaction_type: TransactionType,
+            last_knowledge_of_server: Option<i64>,
+        ) -> YnabResult<TransationsDetailDelta>;
+        async fn create_transaction(&self, data: SaveTransaction) -> YnabResult<TransactionDetail>;
+        async fn create_transactions(
+            &self,
+            data: Vec<SaveTransaction>,
+        ) -> YnabResult<Vec<TransactionDetail>>;
+        async fn update_transactions(
+            &self,
+            data: Vec<UpdateTransaction>,
+        ) -> YnabResult<Vec<TransactionDetail>>;
+        async fn import_transactions(&self) -> YnabResult<Vec<String>>;
+        async fn get_transaction_by_id(&self, transaction_id: &str) -> YnabResult<TransactionDetail>;
+        async fn update_transaction(
+            &self,
+            transaction_id: &str,
+            data: SaveTransaction,
+        ) -> YnabResult<TransactionDetail>;
     }
 }

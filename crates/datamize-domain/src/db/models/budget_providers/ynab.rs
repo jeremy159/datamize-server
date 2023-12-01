@@ -267,16 +267,30 @@ clone_trait_object!(YnabTransactionMetaRepo);
 pub type DynYnabTransactionMetaRepo = Box<dyn YnabTransactionMetaRepo>;
 
 #[cfg(any(feature = "testutils", test))]
-mockall::mock! {
-    pub YnabTransactionMetaRepoImpl {}
+mod mocks {
+    use super::*;
+    use fake::{Fake, Faker};
 
-    impl Clone for YnabTransactionMetaRepoImpl {
-        fn clone(&self) -> Self;
+    #[derive(Clone)]
+    pub struct MockYnabTransactionMetaRepo {}
+
+    impl MockYnabTransactionMetaRepo {
+        pub fn new_boxed() -> Box<dyn YnabTransactionMetaRepo> {
+            Box::new(Self {})
+        }
     }
 
     #[async_trait]
-    impl YnabTransactionMetaRepo for YnabTransactionMetaRepoImpl {
-        async fn get_delta(&mut self) -> DbResult<i64>;
-        async fn set_delta(&mut self, server_knowledge: i64) -> DbResult<()>;
+    impl YnabTransactionMetaRepo for MockYnabTransactionMetaRepo {
+        async fn get_delta(&mut self) -> DbResult<i64> {
+            Ok(Faker.fake())
+        }
+
+        async fn set_delta(&mut self, _server_knowledge: i64) -> DbResult<()> {
+            Ok(())
+        }
     }
 }
+
+#[cfg(any(feature = "testutils", test))]
+pub use mocks::*;

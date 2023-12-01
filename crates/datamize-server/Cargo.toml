@@ -56,6 +56,7 @@ nom = "7.1.3"
 # Local Deps
 datamize-domain = { workspace = true, features = ["testutils"] }
 ynab = { workspace = true, features = ["testutils"] }
+db-sqlite.workspace = true
 
 # Non-Local Deps
 fake = { version = "^2.6.1", features = ["chrono", "derive", "uuid"] }
@@ -66,3 +67,5 @@ wiremock = "^0.5.19"
 mockall = "0.11.4"
 hyper = { version = "0.14", features = ["full"] }
 serde_repr = "^0.1.14"
+sqlx = { workspace = true, features = ["sqlite"] } # TODO: Remove this unnecessary dependency by moving usage of types.
+pretty_assertions = "^1.4"

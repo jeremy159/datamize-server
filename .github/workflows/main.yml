@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      # TODO: to change deprecated actions-rs to https://github.com/dtolnay/rust-toolchain
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -56,6 +57,7 @@ jobs:
           override: true
 
       - name: Cache sqlx-cli
+        # TODO: Use https://github.com/Swatinem/rust-cache instead, for better caching support.
         uses: actions/cache@v2
         id: cache-sqlx
         with:
