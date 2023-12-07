@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, HashMap, HashSet},
     sync::Arc,
 };
 
@@ -172,7 +172,7 @@ impl FinResRepo for SqliteFinResRepo {
         month: MonthNum,
         year: i32,
     ) -> DbResult<Vec<FinancialResourceMonthly>> {
-        let mut resources: Vec<FinancialResourceMonthly> = vec![];
+        let mut resources: HashSet<FinancialResourceMonthly> = HashSet::new();
 
         let db_rows = sqlx::query!(
             r#"
@@ -209,7 +209,7 @@ impl FinResRepo for SqliteFinResRepo {
                 .as_ref()
                 .map(|r| serde_json::from_str(r).unwrap())
                 .unwrap_or(IdsRecord { ids: None });
-            resources.push(FinancialResourceMonthly {
+            resources.insert(FinancialResourceMonthly {
                 base: BaseFinancialResource {
                     id: r.id,
                     name: r.name,
@@ -224,6 +224,9 @@ impl FinResRepo for SqliteFinResRepo {
                 balance: r.balance,
             });
         }
+
+        let mut resources: Vec<FinancialResourceMonthly> = resources.into_iter().collect();
+        resources.sort_by(|a, b| a.base.name.cmp(&b.base.name));
 
         Ok(resources)
     }
@@ -357,42 +360,70 @@ impl FinResRepo for SqliteFinResRepo {
 
     #[tracing::instrument(skip_all)]
     async fn update_monthly(&self, resource: &FinancialResourceMonthly) -> DbResult<()> {
+        let ynab_account_ids = serde_json::to_string(&IdsRecord {
+            ids: resource.base.ynab_account_ids.clone(),
+        })
+        .unwrap();
+        let external_account_ids = serde_json::to_string(&IdsRecord {
+            ids: resource.base.external_account_ids.clone(),
+        })
+        .unwrap();
+
         // First update the resource itself
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_resources (id, name, category, type, editable)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO balance_sheet_resources (id, name, category, type, editable, ynab_account_ids, external_account_ids)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (id) DO UPDATE SET
             name = EXCLUDED.name,
             category = EXCLUDED.category,
             type = EXCLUDED.type,
-            editable = EXCLUDED.editable;
+            editable = EXCLUDED.editable,
+            ynab_account_ids = EXCLUDED.ynab_account_ids,
+            external_account_ids = EXCLUDED.external_account_ids;
             "#,
             resource.base.id,
             resource.base.name,
             resource.base.category,
             resource.base.r_type,
             resource.base.editable,
+            ynab_account_ids,
+            external_account_ids,
         )
         .execute(&self.db_conn_pool)
+        .await?;
+
+        #[derive(Debug)]
+        struct MonthData {
+            id: Uuid,
+        }
+
+        let month_data = sqlx::query_as!(
+            MonthData,
+            r#"
+            SELECT
+                m.id AS "id: Uuid"
+            FROM balance_sheet_months AS m
+            JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1
+            WHERE m.month = $2;
+            "#,
+            resource.year,
+            resource.month,
+        )
+        .fetch_one(&self.db_conn_pool)
         .await?;
 
         // Then the balance of the month
         sqlx::query!(
             r#"
             INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)
-            SELECT r.id, m.id, $1
-            FROM balance_sheet_resources AS r
-            JOIN balance_sheet_years AS y ON y.year = $3
-            JOIN balance_sheet_months AS m ON m.month = $4 AND m.year_id = y.id
-            WHERE r.id = $2
+            VALUES ($1, $2, $3)
             ON CONFLICT (resource_id, month_id) DO UPDATE SET
             balance = EXCLUDED.balance;
             "#,
-            resource.balance,
             resource.base.id,
-            resource.year,
-            resource.month,
+            month_data.id,
+            resource.balance,
         )
         .execute(&self.db_conn_pool)
         .await?;

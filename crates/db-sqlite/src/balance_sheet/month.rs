@@ -453,6 +453,14 @@ async fn update_month_net_totals(
     Ok(())
 }
 
+pub async fn sabotage_months_table(pool: &SqlitePool) -> DbResult<()> {
+    sqlx::query!("ALTER TABLE balance_sheet_months DROP COLUMN month;",)
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}
+
 // #[tracing::instrument(skip(db_conn_pool))]
 // pub async fn get_months_of_resource(
 //     db_conn_pool: &PgPool,

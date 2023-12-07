@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "ALTER TABLE balance_sheet_months DROP COLUMN month;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "dac7664830e70bfab4919af300bf6e25e36e05c18afb63e1f376217d07b9fb43"
+}

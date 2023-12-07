@@ -45,10 +45,19 @@ pub struct NetTotal {
     #[sqlx(rename = "type")]
     pub net_type: NetTotalType,
     /// The total amount of the current section.
+    #[cfg_attr(
+        any(feature = "testutils", test),
+        dummy(faker = "-1000000..1000000000")
+    )]
     pub total: i64,
     /// The percentage of variation compared to the previous month's section.
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "0.0..1.0"))]
     pub percent_var: f32,
     /// The money balance of variation compared to the previous month's section.
+    #[cfg_attr(
+        any(feature = "testutils", test),
+        dummy(faker = "-1000000..1000000000")
+    )]
     pub balance_var: i64,
 }
 

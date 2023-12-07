@@ -78,6 +78,25 @@ impl TryFrom<u32> for MonthNum {
     }
 }
 
+impl From<MonthNum> for i16 {
+    fn from(value: MonthNum) -> Self {
+        match value {
+            MonthNum::January => 1,
+            MonthNum::February => 2,
+            MonthNum::March => 3,
+            MonthNum::April => 4,
+            MonthNum::May => 5,
+            MonthNum::June => 6,
+            MonthNum::July => 7,
+            MonthNum::August => 8,
+            MonthNum::September => 9,
+            MonthNum::October => 10,
+            MonthNum::November => 11,
+            MonthNum::December => 12,
+        }
+    }
+}
+
 impl MonthNum {
     /// The next month
     pub fn succ(&self) -> MonthNum {
@@ -133,7 +152,6 @@ impl MonthNum {
 }
 
 /// A balance sheet of the month.
-#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Month {
     pub id: Uuid,
@@ -148,6 +166,34 @@ pub struct Month {
     /// The financial resources associated with this month only. Each resource contains a single balance for the current month
     /// even if it has occurences in other months
     pub resources: Vec<FinancialResourceMonthly>,
+}
+
+#[cfg(any(feature = "testutils", test))]
+impl fake::Dummy<fake::Faker> for Month {
+    fn dummy_with_rng<R: fake::Rng + ?Sized>(_: &fake::Faker, rng: &mut R) -> Self {
+        use fake::{Fake, Faker};
+        let id = Fake::fake_with_rng(&Faker, rng);
+        let year = Fake::fake_with_rng(&(1000..3000), rng);
+        let month = Fake::fake_with_rng(&Faker, rng);
+        let net_assets = NetTotal {
+            net_type: crate::NetTotalType::Asset,
+            ..Faker.fake()
+        };
+        let net_portfolio = NetTotal {
+            net_type: crate::NetTotalType::Portfolio,
+            ..Faker.fake()
+        };
+        let resources = Fake::fake_with_rng(&Faker, rng);
+
+        Self {
+            id,
+            year,
+            month,
+            net_assets,
+            net_portfolio,
+            resources,
+        }
+    }
 }
 
 impl Month {

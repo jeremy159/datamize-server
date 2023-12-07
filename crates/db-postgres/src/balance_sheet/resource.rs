@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, HashMap},
+    collections::{BTreeMap, HashMap, HashSet},
     sync::Arc,
 };
 
@@ -137,7 +137,7 @@ impl FinResRepo for PostgresFinResRepo {
         month: MonthNum,
         year: i32,
     ) -> DbResult<Vec<FinancialResourceMonthly>> {
-        let mut resources: Vec<FinancialResourceMonthly> = vec![];
+        let mut resources: HashSet<FinancialResourceMonthly> = HashSet::new();
 
         let db_rows = sqlx::query!(
             r#"
@@ -158,7 +158,7 @@ impl FinResRepo for PostgresFinResRepo {
         .await?;
 
         for r in db_rows {
-            resources.push(FinancialResourceMonthly {
+            resources.insert(FinancialResourceMonthly {
                 base: BaseFinancialResource {
                     id: r.id,
                     name: r.name,
@@ -173,6 +173,9 @@ impl FinResRepo for PostgresFinResRepo {
                 balance: r.balance,
             });
         }
+
+        let mut resources: Vec<FinancialResourceMonthly> = resources.into_iter().collect();
+        resources.sort_by(|a, b| a.base.name.cmp(&b.base.name));
 
         Ok(resources)
     }
@@ -255,7 +258,7 @@ impl FinResRepo for PostgresFinResRepo {
                 .ynab_account_ids
                 .as_ref()
                 .map(|accounts| accounts.as_slice()),
-                resource
+            resource
                 .base
                 .external_account_ids
                 .as_ref()
@@ -297,19 +300,31 @@ impl FinResRepo for PostgresFinResRepo {
         // First update the resource itself
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_resources (id, name, category, type, editable)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO balance_sheet_resources (id, name, category, type, editable, ynab_account_ids, external_account_ids)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (id) DO UPDATE SET
             name = EXCLUDED.name,
             category = EXCLUDED.category,
             type = EXCLUDED.type,
-            editable = EXCLUDED.editable;
+            editable = EXCLUDED.editable,
+            ynab_account_ids = EXCLUDED.ynab_account_ids,
+            external_account_ids = EXCLUDED.external_account_ids;
             "#,
             resource.base.id,
             resource.base.name,
             resource.base.category.to_string(),
             resource.base.r_type.to_string(),
             resource.base.editable,
+            resource
+                .base
+                .ynab_account_ids
+                .as_ref()
+                .map(|accounts| accounts.as_slice()),
+            resource
+                .base
+                .external_account_ids
+                .as_ref()
+                .map(|accounts| accounts.as_slice()),
         )
         .execute(&self.db_conn_pool)
         .await?;

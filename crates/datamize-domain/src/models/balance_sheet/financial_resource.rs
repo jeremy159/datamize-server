@@ -6,7 +6,7 @@ use uuid::Uuid;
 use super::MonthNum;
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, sqlx::Type)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash, sqlx::Type)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub enum ResourceCategory {
     /// Things you own. These can be cash or something you can convert into cash such as property, vehicles, equipment and inventory.
@@ -36,7 +36,7 @@ impl FromStr for ResourceCategory {
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, sqlx::Type)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Hash, sqlx::Type)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub enum ResourceType {
     /// Refers to current cash, owned or due, like bank accounts or credit cards.
@@ -72,7 +72,7 @@ impl FromStr for ResourceType {
 /// A resource with economic value. It represents either an asset or a liability
 /// and adds more data to it.
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct BaseFinancialResource {
     /// ID of the resource to be used when an update is needed.
     pub id: Uuid,
@@ -128,15 +128,17 @@ pub struct FinancialResourceYearly {
 
 /// A resource represented with a month of a particular year. It has a single balance field.
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct FinancialResourceMonthly {
     #[serde(flatten)]
     pub base: BaseFinancialResource,
     /// The month in which the financial resource has the current balance.
     pub month: MonthNum,
     /// The year in which the financial resource is
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "1000..3000"))]
     pub year: i32,
     /// The balance of the resource in the month.
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub balance: i64,
 }
 
