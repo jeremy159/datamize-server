@@ -1,18 +1,18 @@
-use std::collections::HashSet;
-
 use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
 use chrono::{Datelike, NaiveDate};
-use datamize_domain::{FinancialResourceMonthly, Month, MonthNum};
+use datamize_domain::Month;
 use db_sqlite::balance_sheet::sabotage_months_table;
 use fake::{faker::chrono::en::Date, Fake};
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 
-use crate::routes::api::balance_sheet::months::testutils::TestContext;
+use crate::routes::api::balance_sheet::months::testutils::{
+    correctly_stub_months, transform_expected_months, TestContext,
+};
 
 async fn check_get_all_from_year(
     pool: SqlitePool,
@@ -27,34 +27,7 @@ async fn check_get_all_from_year(
     }
     let year = year.unwrap_or(Date().fake::<NaiveDate>().year());
 
-    let expected_resp: Option<Vec<Month>> = expected_resp.map(|resp| {
-        let mut seen: HashSet<(MonthNum, i32)> = HashSet::new();
-        let mut months: Vec<Month> = resp
-            .into_iter()
-            .map(|m| Month {
-                year,
-                resources: m
-                    .resources
-                    .into_iter()
-                    .map(|r| FinancialResourceMonthly {
-                        year,
-                        month: m.month,
-                        ..r
-                    })
-                    .collect(),
-                ..m
-            })
-            // Filer any month accidently created in double by Dummy data.
-            .filter(|m| seen.insert((m.month, m.year)))
-            .collect();
-
-        // Empty resources of first month, it should not be in final response.
-        if let Some(m) = months.first_mut() {
-            m.resources = vec![];
-        }
-
-        months
-    });
+    let expected_resp: Option<Vec<Month>> = correctly_stub_months(expected_resp, [year, year]);
 
     if let Some(expected_resp) = &expected_resp {
         for m in expected_resp {
@@ -77,16 +50,7 @@ async fn check_get_all_from_year(
 
     let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
 
-    if let Some(mut expected) = expected_resp {
-        // Remove months with empty resources as it should not be present in the body of response.
-        expected.retain(|e| !e.resources.is_empty());
-        // Answer should be sorted by months
-        expected.sort_by(|a, b| a.month.cmp(&b.month));
-        // Then sort resources by name
-        for e in &mut expected {
-            e.resources.sort_by(|a, b| a.base.name.cmp(&b.base.name));
-        }
-
+    if let Some(expected) = transform_expected_months(expected_resp) {
         let body: Vec<Month> = serde_json::from_slice(&body).unwrap();
         assert_eq!(body, expected);
     }

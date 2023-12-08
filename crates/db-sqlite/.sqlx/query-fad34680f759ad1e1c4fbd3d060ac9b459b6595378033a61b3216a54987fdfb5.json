@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "ALTER TABLE balance_sheet_years DROP COLUMN refreshed_at;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "fad34680f759ad1e1c4fbd3d060ac9b459b6595378033a61b3216a54987fdfb5"
+}

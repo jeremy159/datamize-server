@@ -140,9 +140,11 @@ impl YearRepo for SqliteYearRepo {
 
         for months in months_stream {
             let months = months?;
-            let idx = years.iter().position(|y| y.year == months[0].year);
-            if let Some(idx) = idx {
-                years[idx].months = months;
+            if !months.is_empty() {
+                let idx = years.iter().position(|y| y.year == months[0].year);
+                if let Some(idx) = idx {
+                    years[idx].months = months;
+                }
             }
         }
 
@@ -350,6 +352,14 @@ async fn update_year_net_totals(year_repo: &SqliteYearRepo, year: i32) -> DbResu
 
     year_repo
         .insert_net_totals(year.id, [&year.net_assets, &year.net_portfolio])
+        .await?;
+
+    Ok(())
+}
+
+pub async fn sabotage_years_table(pool: &SqlitePool) -> DbResult<()> {
+    sqlx::query!("ALTER TABLE balance_sheet_years DROP COLUMN refreshed_at;",)
+        .execute(pool)
         .await?;
 
     Ok(())

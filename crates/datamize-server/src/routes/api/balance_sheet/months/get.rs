@@ -2,14 +2,16 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use datamize_domain::{FinancialResourceMonthly, Month};
+use datamize_domain::Month;
 use db_sqlite::balance_sheet::sabotage_months_table;
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 
-use crate::routes::api::balance_sheet::months::testutils::TestContext;
+use crate::routes::api::balance_sheet::months::testutils::{
+    correctly_stub_month, transform_expected_month, TestContext,
+};
 
 async fn check_get(
     pool: SqlitePool,
@@ -24,18 +26,7 @@ async fn check_get(
         context.insert_year(year).await;
     }
 
-    let expected_resp = expected_resp.map(|expected| Month {
-        resources: expected
-            .resources
-            .into_iter()
-            .map(|r| FinancialResourceMonthly {
-                month: expected.month,
-                year: expected.year,
-                ..r
-            })
-            .collect(),
-        ..expected
-    });
+    let expected_resp = correctly_stub_month(expected_resp);
 
     if let Some(expected_resp) = expected_resp.clone() {
         context.set_month(&expected_resp, year).await;
@@ -61,11 +52,7 @@ async fn check_get(
 
     let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
 
-    if let Some(mut expected) = expected_resp {
-        // Sort resources by name
-        expected
-            .resources
-            .sort_by(|a, b| a.base.name.cmp(&b.base.name));
+    if let Some(expected) = transform_expected_month(expected_resp) {
         let body: Month = serde_json::from_slice(&body).unwrap();
         assert_eq!(body, expected);
     }

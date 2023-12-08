@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{cmp::Ordering, collections::HashSet, sync::Arc};
 
 use axum::Router;
 use datamize_domain::{
@@ -6,6 +6,7 @@ use datamize_domain::{
     FinancialResourceMonthly, Month, MonthNum, NetTotal, Uuid, Year,
 };
 use db_sqlite::balance_sheet::{SqliteFinResRepo, SqliteMonthRepo, SqliteYearRepo};
+use rand::seq::SliceRandom;
 use sqlx::SqlitePool;
 
 use crate::{routes::api::balance_sheet::get_month_routes, services::balance_sheet::MonthService};
@@ -69,4 +70,92 @@ impl TestContext {
     pub(crate) async fn get_net_totals(&self, month_id: Uuid) -> DbResult<Vec<NetTotal>> {
         self.month_repo.get_net_totals(month_id).await
     }
+}
+
+/// Will make sure the related resources and months have the appropriate date associated to them
+/// It will also remove months created in duplicate
+pub(crate) fn correctly_stub_months(
+    months: Option<Vec<Month>>,
+    years: [i32; 2],
+) -> Option<Vec<Month>> {
+    months.map(|months| {
+        let mut seen: HashSet<(MonthNum, i32)> = HashSet::new();
+        let mut months: Vec<Month> = months
+            .into_iter()
+            .map(|m| {
+                let year = *years.choose(&mut rand::thread_rng()).unwrap();
+                Month {
+                    year,
+                    resources: m
+                        .resources
+                        .into_iter()
+                        .map(|r| FinancialResourceMonthly {
+                            year,
+                            month: m.month,
+                            ..r
+                        })
+                        .collect(),
+                    ..m
+                }
+            })
+            // Filer any month accidently created in double by Dummy data.
+            .filter(|m| seen.insert((m.month, m.year)))
+            .collect();
+
+        // Empty resources of first month, it should not be in final response.
+        if let Some(m) = months.first_mut() {
+            m.resources = vec![];
+        }
+
+        months
+    })
+}
+
+/// Will make sure the related resources have the appropriate date associated to them
+pub(crate) fn correctly_stub_month(month: Option<Month>) -> Option<Month> {
+    month.map(|month| Month {
+        resources: month
+            .resources
+            .into_iter()
+            .map(|r| FinancialResourceMonthly {
+                month: month.month,
+                year: month.year,
+                ..r
+            })
+            .collect(),
+        ..month
+    })
+}
+
+/// Will transform the expected response. In this case, months should be sorted,
+/// and resources in each months.
+/// Will also filter out any months with empty resources, as does the API currently.
+pub(crate) fn transform_expected_months(expected: Option<Vec<Month>>) -> Option<Vec<Month>> {
+    expected.map(|mut expected| {
+        // Remove months with empty resources as it should not be present in the body of response.
+        expected.retain(|e| !e.resources.is_empty());
+        // Answer should be sorted by years and then months
+        expected.sort_by(|a, b| match a.year.cmp(&b.year) {
+            Ordering::Equal => a.month.cmp(&b.month),
+            other => other,
+        });
+        // Then sort resources by name
+        for e in &mut expected {
+            e.resources.sort_by(|a, b| a.base.name.cmp(&b.base.name));
+        }
+        expected
+    })
+}
+
+/// Will transform the expected response. In this case, months should be sorted,
+/// and resources in each months.
+/// Will also filter out any months with empty resources, as does the API currently.
+pub(crate) fn transform_expected_month(expected: Option<Month>) -> Option<Month> {
+    expected.map(|mut expected| {
+        // Sort resources by name
+        expected
+            .resources
+            .sort_by(|a, b| a.base.name.cmp(&b.base.name));
+        expected
+    })
 }

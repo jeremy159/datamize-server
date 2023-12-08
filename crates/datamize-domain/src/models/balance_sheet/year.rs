@@ -4,7 +4,6 @@ use uuid::Uuid;
 
 use super::{Month, NetTotal};
 
-#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Year {
     pub id: Uuid,
@@ -22,6 +21,34 @@ pub struct Year {
     pub net_portfolio: NetTotal,
     /// All the months of the year.
     pub months: Vec<Month>,
+}
+
+#[cfg(any(feature = "testutils", test))]
+impl fake::Dummy<fake::Faker> for Year {
+    fn dummy_with_rng<R: fake::Rng + ?Sized>(_: &fake::Faker, rng: &mut R) -> Self {
+        use fake::{Fake, Faker};
+        let id = Fake::fake_with_rng(&Faker, rng);
+        let year = Fake::fake_with_rng(&(1000..3000), rng);
+        let refreshed_at = Fake::fake_with_rng(&Faker, rng);
+        let net_assets = NetTotal {
+            net_type: crate::NetTotalType::Asset,
+            ..Faker.fake()
+        };
+        let net_portfolio = NetTotal {
+            net_type: crate::NetTotalType::Portfolio,
+            ..Faker.fake()
+        };
+        let months = Fake::fake_with_rng(&Faker, rng);
+
+        Self {
+            id,
+            year,
+            refreshed_at,
+            net_assets,
+            net_portfolio,
+            months,
+        }
+    }
 }
 
 impl Year {
