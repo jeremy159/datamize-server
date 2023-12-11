@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "ALTER TABLE balance_sheet_resources DROP COLUMN name;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "2218a86458496ed3f9309dbf287e399c5c57c604b87e2b87cb76b7c81299f99b"
+}

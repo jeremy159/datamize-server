@@ -115,7 +115,6 @@ impl BaseFinancialResource {
 }
 
 /// A resource represented within a year. It has a BTreeMap of balance per months.
-#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct FinancialResourceYearly {
     #[serde(flatten)]
@@ -124,6 +123,30 @@ pub struct FinancialResourceYearly {
     pub year: i32,
     /// The balance of the resource in the month.
     pub balance_per_month: BTreeMap<MonthNum, i64>,
+}
+
+#[cfg(any(feature = "testutils", test))]
+impl fake::Dummy<fake::Faker> for FinancialResourceYearly {
+    fn dummy_with_rng<R: fake::Rng + ?Sized>(config: &fake::Faker, rng: &mut R) -> Self {
+        use fake::{Fake, Faker};
+        let base = Fake::fake_with_rng(&Faker, rng);
+        let year = Fake::fake_with_rng(&(1000..3000), rng);
+
+        let mut balance_per_month = BTreeMap::new();
+        let len = (1..10).fake_with_rng(rng);
+        for _ in 0..len {
+            balance_per_month.insert(
+                config.fake_with_rng(rng),
+                Fake::fake_with_rng(&(-1000000..1000000), rng),
+            );
+        }
+
+        Self {
+            base,
+            year,
+            balance_per_month,
+        }
+    }
 }
 
 /// A resource represented with a month of a particular year. It has a single balance field.
@@ -142,7 +165,6 @@ pub struct FinancialResourceMonthly {
     pub balance: i64,
 }
 
-#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SaveResource {
     pub name: String,
@@ -154,6 +176,40 @@ pub struct SaveResource {
     pub balance_per_month: BTreeMap<MonthNum, i64>,
     pub ynab_account_ids: Option<Vec<Uuid>>,
     pub external_account_ids: Option<Vec<Uuid>>,
+}
+
+#[cfg(any(feature = "testutils", test))]
+impl fake::Dummy<fake::Faker> for SaveResource {
+    fn dummy_with_rng<R: fake::Rng + ?Sized>(config: &fake::Faker, rng: &mut R) -> Self {
+        use fake::{Fake, Faker};
+        let name = Fake::fake_with_rng(&Faker, rng);
+        let category = Fake::fake_with_rng(&Faker, rng);
+        let r_type = Fake::fake_with_rng(&Faker, rng);
+        let editable = Fake::fake_with_rng(&Faker, rng);
+        let year = Fake::fake_with_rng(&(1000..3000), rng);
+
+        let mut balance_per_month = BTreeMap::new();
+        let len = (1..10).fake_with_rng(rng);
+        for _ in 0..len {
+            balance_per_month.insert(
+                config.fake_with_rng(rng),
+                Fake::fake_with_rng(&(-1000000..1000000), rng),
+            );
+        }
+        let ynab_account_ids = Fake::fake_with_rng(&Faker, rng);
+        let external_account_ids = Fake::fake_with_rng(&Faker, rng);
+
+        Self {
+            name,
+            category,
+            r_type,
+            editable,
+            year,
+            balance_per_month,
+            ynab_account_ids,
+            external_account_ids,
+        }
+    }
 }
 
 impl From<SaveResource> for FinancialResourceYearly {

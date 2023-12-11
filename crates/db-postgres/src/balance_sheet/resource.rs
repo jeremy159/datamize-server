@@ -233,6 +233,58 @@ impl FinResRepo for PostgresFinResRepo {
         resource.ok_or(DbError::NotFound)
     }
 
+    #[tracing::instrument(skip(self))]
+    async fn get_by_name(&self, name: &str) -> DbResult<Vec<FinancialResourceYearly>> {
+        let db_rows = sqlx::query!(
+            r#"
+            SELECT
+                r.*,
+                rm.balance,
+                m.month AS "month: MonthNum",
+                y.year AS "year: i32"
+            FROM balance_sheet_resources AS r
+            JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id AND r.name = $1
+            JOIN balance_sheet_months AS m ON rm.month_id = m.id
+            JOIN balance_sheet_years AS y ON y.id = m.year_id;
+            "#,
+            name,
+        )
+        .fetch_all(&self.db_conn_pool)
+        .await?;
+
+        let mut resources: BTreeMap<i32, FinancialResourceYearly> = BTreeMap::new();
+
+        for r in db_rows {
+            resources
+                .entry(r.year)
+                .and_modify(|res| {
+                    res.balance_per_month.insert(r.month, r.balance);
+                })
+                .or_insert_with(|| {
+                    let mut balance_per_month: BTreeMap<MonthNum, i64> = BTreeMap::new();
+
+                    // Relations in the DB enforces that only one month in a year exists for one resource
+                    balance_per_month.insert(r.month, r.balance);
+
+                    FinancialResourceYearly {
+                        base: BaseFinancialResource {
+                            id: r.id,
+                            name: r.name,
+                            category: r.category.parse().unwrap(),
+                            r_type: r.r#type.parse().unwrap(),
+                            editable: r.editable,
+                            ynab_account_ids: r.ynab_account_ids,
+                            external_account_ids: r.external_account_ids,
+                        },
+                        year: r.year,
+                        balance_per_month,
+                    }
+                });
+        }
+
+        Ok(resources.into_values().collect())
+    }
+
     #[tracing::instrument(skip_all)]
     async fn update(&self, resource: &FinancialResourceYearly) -> DbResult<()> {
         // First update the resource itself

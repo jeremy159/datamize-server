@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::sync::Arc;
 
 use datamize_domain::{
@@ -6,7 +7,7 @@ use datamize_domain::{
     FinancialResourceYearly, Month, SaveResource, Uuid,
 };
 
-use crate::error::DatamizeResult;
+use crate::error::{AppError, DatamizeResult};
 
 #[cfg_attr(test, mockall::automock)]
 #[async_trait]
@@ -73,6 +74,14 @@ impl FinResServiceExt for FinResService {
     ) -> DatamizeResult<FinancialResourceYearly> {
         let resource: FinancialResourceYearly = new_fin_res.into();
 
+        let resources_of_same_name = self.fin_res_repo.get_by_name(&resource.base.name).await?;
+        if resources_of_same_name
+            .into_iter()
+            .any(|r| r.year == resource.year && r.base.name == resource.base.name)
+        {
+            return Err(AppError::ResourceAlreadyExist);
+        }
+
         if !resource.balance_per_month.is_empty() {
             for month in resource.balance_per_month.keys() {
                 if let Err(DbError::NotFound) = self
@@ -97,6 +106,21 @@ impl FinResServiceExt for FinResService {
                     resource.year,
                 )
                 .await?;
+
+            let mut manual_update = false;
+            for (curr, next) in resource.balance_per_month.keys().tuple_windows() {
+                // If next month is not directly the next month in the year, trigger a manual update
+                // as it won't go through the recursive update in `update_net_totals`.
+                if curr.succ() != *next {
+                    manual_update = true;
+                }
+                if manual_update {
+                    manual_update = false;
+                    self.month_repo
+                        .update_net_totals(*next, resource.year)
+                        .await?;
+                }
+            }
         }
 
         self.year_repo.update_net_totals(resource.year).await?;
@@ -144,6 +168,21 @@ impl FinResServiceExt for FinResService {
                     resource.year,
                 )
                 .await?;
+
+            let mut manual_update = false;
+            for (curr, next) in resource.balance_per_month.keys().tuple_windows() {
+                // If next month is not directly the next month in the year, trigger a manual update
+                // as it won't go through the recursive update in `update_net_totals`.
+                if curr.succ() != *next {
+                    manual_update = true;
+                }
+                if manual_update {
+                    manual_update = false;
+                    self.month_repo
+                        .update_net_totals(*next, resource.year)
+                        .await?;
+                }
+            }
         }
 
         self.year_repo.update_net_totals(resource.year).await?;
@@ -163,6 +202,21 @@ impl FinResServiceExt for FinResService {
                     resource.year,
                 )
                 .await?;
+
+            let mut manual_update = false;
+            for (curr, next) in resource.balance_per_month.keys().tuple_windows() {
+                // If next month is not directly the next month in the year, trigger a manual update
+                // as it won't go through the recursive update in `update_net_totals`.
+                if curr.succ() != *next {
+                    manual_update = true;
+                }
+                if manual_update {
+                    manual_update = false;
+                    self.month_repo
+                        .update_net_totals(*next, resource.year)
+                        .await?;
+                }
+            }
         }
 
         self.year_repo.update_net_totals(resource.year).await?;
