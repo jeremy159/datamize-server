@@ -15,8 +15,11 @@ pub struct Account {
     pub on_budget: bool,
     pub closed: bool,
     pub note: Option<String>,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub balance: i64,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub cleared_balance: i64,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub uncleared_balance: i64,
     pub transfer_payee_id: Uuid,
     pub direct_import_linked: Option<bool>,
@@ -37,8 +40,11 @@ pub struct Account {
     pub on_budget: bool,
     pub closed: bool,
     pub note: Option<String>,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub balance: i64,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub cleared_balance: i64,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub uncleared_balance: i64,
     pub transfer_payee_id: Uuid,
     pub direct_import_linked: Option<bool>,

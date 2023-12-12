@@ -48,16 +48,30 @@ clone_trait_object!(EncryptionKeyRepo);
 pub type DynEncryptionKeyRepo = Box<dyn EncryptionKeyRepo>;
 
 #[cfg(any(feature = "testutils", test))]
-mockall::mock! {
-    pub EncryptionKeyRepoImpl {}
+mod mocks {
+    use super::*;
+    use fake::{Fake, Faker};
 
-    impl Clone for EncryptionKeyRepoImpl {
-        fn clone(&self) -> Self;
+    #[derive(Clone)]
+    pub struct MockEncryptionKeyRepo {}
+
+    impl MockEncryptionKeyRepo {
+        pub fn new_boxed() -> Box<dyn EncryptionKeyRepo> {
+            Box::new(Self {})
+        }
     }
 
     #[async_trait]
-    impl EncryptionKeyRepo for EncryptionKeyRepoImpl {
-        async fn get(&mut self) -> DbResult<Vec<u8>>;
-        async fn set(&mut self, encryption_key_str: &[u8]) -> DbResult<()>;
+    impl EncryptionKeyRepo for MockEncryptionKeyRepo {
+        async fn get(&mut self) -> DbResult<Vec<u8>> {
+            Ok(Faker.fake())
+        }
+
+        async fn set(&mut self, _encryption_key_str: &[u8]) -> DbResult<()> {
+            Ok(())
+        }
     }
 }
+
+#[cfg(any(feature = "testutils", test))]
+pub use mocks::*;

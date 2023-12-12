@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::{client::Response, error::YnabResult, Account, AccountsDelta, Client, SaveAccount};
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait AccountRequests {
     async fn get_accounts(&self) -> YnabResult<Vec<Account>>;
@@ -84,5 +83,25 @@ impl Client {
 
         let resp: Response<AccountsDelta> = Client::convert_resp(body)?;
         Ok(resp.data)
+    }
+}
+
+#[cfg(any(feature = "testutils", test))]
+mockall::mock! {
+    pub AccountRequestsImpl {}
+
+    impl Clone for AccountRequestsImpl {
+        fn clone(&self) -> Self;
+    }
+
+    #[async_trait]
+    impl AccountRequests for AccountRequestsImpl {
+        async fn get_accounts(&self) -> YnabResult<Vec<Account>>;
+        async fn get_accounts_delta(
+            &self,
+            last_knowledge_of_server: Option<i64>,
+        ) -> YnabResult<AccountsDelta>;
+        async fn create_account(&self, data: SaveAccount) -> YnabResult<Account>;
+        async fn get_account_by_id(&self, account_id: &str) -> YnabResult<Account>;
     }
 }

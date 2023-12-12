@@ -128,16 +128,3 @@ pub(crate) fn transform_expected_resources(
         expected
     })
 }
-
-// /// Will transform the expected response. In this case, months should be sorted,
-// /// and resources in each months.
-// /// Will also filter out any months with empty resources, as does the API currently.
-// pub(crate) fn transform_expected_month(expected: Option<Month>) -> Option<Month> {
-//     expected.map(|mut expected| {
-//         // Sort resources by name
-//         expected
-//             .resources
-//             .sort_by(|a, b| a.base.name.cmp(&b.base.name));
-//         expected
-//     })
-// }

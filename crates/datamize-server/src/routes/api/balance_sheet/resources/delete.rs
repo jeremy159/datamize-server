@@ -4,7 +4,7 @@ use axum::{
 };
 use datamize_domain::FinancialResourceYearly;
 use fake::{Fake, Faker};
-use pretty_assertions::assert_eq;
+use pretty_assertions::{assert_eq, assert_ne};
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 

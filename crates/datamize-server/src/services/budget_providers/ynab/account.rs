@@ -86,7 +86,7 @@ mod tests {
     };
     use fake::{Fake, Faker};
     use mockall::predicate::eq;
-    use ynab::{AccountsDelta, MockAccountRequests};
+    use ynab::{AccountsDelta, MockAccountRequestsImpl};
 
     use super::*;
     use crate::error::AppError;
@@ -96,7 +96,7 @@ mod tests {
     async fn get_all_ynab_accounts_success() {
         let mut ynab_account_repo = Box::new(MockYnabAccountRepoImpl::new());
         let mut ynab_account_meta_repo = Box::new(MockYnabAccountMetaRepoImpl::new());
-        let mut ynab_client = MockAccountRequests::new();
+        let mut ynab_client = MockAccountRequestsImpl::new();
 
         ynab_account_meta_repo
             .expect_get_delta()
@@ -144,7 +144,7 @@ mod tests {
     async fn get_all_ynab_accounts_issue_with_db_should_not_update_saved_delta() {
         let mut ynab_account_repo = Box::new(MockYnabAccountRepoImpl::new());
         let mut ynab_account_meta_repo = Box::new(MockYnabAccountMetaRepoImpl::new());
-        let mut ynab_client = MockAccountRequests::new();
+        let mut ynab_client = MockAccountRequestsImpl::new();
 
         ynab_account_meta_repo
             .expect_get_delta()

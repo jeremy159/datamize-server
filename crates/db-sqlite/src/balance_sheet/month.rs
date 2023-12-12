@@ -262,6 +262,7 @@ impl MonthRepo for SqliteMonthRepo {
         Ok(months)
     }
 
+    // TODO: Make it impossible to add month with same month num and year id more than once
     #[tracing::instrument(skip(self, month))]
     async fn add(&self, month: &Month, year: i32) -> DbResult<()> {
         let year_data = self.get_year_data_by_number(year).await?;

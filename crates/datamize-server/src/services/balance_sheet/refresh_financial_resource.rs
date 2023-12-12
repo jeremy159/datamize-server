@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use chrono::{Datelike, Local};
 use datamize_domain::{
@@ -65,11 +65,17 @@ impl RefreshFinResServiceExt for RefreshFinResService {
         .unwrap()
         .await?;
 
-        let mut refreshed = vec![];
+        let mut refreshed = HashSet::new();
 
         for res in &mut resources {
             if let Some(ref account_ids) = res.base.ynab_account_ids {
-                if !account_ids.is_empty() {
+                let is_account_included = accounts
+                    .iter()
+                    .filter(|a| account_ids.contains(&a.id))
+                    .count()
+                    > 0;
+
+                if !account_ids.is_empty() && is_account_included {
                     let balance = accounts
                         .iter()
                         .filter(|a| account_ids.contains(&a.id))
@@ -80,19 +86,25 @@ impl RefreshFinResServiceExt for RefreshFinResService {
                         Some(current_balance) => {
                             if *current_balance != balance {
                                 *current_balance = balance;
-                                refreshed.push(res.base.id);
+                                refreshed.insert(res.base.id);
                             }
                         }
                         None => {
                             res.balance_per_month.insert(current_month, balance);
-                            refreshed.push(res.base.id);
+                            refreshed.insert(res.base.id);
                         }
                     }
                 }
             }
 
             if let Some(ref account_ids) = res.base.external_account_ids {
-                if !account_ids.is_empty() {
+                let is_account_included = external_accounts
+                    .iter()
+                    .filter(|a| account_ids.contains(&a.id))
+                    .count()
+                    > 0;
+
+                if !account_ids.is_empty() && is_account_included {
                     let balance = external_accounts
                         .iter()
                         .filter(|a| account_ids.contains(&a.id))
@@ -103,12 +115,12 @@ impl RefreshFinResServiceExt for RefreshFinResService {
                         Some(current_balance) => {
                             if *current_balance != balance {
                                 *current_balance = balance;
-                                refreshed.push(res.base.id);
+                                refreshed.insert(res.base.id);
                             }
                         }
                         None => {
                             res.balance_per_month.insert(current_month, balance);
-                            refreshed.push(res.base.id);
+                            refreshed.insert(res.base.id);
                         }
                     }
                 }
@@ -128,7 +140,7 @@ impl RefreshFinResServiceExt for RefreshFinResService {
             self.year_repo.update_net_totals(current_year).await?;
         }
 
-        Ok(refreshed)
+        Ok(refreshed.into_iter().collect())
     }
 }
 
