@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "ALTER TABLE budgeters_config DROP COLUMN name;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "10b807fe5062f497d63cec1509a7e0921937dddbb0b588efc5dbe5ba5d4f415e"
+}

@@ -6,6 +6,8 @@ mod expenses_categorization;
 mod external_expense;
 mod external_expenses;
 mod summary;
+#[cfg(test)]
+mod tests;
 mod transactions;
 
 use axum::{

@@ -141,3 +141,11 @@ impl BudgeterConfigRepo for SqliteBudgeterConfigRepo {
 struct IdsRecord {
     ids: Vec<Uuid>,
 }
+
+pub async fn sabotage_budgeters_config_table(pool: &SqlitePool) -> DbResult<()> {
+    sqlx::query!("ALTER TABLE budgeters_config DROP COLUMN name;",)
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}
