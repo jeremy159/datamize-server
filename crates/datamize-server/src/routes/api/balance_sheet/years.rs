@@ -1,14 +1,3 @@
-#[cfg(test)]
-mod create;
-#[cfg(test)]
-mod delete;
-#[cfg(test)]
-mod get;
-#[cfg(test)]
-mod get_all;
-#[cfg(test)]
-pub(crate) mod testutils;
-
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use axum_extra::extract::WithRejection;
 use datamize_domain::{SaveYear, Year};

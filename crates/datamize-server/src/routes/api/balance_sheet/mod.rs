@@ -5,6 +5,8 @@ mod resource;
 mod resources;
 mod saving_rate;
 mod saving_rates;
+#[cfg(test)]
+mod tests;
 mod year;
 mod years;
 

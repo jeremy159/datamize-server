@@ -3,22 +3,22 @@ use axum::{
     http::{Request, StatusCode},
 };
 use chrono::{Datelike, NaiveDate};
-use datamize_domain::{FinancialResourceYearly, MonthNum};
-use db_sqlite::balance_sheet::sabotage_resources_table;
+use datamize_domain::Month;
+use db_sqlite::balance_sheet::sabotage_months_table;
 use fake::{faker::chrono::en::Date, Fake};
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 
-use crate::routes::api::balance_sheet::resources::testutils::{
-    correctly_stub_resources, transform_expected_resources, TestContext,
+use crate::routes::api::balance_sheet::tests::months::testutils::{
+    correctly_stub_months, transform_expected_months, TestContext,
 };
 
 async fn check_get_all(
     pool: SqlitePool,
     years: Option<(i32, i32)>,
     expected_status: StatusCode,
-    expected_resp: Option<Vec<FinancialResourceYearly>>,
+    expected_resp: Option<Vec<Month>>,
 ) {
     let context = TestContext::setup(pool);
 
@@ -32,28 +32,19 @@ async fn check_get_all(
     ));
     let years: [i32; 2] = [years.0, years.1];
 
-    let expected_resp: Option<Vec<FinancialResourceYearly>> =
-        correctly_stub_resources(expected_resp, years);
+    let expected_resp: Option<Vec<Month>> = correctly_stub_months(expected_resp, years);
 
     if let Some(expected_resp) = &expected_resp {
-        for r in expected_resp {
-            for m in r
-                .balance_per_month
-                .keys()
-                .cloned()
-                .collect::<Vec<MonthNum>>()
-            {
-                context.insert_month(m, r.year).await;
-            }
+        for m in expected_resp {
+            context.set_month(m, m.year).await;
         }
-        context.set_resources(expected_resp).await;
     }
 
     let response = context
         .into_app()
         .oneshot(
             Request::builder()
-                .uri("/resources")
+                .uri("/months")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -64,8 +55,8 @@ async fn check_get_all(
 
     let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
 
-    if let Some(expected) = transform_expected_resources(expected_resp) {
-        let body: Vec<FinancialResourceYearly> = serde_json::from_slice(&body).unwrap();
+    if let Some(expected) = transform_expected_months(expected_resp) {
+        let body: Vec<Month> = serde_json::from_slice(&body).unwrap();
         assert_eq!(body, expected);
     }
 }
@@ -84,14 +75,14 @@ async fn returns_all_that_is_in_db(pool: SqlitePool) {
             Date().fake::<NaiveDate>().year(),
         )),
         StatusCode::OK,
-        Some(fake::vec![FinancialResourceYearly; 3..6]),
+        Some(fake::vec![Month; 3..6]),
     )
     .await;
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_500_when_db_corrupted(pool: SqlitePool) {
-    sabotage_resources_table(&pool).await.unwrap();
+    sabotage_months_table(&pool).await.unwrap();
 
     check_get_all(
         pool,

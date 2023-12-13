@@ -9,7 +9,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 
-use crate::routes::api::balance_sheet::years::testutils::{correctly_stub_year, TestContext};
+use crate::routes::api::balance_sheet::tests::years::testutils::{
+    correctly_stub_year, TestContext,
+};
 
 #[derive(Debug, Deserialize, Serialize, Clone, fake::Dummy)]
 struct CreateBody {

@@ -1,7 +1,3 @@
-#[cfg(test)]
-mod refresh;
-#[cfg(test)]
-mod testutils;
 use axum::{extract::State, Json};
 use datamize_domain::Uuid;
 

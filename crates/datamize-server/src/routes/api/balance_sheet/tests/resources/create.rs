@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 
-use crate::routes::api::balance_sheet::resources::testutils::TestContext;
+use crate::routes::api::balance_sheet::tests::resources::testutils::TestContext;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 struct CreateBody {

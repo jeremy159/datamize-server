@@ -8,7 +8,7 @@ use pretty_assertions::{assert_eq, assert_ne};
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 
-use crate::routes::api::balance_sheet::resources::testutils::{
+use crate::routes::api::balance_sheet::tests::resources::testutils::{
     correctly_stub_resource, TestContext,
 };
 

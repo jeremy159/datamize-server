@@ -12,7 +12,7 @@ use sqlx::SqlitePool;
 use tower::ServiceExt;
 use ynab::Account;
 
-use crate::routes::api::balance_sheet::refresh_resources::testutils::{
+use crate::routes::api::balance_sheet::tests::refresh_resources::testutils::{
     correctly_stub_resources, TestContext,
 };
 

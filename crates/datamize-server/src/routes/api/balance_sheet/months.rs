@@ -1,16 +1,3 @@
-#[cfg(test)]
-mod create;
-#[cfg(test)]
-mod delete;
-#[cfg(test)]
-mod get;
-#[cfg(test)]
-mod get_all;
-#[cfg(test)]
-mod get_all_from_year;
-#[cfg(test)]
-pub(crate) mod testutils;
-
 use axum::{
     extract::{Path, State},
     http::StatusCode,

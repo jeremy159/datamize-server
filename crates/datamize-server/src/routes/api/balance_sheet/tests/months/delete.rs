@@ -8,7 +8,7 @@ use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 
-use crate::routes::api::balance_sheet::months::testutils::{
+use crate::routes::api::balance_sheet::tests::months::testutils::{
     correctly_stub_month, transform_expected_month, TestContext,
 };
 

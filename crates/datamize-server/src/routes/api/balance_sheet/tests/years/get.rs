@@ -9,7 +9,7 @@ use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 
-use crate::routes::api::balance_sheet::years::testutils::{
+use crate::routes::api::balance_sheet::tests::years::testutils::{
     correctly_stub_year, transform_expected_year, TestContext,
 };
 

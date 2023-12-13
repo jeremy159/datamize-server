@@ -3,15 +3,16 @@ use axum::{
     http::{Request, StatusCode},
 };
 use datamize_domain::SavingRate;
+use db_sqlite::balance_sheet::sabotage_saving_rates_table;
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 use ynab::TransactionDetail;
 
-use crate::routes::api::balance_sheet::saving_rates::testutils::TestContext;
+use crate::routes::api::balance_sheet::tests::saving_rates::testutils::TestContext;
 
-async fn check_delete(
+async fn check_get(
     pool: SqlitePool,
     create_year: bool,
     expected_status: StatusCode,
@@ -32,15 +33,13 @@ async fn check_delete(
     context.set_transactions(&transactions).await;
 
     let response = context
-        .app()
+        .into_app()
         .oneshot(
             Request::builder()
-                .method("DELETE")
                 .uri(format!(
                     "/saving_rates/{:?}",
                     expected_resp.clone().unwrap_or_else(|| Faker.fake()).id
-                ))
-                .header("Content-Type", "application/json")
+                )) // TODO: Test when passing wrong format (e.g. a i32 instead of uuid), most probably in the integration tests.
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -55,24 +54,27 @@ async fn check_delete(
         expected_resp.compute_totals(&transactions);
         let body: SavingRate = serde_json::from_slice(&body).unwrap();
         assert_eq!(body, expected_resp);
-
-        // Make sure the deletion removed it from db
-        let saved = context.get_saving_rate_by_name(&expected_resp.name).await;
-        assert_eq!(saved, Err(datamize_domain::db::DbError::NotFound));
     }
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_404_when_no_year(pool: SqlitePool) {
-    check_delete(pool, false, StatusCode::NOT_FOUND, None).await;
+    check_get(pool, false, StatusCode::NOT_FOUND, None).await;
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_404_when_nothing_in_db(pool: SqlitePool) {
-    check_delete(pool, true, StatusCode::NOT_FOUND, None).await;
+    check_get(pool, true, StatusCode::NOT_FOUND, None).await;
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
-async fn returns_success_with_the_deletion(pool: SqlitePool) {
-    check_delete(pool, true, StatusCode::OK, Some(Faker.fake())).await;
+async fn returns_success_with_what_is_in_db(pool: SqlitePool) {
+    check_get(pool, true, StatusCode::OK, Some(Faker.fake())).await;
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_500_when_db_corrupted(pool: SqlitePool) {
+    sabotage_saving_rates_table(&pool).await.unwrap();
+
+    check_get(pool, true, StatusCode::INTERNAL_SERVER_ERROR, None).await;
 }
