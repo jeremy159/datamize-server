@@ -59,7 +59,6 @@ async fn check_get(
     assert_eq!(response.status(), expected_status);
 
     let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
-    println!("{body:?}");
     // Asserts that the body is returning something valid and parseable.
     let _: BudgetSummary = serde_json::from_slice(&body).unwrap();
 }
