@@ -5,7 +5,6 @@ use crate::{
     client::Response, error::YnabResult, Client, MonthDetail, MonthSummary, MonthSummaryDelta,
 };
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait MonthRequests {
     async fn get_months(&self) -> YnabResult<Vec<MonthSummary>>;
@@ -64,5 +63,24 @@ impl Client {
 
         let resp: Response<MonthSummaryDelta> = Client::convert_resp(body)?;
         Ok(resp.data)
+    }
+}
+
+#[cfg(any(feature = "testutils", test))]
+mockall::mock! {
+    pub MonthRequestsImpl {}
+
+    impl Clone for MonthRequestsImpl {
+        fn clone(&self) -> Self;
+    }
+
+    #[async_trait]
+    impl MonthRequests for MonthRequestsImpl {
+        async fn get_months(&self) -> YnabResult<Vec<MonthSummary>>;
+        async fn get_months_delta(
+            &self,
+            last_knowledge_of_server: Option<i64>,
+        ) -> YnabResult<MonthSummaryDelta>;
+        async fn get_month_by_date(&self, date: &str) -> YnabResult<MonthDetail>;
     }
 }

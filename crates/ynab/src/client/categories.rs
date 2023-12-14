@@ -6,7 +6,6 @@ use crate::{
     CategoryGroupWithCategoriesDelta, Client, SaveMonthCategory,
 };
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait CategoryRequests {
     async fn get_categories(&self) -> YnabResult<Vec<CategoryGroupWithCategories>>;
@@ -129,5 +128,31 @@ impl Client {
 
         let resp: Response<Inner> = Client::convert_resp(body)?;
         Ok(resp.data.category)
+    }
+}
+
+#[cfg(any(feature = "testutils", test))]
+mockall::mock! {
+    pub CategoryRequestsImpl {}
+
+    impl Clone for CategoryRequestsImpl {
+        fn clone(&self) -> Self;
+    }
+
+    #[async_trait]
+    impl CategoryRequests for CategoryRequestsImpl {
+        async fn get_categories(&self) -> YnabResult<Vec<CategoryGroupWithCategories>>;
+        async fn get_categories_delta(
+            &self,
+            last_knowledge_of_server: Option<i64>,
+        ) -> YnabResult<CategoryGroupWithCategoriesDelta>;
+        async fn get_category_by_id(&self, category_id: &str) -> YnabResult<Category>;
+        async fn get_category_by_id_for(&self, category_id: &str, month: &str) -> YnabResult<Category>;
+        async fn update_category_for(
+            &self,
+            category_id: &str,
+            month: &str,
+            data: SaveMonthCategory,
+        ) -> YnabResult<Category>;
     }
 }

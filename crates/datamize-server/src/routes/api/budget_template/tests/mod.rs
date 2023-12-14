@@ -1,1 +1,2 @@
 mod budgeters;
+mod details;

@@ -3,12 +3,13 @@ use std::{fmt, str::FromStr};
 use uuid::Uuid;
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(not(feature = "sqlx-postgres"))]
+#[cfg_attr(feature = "sqlx-postgres", derive(sqlx::FromRow))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Transactions/getTransactionById
 pub struct TransactionSummary {
     pub id: Uuid,
     pub date: String,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-100000..100000"))]
     pub amount: i64,
     pub memo: Option<String>,
     pub cleared: ClearedType,
@@ -25,33 +26,12 @@ pub struct TransactionSummary {
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(feature = "sqlx-postgres")]
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-/// See https://api.youneedabudget.com/v1#/Transactions/getTransactionById
-pub struct TransactionSummary {
-    pub id: Uuid,
-    pub date: String,
-    pub amount: i64,
-    pub memo: Option<String>,
-    pub cleared: ClearedType,
-    pub approved: bool,
-    pub flag_color: Option<String>,
-    pub account_id: Uuid,
-    pub payee_id: Option<Uuid>,
-    pub category_id: Option<Uuid>,
-    pub transfer_account_id: Option<Uuid>,
-    pub transfer_transaction_id: Option<Uuid>,
-    pub matched_transaction_id: Option<Uuid>,
-    pub import_id: Option<Uuid>,
-    pub deleted: bool,
-}
-
-#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(not(feature = "sqlx-postgres"))]
+#[cfg_attr(feature = "sqlx-postgres", derive(sqlx::FromRow))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BaseTransactionDetail {
     pub id: Uuid,
     pub date: chrono::NaiveDate,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-100000..100000"))]
     pub amount: i64,
     pub memo: Option<String>,
     pub cleared: ClearedType,
@@ -71,45 +51,11 @@ pub struct BaseTransactionDetail {
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(feature = "sqlx-postgres")]
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct BaseTransactionDetail {
-    pub id: Uuid,
-    pub date: chrono::NaiveDate,
-    pub amount: i64,
-    pub memo: Option<String>,
-    pub cleared: ClearedType,
-    pub approved: bool,
-    pub flag_color: Option<String>,
-    pub account_id: Uuid,
-    pub payee_id: Option<Uuid>,
-    pub category_id: Option<Uuid>,
-    pub transfer_account_id: Option<Uuid>,
-    pub transfer_transaction_id: Option<Uuid>,
-    pub matched_transaction_id: Option<Uuid>,
-    pub import_id: Option<Uuid>,
-    pub deleted: bool,
-    pub account_name: String,
-    pub payee_name: Option<String>,
-    pub category_name: Option<String>,
-}
-
-#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(not(feature = "sqlx-postgres"))]
+#[cfg_attr(feature = "sqlx-postgres", derive(sqlx::Type))]
+#[cfg_attr(feature = "sqlx-postgres", sqlx(type_name = "cleared"))]
+#[cfg_attr(feature = "sqlx-postgres", sqlx(rename_all = "camelCase"))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
-pub enum ClearedType {
-    Cleared,
-    Uncleared,
-    Reconciled,
-}
-
-#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(feature = "sqlx-postgres")]
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
-#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
-#[sqlx(type_name = "cleared")]
-#[sqlx(rename_all = "camelCase")]
 pub enum ClearedType {
     Cleared,
     Uncleared,
@@ -143,21 +89,12 @@ impl FromStr for ClearedType {
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(not(feature = "sqlx-postgres"))]
+#[cfg_attr(feature = "sqlx-postgres", derive(sqlx::FromRow))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Budgets/getBudgetById
 pub struct HybridTransaction {
     #[serde(flatten)]
-    pub base: BaseTransactionDetail,
-}
-
-#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(feature = "sqlx-postgres")]
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-/// See https://api.youneedabudget.com/v1#/Budgets/getBudgetById
-pub struct HybridTransaction {
-    #[serde(flatten)]
-    #[sqlx(flatten)]
+    #[cfg_attr(feature = "sqlx-postgres", sqlx(flatten))]
     pub base: BaseTransactionDetail,
 }
 
@@ -175,22 +112,12 @@ pub struct HybridTransationsDelta {
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(not(feature = "sqlx-postgres"))]
+#[cfg_attr(feature = "sqlx-postgres", derive(sqlx::FromRow))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// See https://api.youneedabudget.com/v1#/Transactions/getTransactionById
 pub struct TransactionDetail {
     #[serde(flatten)]
-    pub base: BaseTransactionDetail,
-    pub subtransactions: Vec<SubTransaction>,
-}
-
-#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(feature = "sqlx-postgres")]
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-/// See https://api.youneedabudget.com/v1#/Transactions/getTransactionById
-pub struct TransactionDetail {
-    #[serde(flatten)]
-    #[sqlx(flatten)]
+    #[cfg_attr(feature = "sqlx-postgres", sqlx(flatten))]
     pub base: BaseTransactionDetail,
     pub subtransactions: Vec<SubTransaction>,
 }
@@ -214,6 +141,7 @@ pub struct TransationsDetailDelta {
 pub struct SaveTransaction {
     pub account_id: Uuid,
     pub date: String,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-100000..100000"))]
     pub amount: i64,
     pub payee_id: Option<Uuid>,
     pub payee_name: Option<String>,
@@ -233,6 +161,7 @@ pub struct UpdateTransaction {
     pub id: Uuid,
     pub account_id: Uuid,
     pub date: String,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-100000..100000"))]
     pub amount: i64,
     pub payee_id: Option<Uuid>,
     pub payee_name: Option<String>,
@@ -250,6 +179,7 @@ pub struct UpdateTransaction {
 pub struct SubTransaction {
     pub id: Uuid,
     pub scheduled_transaction_id: Option<Uuid>,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-100000..100000"))]
     pub amount: i64,
     pub memo: Option<String>,
     pub payee_id: Option<Uuid>,
@@ -262,6 +192,7 @@ pub struct SubTransaction {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 /// See https://api.youneedabudget.com/v1#/Transactions/createTransaction
 pub struct SaveSubTransaction {
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-100000..100000"))]
     pub amount: i64,
     pub payee_id: Option<Uuid>,
     pub payee_name: Option<String>,

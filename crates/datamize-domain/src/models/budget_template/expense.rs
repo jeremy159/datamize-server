@@ -89,6 +89,7 @@ impl<S: ExpenseState> Expense<S> {
     }
 }
 
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct Uncomputed;
 
@@ -188,12 +189,15 @@ impl Expense<Uncomputed> {
     }
 }
 
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct PartiallyComputed {
     /// Will either be the goal_under_funded, the goal_target for the month or the amount of the linked scheduled transaction coming in the month.
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     projected_amount: i64,
     /// At the begining of the month, this amount will be the same as projected_amount,
     /// but it will get updated during the month when some expenses occur in the category.
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     current_amount: i64,
 }
 
@@ -228,13 +232,16 @@ impl Expense<PartiallyComputed> {
     }
 }
 
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Computed {
     #[serde(flatten)]
     partially_computed: PartiallyComputed,
     /// The proportion the projected amount represents relative to the total monthly income (salaries + health insurance + work-related RRSP)
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "0.0..1.0"))]
     projected_proportion: f64,
     /// The proportion the current amount represents relative to the total monthly income (salaries + health insurance + work-related RRSP)
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "0.0..1.0"))]
     current_proportion: f64,
 }
 
@@ -392,3 +399,31 @@ pub trait ExpenseState {}
 impl ExpenseState for Uncomputed {}
 impl ExpenseState for PartiallyComputed {}
 impl ExpenseState for Computed {}
+
+#[cfg(any(feature = "testutils", test))]
+impl<S: ExpenseState + fake::Dummy<fake::Faker>> fake::Dummy<fake::Faker> for Expense<S> {
+    fn dummy_with_rng<R: fake::Rng + ?Sized>(config: &fake::Faker, rng: &mut R) -> Self {
+        use fake::Fake;
+        let id = config.fake_with_rng(rng);
+        let name = config.fake_with_rng(rng);
+        let expense_type = config.fake_with_rng(rng);
+        let sub_expense_type = config.fake_with_rng(rng);
+        let is_external = config.fake_with_rng(rng);
+        let individual_associated = config.fake_with_rng(rng);
+        let category = config.fake_with_rng(rng);
+        let scheduled_transactions = config.fake_with_rng(rng);
+        let extra = config.fake_with_rng(rng);
+
+        Self {
+            id,
+            name,
+            expense_type,
+            sub_expense_type,
+            is_external,
+            individual_associated,
+            category,
+            scheduled_transactions,
+            extra,
+        }
+    }
+}

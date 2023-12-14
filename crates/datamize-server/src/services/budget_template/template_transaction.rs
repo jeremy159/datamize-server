@@ -109,7 +109,7 @@ impl TemplateTransactionServiceExt for TemplateTransactionService {
 mod tests {
     use datamize_domain::db::{ynab::MockYnabCategoryRepoImpl, DbError};
     use fake::{Fake, Faker};
-    use ynab::MockCategoryRequests;
+    use ynab::MockCategoryRequestsImpl;
 
     use super::*;
     use crate::services::budget_template::ScheduledTransactionServiceExt;
@@ -129,7 +129,7 @@ mod tests {
 
         let scheduled_transaction_service = Box::new(MockScheduledTransactionService {});
         let mut ynab_category_repo = Box::new(MockYnabCategoryRepoImpl::new());
-        let ynab_client = Arc::new(MockCategoryRequests::new());
+        let ynab_client = Arc::new(MockCategoryRequestsImpl::new());
 
         ynab_category_repo
             .expect_get()
@@ -162,7 +162,7 @@ mod tests {
 
         let scheduled_transaction_service = Box::new(MockScheduledTransactionService {});
         let mut ynab_category_repo = Box::new(MockYnabCategoryRepoImpl::new());
-        let mut ynab_client = MockCategoryRequests::new();
+        let mut ynab_client = MockCategoryRequestsImpl::new();
 
         ynab_category_repo
             .expect_get()

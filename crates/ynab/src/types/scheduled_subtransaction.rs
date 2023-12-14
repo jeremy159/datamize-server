@@ -6,31 +6,11 @@ use uuid::Uuid;
 use crate::SubTransaction;
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(not(feature = "sqlx-postgres"))]
+#[cfg_attr(feature = "sqlx-postgres", derive(sqlx::Type))]
+#[cfg_attr(feature = "sqlx-postgres", sqlx(type_name = "frequency"))]
+#[cfg_attr(feature = "sqlx-postgres", sqlx(rename_all = "camelCase"))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
-pub enum RecurFrequency {
-    Never,
-    Daily,
-    Weekly,
-    EveryOtherWeek,
-    TwiceAMonth,
-    Every4Weeks,
-    Monthly,
-    EveryOtherMonth,
-    Every3Months,
-    Every4Months,
-    TwiceAYear,
-    Yearly,
-    EveryOtherYear,
-}
-
-#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(feature = "sqlx-postgres")]
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-#[sqlx(type_name = "frequency")]
-#[sqlx(rename_all = "camelCase")]
 pub enum RecurFrequency {
     Never,
     Daily,
@@ -126,7 +106,7 @@ impl FromStr for RecurFrequency {
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(not(feature = "sqlx-postgres"))]
+#[cfg_attr(feature = "sqlx-postgres", derive(sqlx::FromRow))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 /// See https://api.youneedabudget.com/v1#/Scheduled_Transactions/getScheduledTransactionById
 pub struct ScheduledTransactionSummary {
@@ -134,6 +114,7 @@ pub struct ScheduledTransactionSummary {
     pub date_first: chrono::NaiveDate,
     pub date_next: chrono::NaiveDate,
     pub frequency: Option<RecurFrequency>,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-100000..100000"))]
     pub amount: i64,
     pub memo: Option<String>,
     pub flag_color: Option<String>,
@@ -145,26 +126,7 @@ pub struct ScheduledTransactionSummary {
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(feature = "sqlx-postgres")]
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, PartialEq, Eq)]
-/// See https://api.youneedabudget.com/v1#/Scheduled_Transactions/getScheduledTransactionById
-pub struct ScheduledTransactionSummary {
-    pub id: Uuid,
-    pub date_first: chrono::NaiveDate,
-    pub date_next: chrono::NaiveDate,
-    pub frequency: Option<RecurFrequency>,
-    pub amount: i64,
-    pub memo: Option<String>,
-    pub flag_color: Option<String>,
-    pub account_id: Uuid,
-    pub payee_id: Option<Uuid>,
-    pub category_id: Option<Uuid>,
-    pub transfer_account_id: Option<Uuid>,
-    pub deleted: bool,
-}
-
-#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(not(feature = "sqlx-postgres"))]
+#[cfg_attr(feature = "sqlx-postgres", derive(sqlx::FromRow))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 /// See https://api.youneedabudget.com/v1#/Scheduled_Transactions/getScheduledTransactionById
 pub struct ScheduledTransactionDetail {
@@ -172,29 +134,7 @@ pub struct ScheduledTransactionDetail {
     pub date_first: chrono::NaiveDate,
     pub date_next: chrono::NaiveDate,
     pub frequency: Option<RecurFrequency>,
-    pub amount: i64,
-    pub memo: Option<String>,
-    pub flag_color: Option<String>,
-    pub account_id: Uuid,
-    pub payee_id: Option<Uuid>,
-    pub category_id: Option<Uuid>,
-    pub transfer_account_id: Option<Uuid>,
-    pub deleted: bool,
-    pub account_name: String,
-    pub payee_name: Option<String>,
-    pub category_name: Option<String>,
-    pub subtransactions: Vec<SubTransaction>,
-}
-
-#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(feature = "sqlx-postgres")]
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, PartialEq, Eq)]
-/// See https://api.youneedabudget.com/v1#/Scheduled_Transactions/getScheduledTransactionById
-pub struct ScheduledTransactionDetail {
-    pub id: Uuid,
-    pub date_first: chrono::NaiveDate,
-    pub date_next: chrono::NaiveDate,
-    pub frequency: Option<RecurFrequency>,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-100000..100000"))]
     pub amount: i64,
     pub memo: Option<String>,
     pub flag_color: Option<String>,

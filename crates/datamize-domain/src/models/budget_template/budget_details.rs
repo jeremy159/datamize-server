@@ -47,6 +47,30 @@ pub struct GlobalMetadata {
     pub proportion_target_per_expense_type: HashMap<ExpenseType, f64>,
 }
 
+#[cfg(any(feature = "testutils", test))]
+impl fake::Dummy<fake::Faker> for GlobalMetadata {
+    fn dummy_with_rng<R: fake::Rng + ?Sized>(config: &fake::Faker, rng: &mut R) -> Self {
+        use fake::Fake;
+        let monthly_income = Fake::fake_with_rng(&(1..10000000), rng);
+        let total_monthly_income = Fake::fake_with_rng(&(1..10000000), rng);
+
+        let mut proportion_target_per_expense_type = HashMap::new();
+        let len = 5;
+        for _ in 0..len {
+            proportion_target_per_expense_type.insert(
+                config.fake_with_rng(rng),
+                Fake::fake_with_rng(&(0.0..1.0), rng),
+            );
+        }
+
+        Self {
+            monthly_income,
+            total_monthly_income,
+            proportion_target_per_expense_type,
+        }
+    }
+}
+
 impl Default for GlobalMetadata {
     fn default() -> Self {
         let tuples = [
@@ -66,6 +90,7 @@ impl Default for GlobalMetadata {
     }
 }
 
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct BudgetDetails {
     global: GlobalMetadata,

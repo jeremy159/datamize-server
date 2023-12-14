@@ -157,24 +157,6 @@ clone_trait_object!(YnabCategoryMetaRepo);
 
 pub type DynYnabCategoryMetaRepo = Box<dyn YnabCategoryMetaRepo>;
 
-#[cfg(any(feature = "testutils", test))]
-mockall::mock! {
-    pub YnabCategoryMetaRepoImpl {}
-
-    impl Clone for YnabCategoryMetaRepoImpl {
-        fn clone(&self) -> Self;
-    }
-
-    #[async_trait]
-    impl YnabCategoryMetaRepo for YnabCategoryMetaRepoImpl {
-        async fn get_delta(&mut self) -> DbResult<i64>;
-        async fn set_delta(&mut self, server_knowledge: i64) -> DbResult<()>;
-        async fn del_delta(&mut self) -> DbResult<i64>;
-        async fn get_last_saved(&mut self) -> DbResult<String>;
-        async fn set_last_saved(&mut self, last_saved: String) -> DbResult<()>;
-    }
-}
-
 #[async_trait]
 pub trait YnabScheduledTransactionMetaRepo: DynClone + Send + Sync {
     async fn get_delta(&mut self) -> DbResult<i64>;
@@ -187,24 +169,6 @@ pub trait YnabScheduledTransactionMetaRepo: DynClone + Send + Sync {
 clone_trait_object!(YnabScheduledTransactionMetaRepo);
 
 pub type DynYnabScheduledTransactionMetaRepo = Box<dyn YnabScheduledTransactionMetaRepo>;
-
-#[cfg(any(feature = "testutils", test))]
-mockall::mock! {
-    pub YnabScheduledTransactionMetaRepoImpl {}
-
-    impl Clone for YnabScheduledTransactionMetaRepoImpl {
-        fn clone(&self) -> Self;
-    }
-
-    #[async_trait]
-    impl YnabScheduledTransactionMetaRepo for YnabScheduledTransactionMetaRepoImpl {
-        async fn get_delta(&mut self) -> DbResult<i64>;
-        async fn set_delta(&mut self, server_knowledge: i64) -> DbResult<()>;
-        async fn del_delta(&mut self) -> DbResult<i64>;
-        async fn get_last_saved(&mut self) -> DbResult<String>;
-        async fn set_last_saved(&mut self, last_saved: String) -> DbResult<()>;
-    }
-}
 
 #[async_trait]
 pub trait YnabAccountMetaRepo: DynClone + Send + Sync {
@@ -270,6 +234,70 @@ pub type DynYnabTransactionMetaRepo = Box<dyn YnabTransactionMetaRepo>;
 mod mocks {
     use super::*;
     use fake::{Fake, Faker};
+
+    #[derive(Clone)]
+    pub struct MockYnabCategoryMetaRepo {}
+
+    impl MockYnabCategoryMetaRepo {
+        pub fn new_boxed() -> Box<dyn YnabCategoryMetaRepo> {
+            Box::new(Self {})
+        }
+    }
+
+    #[async_trait]
+    impl YnabCategoryMetaRepo for MockYnabCategoryMetaRepo {
+        async fn get_delta(&mut self) -> DbResult<i64> {
+            Ok(Faker.fake())
+        }
+
+        async fn set_delta(&mut self, _server_knowledge: i64) -> DbResult<()> {
+            Ok(())
+        }
+
+        async fn del_delta(&mut self) -> DbResult<i64> {
+            Ok(Faker.fake())
+        }
+
+        async fn get_last_saved(&mut self) -> DbResult<String> {
+            Ok(Faker.fake::<chrono::NaiveDate>().to_string())
+        }
+
+        async fn set_last_saved(&mut self, _last_saved: String) -> DbResult<()> {
+            Ok(())
+        }
+    }
+
+    #[derive(Clone)]
+    pub struct MockYnabScheduledTransactionMetaRepo {}
+
+    impl MockYnabScheduledTransactionMetaRepo {
+        pub fn new_boxed() -> Box<dyn YnabScheduledTransactionMetaRepo> {
+            Box::new(Self {})
+        }
+    }
+
+    #[async_trait]
+    impl YnabScheduledTransactionMetaRepo for MockYnabScheduledTransactionMetaRepo {
+        async fn get_delta(&mut self) -> DbResult<i64> {
+            Ok(Faker.fake())
+        }
+
+        async fn set_delta(&mut self, _server_knowledge: i64) -> DbResult<()> {
+            Ok(())
+        }
+
+        async fn del_delta(&mut self) -> DbResult<i64> {
+            Ok(Faker.fake())
+        }
+
+        async fn get_last_saved(&mut self) -> DbResult<String> {
+            Ok(Faker.fake::<chrono::NaiveDate>().to_string())
+        }
+
+        async fn set_last_saved(&mut self, _last_saved: String) -> DbResult<()> {
+            Ok(())
+        }
+    }
 
     #[derive(Clone)]
     pub struct MockYnabTransactionMetaRepo {}

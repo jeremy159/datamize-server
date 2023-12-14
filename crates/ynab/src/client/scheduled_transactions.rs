@@ -6,7 +6,6 @@ use crate::{
     ScheduledTransactionsDetailDelta,
 };
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait ScheduledTransactionRequests {
     async fn get_scheduled_transactions(&self) -> YnabResult<Vec<ScheduledTransactionDetail>>;
@@ -79,5 +78,27 @@ impl Client {
 
         let resp: Response<ScheduledTransactionsDetailDelta> = Client::convert_resp(body.as_str())?;
         Ok(resp.data)
+    }
+}
+
+#[cfg(any(feature = "testutils", test))]
+mockall::mock! {
+    pub ScheduledTransactionRequestsImpl {}
+
+    impl Clone for ScheduledTransactionRequestsImpl {
+        fn clone(&self) -> Self;
+    }
+
+    #[async_trait]
+    impl ScheduledTransactionRequests for ScheduledTransactionRequestsImpl {
+        async fn get_scheduled_transactions(&self) -> YnabResult<Vec<ScheduledTransactionDetail>>;
+        async fn get_scheduled_transactions_delta(
+            &self,
+            last_knowledge_of_server: Option<i64>,
+        ) -> YnabResult<ScheduledTransactionsDetailDelta>;
+        async fn get_scheduled_transaction_by_id(
+            &self,
+            scheduled_transaction_id: &str,
+        ) -> YnabResult<ScheduledTransactionDetail>;
     }
 }
