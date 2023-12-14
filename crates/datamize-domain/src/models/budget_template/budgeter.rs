@@ -173,8 +173,12 @@ impl Budgeter<ComputedSalary> {
         total_budgeter: &TotalBudgeter<ComputedExpenses>,
         expenses: &[&Expense<expense::Computed>],
     ) -> Budgeter<ComputedExpenses> {
-        let proportion = self.extra.salary_month as f64
-            / total_budgeter.extra.compuded_salary.salary_month as f64;
+        let proportion = if total_budgeter.extra.compuded_salary.salary_month == 0 {
+            0.0
+        } else {
+            self.extra.salary_month as f64
+                / total_budgeter.extra.compuded_salary.salary_month as f64
+        };
         let common_expenses = ((proportion * (total_budgeter.extra.common_expenses as f64)
             / 1000_f64)
             * 1000_f64) as i64;

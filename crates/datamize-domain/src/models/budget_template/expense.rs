@@ -213,8 +213,16 @@ impl Expense<PartiallyComputed> {
     pub fn compute_proportions(self, total_income: i64) -> Expense<Computed> {
         Expense {
             extra: Computed {
-                projected_proportion: self.extra.projected_amount as f64 / total_income as f64,
-                current_proportion: self.extra.current_amount as f64 / total_income as f64,
+                projected_proportion: if total_income == 0 {
+                    0.0
+                } else {
+                    self.extra.projected_amount as f64 / total_income as f64
+                },
+                current_proportion: if total_income == 0 {
+                    0.0
+                } else {
+                    self.extra.current_amount as f64 / total_income as f64
+                },
                 partially_computed: PartiallyComputed {
                     projected_amount: self.extra.projected_amount,
                     current_amount: self.extra.current_amount,
