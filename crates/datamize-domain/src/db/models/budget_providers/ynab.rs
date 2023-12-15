@@ -190,21 +190,6 @@ clone_trait_object!(YnabPayeeMetaRepo);
 
 pub type DynYnabPayeeMetaRepo = Box<dyn YnabPayeeMetaRepo>;
 
-#[cfg(any(feature = "testutils", test))]
-mockall::mock! {
-    pub YnabPayeeMetaRepoImpl {}
-
-    impl Clone for YnabPayeeMetaRepoImpl {
-        fn clone(&self) -> Self;
-    }
-
-    #[async_trait]
-    impl YnabPayeeMetaRepo for YnabPayeeMetaRepoImpl {
-        async fn get_delta(&mut self) -> DbResult<i64>;
-        async fn set_delta(&mut self, server_knowledge: i64) -> DbResult<()>;
-    }
-}
-
 #[async_trait]
 pub trait YnabTransactionMetaRepo: DynClone + Send + Sync {
     async fn get_delta(&mut self) -> DbResult<i64>;
@@ -295,6 +280,26 @@ mod mocks {
 
     #[async_trait]
     impl YnabAccountMetaRepo for MockYnabAccountMetaRepo {
+        async fn get_delta(&mut self) -> DbResult<i64> {
+            Ok(Faker.fake())
+        }
+
+        async fn set_delta(&mut self, _server_knowledge: i64) -> DbResult<()> {
+            Ok(())
+        }
+    }
+
+    #[derive(Clone)]
+    pub struct MockYnabPayeeMetaRepo {}
+
+    impl MockYnabPayeeMetaRepo {
+        pub fn new_boxed() -> Box<dyn YnabPayeeMetaRepo> {
+            Box::new(Self {})
+        }
+    }
+
+    #[async_trait]
+    impl YnabPayeeMetaRepo for MockYnabPayeeMetaRepo {
         async fn get_delta(&mut self) -> DbResult<i64> {
             Ok(Faker.fake())
         }

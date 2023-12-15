@@ -4,38 +4,14 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(not(feature = "sqlx-postgres"))]
+#[cfg_attr(feature = "sqlx-postgres", derive(sqlx::FromRow))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 /// See https://api.youneedabudget.com/v1#/Accounts/getAccountById
 pub struct Account {
     pub id: Uuid,
     pub name: String,
     #[serde(rename = "type")]
-    pub account_type: AccountType,
-    pub on_budget: bool,
-    pub closed: bool,
-    pub note: Option<String>,
-    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
-    pub balance: i64,
-    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
-    pub cleared_balance: i64,
-    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
-    pub uncleared_balance: i64,
-    pub transfer_payee_id: Uuid,
-    pub direct_import_linked: Option<bool>,
-    pub direct_import_in_error: Option<bool>,
-    pub deleted: bool,
-}
-
-#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(feature = "sqlx-postgres")]
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, PartialEq, Eq)]
-/// See https://api.youneedabudget.com/v1#/Accounts/getAccountById
-pub struct Account {
-    pub id: Uuid,
-    pub name: String,
-    #[serde(rename = "type")]
-    #[sqlx(rename = "type")]
+    #[cfg_attr(feature = "sqlx-postgres", sqlx(rename = "type"))]
     pub account_type: AccountType,
     pub on_budget: bool,
     pub closed: bool,
@@ -60,28 +36,11 @@ pub struct AccountsDelta {
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(not(feature = "sqlx-postgres"))]
+#[cfg_attr(feature = "sqlx-postgres", derive(sqlx::Type))]
+#[cfg_attr(feature = "sqlx-postgres", sqlx(type_name = "account_type"))]
+#[cfg_attr(feature = "sqlx-postgres", sqlx(rename_all = "camelCase"))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
-pub enum AccountType {
-    Checking,
-    Savings,
-    Cash,
-    CreditCard,
-    LineOfCredit,
-    OtherAsset,
-    OtherLiability,
-    Mortgage,
-    AutoLoan,
-    StudentLoan,
-}
-
-#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[cfg(feature = "sqlx-postgres")]
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq, Eq)]
-#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
-#[sqlx(type_name = "account_type")]
-#[sqlx(rename_all = "camelCase")]
 pub enum AccountType {
     Checking,
     Savings,
@@ -142,5 +101,6 @@ pub struct SaveAccount {
     pub name: String,
     #[serde(rename = "type")]
     pub account_type: AccountType,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub balance: i64,
 }

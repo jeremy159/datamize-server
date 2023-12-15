@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::{client::Response, error::YnabResult, Client, Payee, PayeesDelta};
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait PayeeRequests {
     async fn get_payees(&self) -> YnabResult<Vec<Payee>>;
@@ -62,5 +61,24 @@ impl Client {
 
         let resp: Response<PayeesDelta> = Client::convert_resp(body)?;
         Ok(resp.data)
+    }
+}
+
+#[cfg(any(feature = "testutils", test))]
+mockall::mock! {
+    pub PayeeRequestsImpl {}
+
+    impl Clone for PayeeRequestsImpl {
+        fn clone(&self) -> Self;
+    }
+
+    #[async_trait]
+    impl PayeeRequests for PayeeRequestsImpl {
+        async fn get_payees(&self) -> YnabResult<Vec<Payee>>;
+        async fn get_payees_delta(
+            &self,
+            last_knowledge_of_server: Option<i64>,
+        ) -> YnabResult<PayeesDelta>;
+        async fn get_payee_by_id(&self, payee_id: &str) -> YnabResult<Payee>;
     }
 }
