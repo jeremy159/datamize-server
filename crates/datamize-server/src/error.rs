@@ -16,12 +16,12 @@ pub enum AppError {
     ResourceNotFound,
     #[error("resource already exist")]
     ResourceAlreadyExist,
-    #[error("year already exist")]
-    YearAlreadyExist,
-    #[error("month already exist")]
-    MonthAlreadyExist,
+    #[error("Data is corrupted or invalid")]
+    DataIntegrityError(String),
     #[error("validation errors")]
     ValidationError,
+    #[error("Error in the YNAB API")]
+    YnabError(#[from] ynab::Error),
     #[error(transparent)]
     InternalServerError(#[from] anyhow::Error),
 }
@@ -37,22 +37,11 @@ impl From<DbError> for AppError {
         match value {
             DbError::NotFound => AppError::ResourceNotFound,
             DbError::AlreadyExists => AppError::ResourceAlreadyExist,
+            DbError::DataIntegrityError(e) => AppError::DataIntegrityError(e),
             e => AppError::InternalServerError(e.into()),
         }
     }
 }
-
-impl From<sqlx::Error> for AppError {
-    fn from(value: sqlx::Error) -> Self {
-        AppError::from_sqlx(value)
-    }
-}
-
-// impl From<redis::RedisError> for AppError {
-//     fn from(value: redis::RedisError) -> Self {
-//         AppError::InternalServerError(value.into())
-//     }
-// }
 
 impl From<config::ConfigError> for AppError {
     fn from(value: config::ConfigError) -> Self {
@@ -66,21 +55,6 @@ impl From<chrono::ParseError> for AppError {
     }
 }
 
-impl From<ynab::Error> for AppError {
-    fn from(value: ynab::Error) -> Self {
-        Self::InternalServerError(value.into())
-    }
-}
-
-impl AppError {
-    pub fn from_sqlx(value: sqlx::Error) -> Self {
-        match value {
-            sqlx::Error::RowNotFound => AppError::ResourceNotFound,
-            e => AppError::InternalServerError(e.into()),
-        }
-    }
-}
-
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, error_message) = match self {
@@ -89,11 +63,20 @@ impl IntoResponse for AppError {
                 tracing::debug!("stacktrace: {}", inner.backtrace());
                 (StatusCode::INTERNAL_SERVER_ERROR, "something went wrong")
             }
+            AppError::DataIntegrityError(e) => {
+                tracing::error!("AppError::DataIntegrityError: {:?}", e);
+                (StatusCode::BAD_REQUEST, "Data is corrupted or invalid")
+            }
             AppError::ValidationError => (StatusCode::UNPROCESSABLE_ENTITY, "validation errors"),
             AppError::ResourceNotFound => (StatusCode::NOT_FOUND, "resource does not exist"),
             AppError::ResourceAlreadyExist => (StatusCode::CONFLICT, "resource already exist"),
-            AppError::YearAlreadyExist => (StatusCode::CONFLICT, "year already exist"),
-            AppError::MonthAlreadyExist => (StatusCode::CONFLICT, "month already exist"),
+            AppError::YnabError(ref e) => {
+                tracing::error!("AppError::YnabError: {:?}", e);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "something went wrong with ynab api",
+                )
+            }
         };
 
         let body = Json(json!({

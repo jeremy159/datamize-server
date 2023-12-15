@@ -40,7 +40,7 @@ impl YearServiceExt for YearService {
     async fn create_year(&self, new_year: SaveYear) -> DatamizeResult<Year> {
         let Err(DbError::NotFound) = self.year_repo.get_year_data_by_number(new_year.year).await
         else {
-            return Err(AppError::YearAlreadyExist);
+            return Err(AppError::ResourceAlreadyExist);
         };
 
         let year = Year::new(new_year.year);

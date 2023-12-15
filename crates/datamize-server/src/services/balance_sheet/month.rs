@@ -51,7 +51,7 @@ impl MonthServiceExt for MonthService {
             .get_month_data_by_number(new_month.month, year)
             .await
         else {
-            return Err(AppError::MonthAlreadyExist);
+            return Err(AppError::ResourceAlreadyExist);
         };
 
         let month = Month::new(new_month.month, year);
