@@ -118,3 +118,11 @@ impl ExternalExpenseRepo for SqliteExternalExpenseRepo {
         Ok(())
     }
 }
+
+pub async fn sabotage_external_expenses_table(pool: &SqlitePool) -> DbResult<()> {
+    sqlx::query!("ALTER TABLE external_expenses DROP COLUMN name;",)
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}
