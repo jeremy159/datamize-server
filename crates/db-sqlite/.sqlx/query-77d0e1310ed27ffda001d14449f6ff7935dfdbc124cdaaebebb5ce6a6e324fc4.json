@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "ALTER TABLE expenses_categorization DROP COLUMN name;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "77d0e1310ed27ffda001d14449f6ff7935dfdbc124cdaaebebb5ce6a6e324fc4"
+}

@@ -102,3 +102,11 @@ impl ExpenseCategorizationRepo for SqliteExpenseCategorizationRepo {
         Ok(())
     }
 }
+
+pub async fn sabotage_expenses_categorization_table(pool: &SqlitePool) -> DbResult<()> {
+    sqlx::query!("ALTER TABLE expenses_categorization DROP COLUMN name;",)
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}
