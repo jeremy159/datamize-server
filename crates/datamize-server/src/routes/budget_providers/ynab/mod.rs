@@ -1,5 +1,7 @@
 mod accounts;
 mod payees;
+#[cfg(test)]
+mod tests;
 
 use accounts::*;
 use axum::{routing::get, Router};
