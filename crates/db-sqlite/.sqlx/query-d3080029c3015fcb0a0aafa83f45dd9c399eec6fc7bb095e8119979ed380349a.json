@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "ALTER TABLE external_accounts DROP COLUMN name;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "d3080029c3015fcb0a0aafa83f45dd9c399eec6fc7bb095e8119979ed380349a"
+}

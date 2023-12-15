@@ -23,9 +23,9 @@ async fn check_get_all(
 ) {
     let context = TestContext::setup(pool, ynab_data.0.clone());
 
-    if let Some(DbData(mut accounts)) = db_data.clone() {
-        accounts.retain(|a| !a.deleted);
-        context.set_accounts(&accounts).await;
+    if let Some(DbData(mut payees)) = db_data.clone() {
+        payees.retain(|a| !a.deleted);
+        context.set_payees(&payees).await;
     }
 
     let response = context

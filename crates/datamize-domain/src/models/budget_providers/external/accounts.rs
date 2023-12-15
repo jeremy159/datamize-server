@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Clone, Default)]
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 pub struct EncryptedPassword(Vec<u8>);
 
 impl EncryptedPassword {
@@ -55,7 +56,8 @@ impl Default for WebScrapingAccount {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, sqlx::Type)]
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 #[sqlx(type_name = "account_type")]
 #[sqlx(rename_all = "camelCase")]
@@ -101,12 +103,14 @@ impl FromStr for AccountType {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 pub struct ExternalAccount {
     pub id: Uuid,
     pub name: String,
     #[serde(rename = "type")]
     pub account_type: AccountType,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub balance: i64,
     pub deleted: bool,
 }

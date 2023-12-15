@@ -42,7 +42,7 @@ impl TestContext {
         self.app
     }
 
-    pub(crate) async fn set_accounts(&self, payees: &[Payee]) {
+    pub(crate) async fn set_payees(&self, payees: &[Payee]) {
         self.ynab_payee_repo.update_all(payees).await.unwrap();
     }
 }

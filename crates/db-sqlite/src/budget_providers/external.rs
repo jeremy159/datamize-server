@@ -178,3 +178,11 @@ impl ExternalAccountRepo for SqliteExternalAccountRepo {
         Ok(())
     }
 }
+
+pub async fn sabotage_external_accounts_table(pool: &SqlitePool) -> DbResult<()> {
+    sqlx::query!("ALTER TABLE external_accounts DROP COLUMN name;",)
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}
