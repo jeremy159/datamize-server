@@ -33,6 +33,7 @@ pub struct Application {
 
 impl Application {
     pub async fn build(configuration: Settings, db_conn_pool: PgPool) -> Result<Self> {
+        //TODO: Check if worth it to change to https://docs.rs/fred/latest/fred/ as async redis client
         let redis_conn = get_redis_connection_manager(&configuration.redis)
             .await
             .context("failed to get redis connection manager")?;
