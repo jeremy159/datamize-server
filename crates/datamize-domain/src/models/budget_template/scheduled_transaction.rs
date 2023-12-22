@@ -31,8 +31,8 @@ impl DatamizeScheduledTransaction {
         let subtransactions: Vec<_> = self
             .subtransactions
             .iter()
-            .cloned()
             .filter(|sub_t| !sub_t.deleted)
+            .cloned()
             .collect();
 
         match subtransactions.is_empty() {

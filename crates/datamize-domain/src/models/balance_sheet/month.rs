@@ -212,7 +212,7 @@ impl Month {
         self.net_assets.balance_var = self.net_assets.total - prev_net_assets.total;
         self.net_assets.percent_var = match prev_net_assets.total {
             0 => 0.0,
-            _ => self.net_assets.balance_var as f32 / prev_net_assets.total as f32,
+            t => self.net_assets.balance_var as f32 / t as f32,
         };
     }
 
@@ -220,29 +220,27 @@ impl Month {
         self.net_portfolio.balance_var = self.net_portfolio.total - prev_net_portfolio.total;
         self.net_portfolio.percent_var = match prev_net_portfolio.total {
             0 => 0.0,
-            _ => self.net_portfolio.balance_var as f32 / prev_net_portfolio.total as f32,
+            t => self.net_portfolio.balance_var as f32 / t as f32,
         };
     }
 
     pub fn compute_net_totals(&mut self) {
-        self.net_assets.total = self
-            .resources
-            .iter()
-            .map(|r| match r.base.category {
-                ResourceCategory::Asset => r.balance,
-                ResourceCategory::Liability => -r.balance,
-            })
-            .sum();
+        let all_res = self.resources.iter();
+        if (self.net_assets.total != 0) && all_res.clone().count() > 0 {
+            self.net_assets.total = all_res
+                .map(|r| match r.base.category {
+                    ResourceCategory::Asset => r.balance,
+                    ResourceCategory::Liability => -r.balance,
+                })
+                .sum();
+        }
 
-        self.net_portfolio.total = self
-            .resources
-            .iter()
-            .filter(|r| {
-                r.base.category == ResourceCategory::Asset
-                    && r.base.r_type != ResourceType::LongTerm
-            })
-            .map(|r| r.balance)
-            .sum();
+        let assets_res = self.resources.iter().filter(|r| {
+            r.base.category == ResourceCategory::Asset && r.base.r_type != ResourceType::LongTerm
+        });
+        if (self.net_portfolio.total != 0) && assets_res.clone().count() > 0 {
+            self.net_portfolio.total = assets_res.map(|r| r.balance).sum();
+        }
     }
 }
 

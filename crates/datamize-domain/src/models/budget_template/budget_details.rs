@@ -192,10 +192,7 @@ fn build_category_to_scheduled_transaction_map<T: Into<DatamizeScheduledTransact
 
     for dst in scheduled_transactions {
         if let Some(category_id) = dst.category_id {
-            hash_map
-                .entry(category_id)
-                .or_insert_with(Vec::new)
-                .push(dst);
+            hash_map.entry(category_id).or_default().push(dst);
         }
     }
 

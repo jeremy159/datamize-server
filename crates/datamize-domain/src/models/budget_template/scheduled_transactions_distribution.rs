@@ -86,7 +86,7 @@ impl ScheduledTransactionsDistributionBuilder {
 
         for dst in scheduled_transactions {
             let entry = map.entry(dst.date_next.to_string());
-            entry.or_insert_with(Vec::new).push(dst);
+            entry.or_default().push(dst);
         }
 
         ScheduledTransactionsDistribution { map }

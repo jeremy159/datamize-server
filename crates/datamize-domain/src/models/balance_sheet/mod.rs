@@ -2,6 +2,8 @@ mod financial_resource;
 mod month;
 mod net_total;
 mod saving_rate;
+#[cfg(test)]
+mod tests;
 mod year;
 
 pub use financial_resource::{
