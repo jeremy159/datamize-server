@@ -33,6 +33,7 @@ jobs:
     env:
       SQLX_VERSION: 0.7.0
       SQLX_FEATURES: "rustls,postgres"
+      DATABASE_URL: "postgres://postgres:password@localhost:5432/postgres"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -90,8 +91,9 @@ jobs:
           cargo sqlx prepare --check
 
       - name: Run cargo-tarpaulin
+        # TODO: Find a way to use cargo nextest as well?
         run: |
-          cargo tarpaulin --verbose --all-features --workspace --ignore-tests --avoid-cfg-tarpaulin
+          cargo tarpaulin --all-features --workspace --ignore-tests --avoid-cfg-tarpaulin
 
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3

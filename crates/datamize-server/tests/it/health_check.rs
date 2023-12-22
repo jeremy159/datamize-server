@@ -2,7 +2,7 @@ use sqlx::PgPool;
 
 use crate::helpers::spawn_app;
 
-#[sqlx::test]
+#[sqlx::test(migrations = "../db-postgres/migrations")]
 async fn health_check_works(pool: PgPool) {
     // Arange
     let app = spawn_app(pool).await;

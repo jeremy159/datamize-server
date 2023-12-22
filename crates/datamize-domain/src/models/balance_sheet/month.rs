@@ -226,7 +226,7 @@ impl Month {
 
     pub fn compute_net_totals(&mut self) {
         let all_res = self.resources.iter();
-        if (self.net_assets.total != 0) && all_res.clone().count() > 0 {
+        if all_res.clone().count() > 0 {
             self.net_assets.total = all_res
                 .map(|r| match r.base.category {
                     ResourceCategory::Asset => r.balance,
@@ -238,7 +238,7 @@ impl Month {
         let assets_res = self.resources.iter().filter(|r| {
             r.base.category == ResourceCategory::Asset && r.base.r_type != ResourceType::LongTerm
         });
-        if (self.net_portfolio.total != 0) && assets_res.clone().count() > 0 {
+        if assets_res.clone().count() > 0 {
             self.net_portfolio.total = assets_res.map(|r| r.balance).sum();
         }
     }

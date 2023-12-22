@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)\n                VALUES ($1, $2, $3)\n                ON CONFLICT (resource_id, month_id) DO UPDATE SET\n                balance = EXCLUDED.balance;\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "5fedd55f97b457bb58794dc08e3928ae066ba374f4abd5c48646770ed50536b3"
+}

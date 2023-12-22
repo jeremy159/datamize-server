@@ -412,21 +412,37 @@ impl FinResRepo for SqliteFinResRepo {
 
         // Then the balance per month
         for (month, balance) in &resource.balance_per_month {
+            #[derive(Debug)]
+            struct MonthData {
+                id: Uuid,
+            }
+
+            let month_data = sqlx::query_as!(
+                MonthData,
+                r#"
+                SELECT
+                    m.id AS "id: Uuid"
+                FROM balance_sheet_months AS m
+                JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1
+                WHERE m.month = $2;
+                "#,
+                resource.year,
+                *month,
+            )
+            .fetch_one(&self.db_conn_pool)
+            .await?;
+
+            // Then the balance of the month
             sqlx::query!(
                 r#"
                 INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)
-                SELECT r.id, m.id, $1
-                FROM balance_sheet_resources AS r
-                JOIN balance_sheet_years AS y ON y.year = $3
-                JOIN balance_sheet_months AS m ON m.month = $4 AND m.year_id = y.id
-                WHERE r.id = $2
+                VALUES ($1, $2, $3)
                 ON CONFLICT (resource_id, month_id) DO UPDATE SET
                 balance = EXCLUDED.balance;
                 "#,
-                balance,
                 resource.base.id,
-                resource.year,
-                *month,
+                month_data.id,
+                balance,
             )
             .execute(&self.db_conn_pool)
             .await?;
