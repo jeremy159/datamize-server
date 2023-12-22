@@ -35,7 +35,7 @@ jobs:
       SQLX_FEATURES: "rustls,postgres"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Cache dependencies
         id: cache-dependencies
@@ -48,11 +48,7 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Cache sqlx-cli
         uses: actions/cache@v2

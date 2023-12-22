@@ -18,17 +18,11 @@ jobs:
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      # TODO: to change deprecated actions-rs to https://github.com/dtolnay/rust-toolchain
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          override: true
           components: rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+      - run: cargo fmt --all -- --check
 
   clippy:
     name: Clippy
@@ -47,14 +41,12 @@ jobs:
       SQLX_FEATURES: "rustls,postgres"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install stable toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
           components: clippy
-          override: true
 
       - name: Cache sqlx-cli
         # TODO: Use https://github.com/Swatinem/rust-cache instead, for better caching support.
