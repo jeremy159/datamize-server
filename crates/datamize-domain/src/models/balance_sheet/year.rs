@@ -67,7 +67,7 @@ impl Year {
         self.net_assets.balance_var = self.net_assets.total - prev_net_assets.total;
         self.net_assets.percent_var = match prev_net_assets.total {
             0 => 0.0,
-            _ => self.net_assets.balance_var as f32 / prev_net_assets.total as f32,
+            t => self.net_assets.balance_var as f32 / t as f32,
         };
     }
 
@@ -75,7 +75,7 @@ impl Year {
         self.net_portfolio.balance_var = self.net_portfolio.total - prev_net_portfolio.total;
         self.net_portfolio.percent_var = match prev_net_portfolio.total {
             0 => 0.0,
-            _ => self.net_portfolio.balance_var as f32 / prev_net_portfolio.total as f32,
+            t => self.net_portfolio.balance_var as f32 / t as f32,
         };
     }
 
