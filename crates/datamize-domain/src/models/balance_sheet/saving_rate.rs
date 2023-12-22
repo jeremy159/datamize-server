@@ -9,16 +9,20 @@ pub struct SavingRate {
     /// Name of the Budgeter
     pub name: String,
     /// The year of the SavingRate, in format 2015.
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "1000..3000"))]
     pub year: i32,
     /// Épargne (REER, CELI, compte non enregistré, capital sur le REEE)
     /// achetée avec le revenu net (n’inclue pas le régime de retraite de l’employeur)
     pub savings: Savings,
     /// Pension ou contributions de l’employeur au régime de retraite (REER ou autre)
     /// – inclus au numérateur et dénominateur
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub employer_contribution: i64,
     /// Cotisations au régime de retraite – inclus aux numérateur et dénominateur
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub employee_contribution: i64,
     /// Capital remboursé sur l'hypothèque
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub mortgage_capital: i64,
     /// Revenus nets, soit le montant déposé dans votre compte de banque après toutes les déductions
     /// (impôts, cotisations au régime de retraite, assurance emploi, assurances collectives, RQAP, RRQ)
@@ -44,13 +48,15 @@ pub struct Savings {
     /// Will take all transactions of the category for the current year.
     pub category_ids: Vec<Uuid>, // TODO: to use /budgets/{budget_id}/categories/{category_id}/transactions
     /// Any extra balance to be used, will be added to the total of categories included with this saving.
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub extra_balance: i64,
     /// Total balance computed from all categories and extra_balance.
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub total: i64,
 }
 
 impl Savings {
-    fn compute_total(&mut self, transactions: &[TransactionDetail]) {
+    pub(crate) fn compute_total(&mut self, transactions: &[TransactionDetail]) {
         let cat_total: i64 = transactions
             .iter()
             .filter(|t| match &t.base.category_id {
@@ -71,13 +77,15 @@ pub struct Incomes {
     /// Will take all transactions of the payee for the current year.
     pub payee_ids: Vec<Uuid>, // TODO: to use /budgets/{budget_id}/payees/{payee_id}/transactions
     /// Any extra balance to be used, will be added to the total of payees included with this saving.
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub extra_balance: i64,
     /// Total balance computed from all categories and extra_balance.
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub total: i64,
 }
 
 impl Incomes {
-    fn compute_total(&mut self, transactions: &[TransactionDetail]) {
+    pub(crate) fn compute_total(&mut self, transactions: &[TransactionDetail]) {
         let cat_total: i64 = transactions
             .iter()
             .filter(|t| match &t.base.payee_id {
@@ -96,10 +104,14 @@ impl Incomes {
 pub struct SaveSavingRate {
     pub id: Uuid,
     pub name: String,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "1000..3000"))]
     pub year: i32,
     pub savings: SaveSavings,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub employer_contribution: i64,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub employee_contribution: i64,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub mortgage_capital: i64,
     pub incomes: SaveIncomes,
 }
@@ -108,6 +120,7 @@ pub struct SaveSavingRate {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SaveSavings {
     pub category_ids: Vec<Uuid>,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub extra_balance: i64,
 }
 
@@ -125,6 +138,7 @@ impl From<SaveSavings> for Savings {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SaveIncomes {
     pub payee_ids: Vec<Uuid>,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub extra_balance: i64,
 }
 
