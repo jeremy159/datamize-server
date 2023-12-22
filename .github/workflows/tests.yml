@@ -50,6 +50,14 @@ jobs:
       - name: Install stable toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install tarpaulin
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: >
+            cargo-tarpaulin
+            --locked
+
       - name: Cache sqlx-cli
         uses: actions/cache@v2
         id: cache-sqlx
@@ -82,10 +90,8 @@ jobs:
           cargo sqlx prepare --check
 
       - name: Run cargo-tarpaulin
-        uses: actions-rs/tarpaulin@v0.1
-        with:
-          version: "0.22.0"
-          args: --ignore-tests --avoid-cfg-tarpaulin
+        run: |
+          cargo tarpaulin --verbose --all-features --workspace --ignore-tests --avoid-cfg-tarpaulin
 
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v3
