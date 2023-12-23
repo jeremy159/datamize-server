@@ -32,6 +32,7 @@ jobs:
           - 6379:6379
     env:
       SQLX_OFFLINE: true
+      DATABASE_URL: postgres://postgres:password@localhost:5432/datamize
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
