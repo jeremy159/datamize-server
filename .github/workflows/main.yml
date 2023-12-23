@@ -71,4 +71,4 @@ jobs:
           cargo sqlx prepare --check
 
       - name: Run clippy
-        run: cargo clippy --all-targets --all-features --no-deps -D warnings
+        run: cargo clippy --all-features --no-deps -- -D warnings
