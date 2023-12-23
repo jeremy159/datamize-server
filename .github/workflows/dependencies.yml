@@ -11,6 +11,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  DATAMIZE_ENVIRONMENT: test
 
 jobs:
   udeps:
@@ -33,6 +34,12 @@ jobs:
 
       - name: Install nightly toolchain
         uses: dtolnay/rust-toolchain@nightly
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+        id: cache-dependencies-in-dependencies
+        with:
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Run cargo-udeps
         uses: aig787/cargo-udeps-action@v1

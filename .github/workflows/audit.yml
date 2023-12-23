@@ -5,6 +5,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  DATAMIZE_ENVIRONMENT: test
 
 jobs:
   scheduled-audit:
