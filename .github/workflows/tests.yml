@@ -47,7 +47,6 @@ jobs:
 
       - name: Install tarpaulin
         run: cargo install cargo-tarpaulin --locked
-        with:
 
       - name: Run cargo-tarpaulin
         # TODO: Find a way to use cargo nextest as well?
