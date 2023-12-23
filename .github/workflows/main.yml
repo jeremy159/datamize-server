@@ -56,7 +56,7 @@ jobs:
           key: ${{ runner.os }}-sqlx-${{ env.SQLX_VERSION }}
 
       - name: Install sqlx-cli
-        if: steps.cache-sqlx.outputs.cache-hit == false
+        # if: steps.cache-sqlx.outputs.cache-hit == false
         run: |
           cargo install sqlx-cli --force --version=${{ env.SQLX_VERSION }} --features ${{ env.SQLX_FEATURES }} --no-default-features --locked
 
