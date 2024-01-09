@@ -7,6 +7,8 @@ mod expense_categorization;
 mod external_expense;
 mod scheduled_transaction;
 mod scheduled_transactions_distribution;
+#[cfg(test)]
+mod tests;
 
 pub use budget_details::*;
 pub use budget_summary::*;

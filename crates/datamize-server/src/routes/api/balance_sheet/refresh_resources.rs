@@ -8,6 +8,7 @@ use crate::{error::HttpJsonDatamizeResult, services::balance_sheet::DynRefreshFi
 /// If current month does not exists, it will create it.
 /// This endpoint basically calls the YNAB api for some resources and starts a web scrapper for others.
 /// Will return an array of ids for Financial Resources updated.
+// TODO: Add ability to specify which resources to refresh.
 #[tracing::instrument(skip_all)]
 pub async fn refresh_balance_sheet_resources(
     State(mut fin_res_service): State<DynRefreshFinResService>,

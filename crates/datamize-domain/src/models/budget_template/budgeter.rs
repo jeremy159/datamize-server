@@ -46,6 +46,7 @@ pub struct TotalBudgeter<S: BudgeterState> {
     extra: S,
 }
 
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Empty;
 
@@ -61,6 +62,7 @@ impl TotalBudgeter<Empty> {
     }
 }
 
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct Configured {
     id: Uuid,
@@ -157,13 +159,16 @@ impl BudgeterExt for TotalBudgeter<Configured> {
     }
 }
 
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct ComputedSalary {
     #[serde(flatten)]
     configured: Configured,
     /// Single occurence salary amount.
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "0..1000000"))]
     salary: i64,
     /// Total salary inflow for this month. This number can vary from one month to the other.
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "0..10000000"))]
     salary_month: i64,
 }
 
@@ -295,17 +300,22 @@ impl BudgeterExt for TotalBudgeter<ComputedSalary> {
     }
 }
 
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct ComputedExpenses {
     #[serde(flatten)]
     compuded_salary: ComputedSalary,
     /// The proportion to be paid on the common expenses.
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "0.0..1.0"))]
     proportion: f64,
     /// The common expenses of this budgeter for this month.
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "0..100000"))]
     common_expenses: i64,
     /// The individual expenses of this budgeter for this month.
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "0..100000"))]
     individual_expenses: i64,
     /// The left over amount for this budgeter.
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "0..10000"))]
     left_over: i64,
 }
 
@@ -390,3 +400,13 @@ impl BudgeterState for Empty {}
 impl BudgeterState for Configured {}
 impl BudgeterState for ComputedSalary {}
 impl BudgeterState for ComputedExpenses {}
+
+#[cfg(any(feature = "testutils", test))]
+impl<S: BudgeterState + fake::Dummy<fake::Faker>> fake::Dummy<fake::Faker> for Budgeter<S> {
+    fn dummy_with_rng<R: fake::Rng + ?Sized>(config: &fake::Faker, rng: &mut R) -> Self {
+        use fake::Fake;
+        let extra = config.fake_with_rng(rng);
+
+        Self { extra }
+    }
+}

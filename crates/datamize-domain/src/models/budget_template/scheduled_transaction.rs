@@ -11,7 +11,7 @@ pub struct DatamizeScheduledTransaction {
     pub date_first: chrono::NaiveDate,
     pub date_next: chrono::NaiveDate,
     pub frequency: Option<RecurFrequency>,
-    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-100000..100000"))]
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-100000..-1"))]
     pub amount: i64,
     pub memo: Option<String>,
     pub account_id: Uuid,

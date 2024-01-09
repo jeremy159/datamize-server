@@ -647,6 +647,7 @@ dependencies = [
  "fake",
  "mockall",
  "pretty_assertions",
+ "rand 0.8.5",
  "redis",
  "rrule",
  "secrecy",

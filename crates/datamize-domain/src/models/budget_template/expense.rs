@@ -33,6 +33,10 @@ pub struct Expense<S: ExpenseState> {
 }
 
 impl<S: ExpenseState> Expense<S> {
+    pub fn id(&self) -> Uuid {
+        self.id
+    }
+
     pub fn name(&self) -> &String {
         &self.name
     }
@@ -125,9 +129,11 @@ impl Expense<Uncomputed> {
                 Some(GoalType::Debt) => 0, // Debt type goal should not be considered in the amount as they arlready have a scheduled transaction of the same amount
                 Some(GoalType::PlanYourSpending) => {
                     match (category.goal_cadence, category.goal_cadence_frequency) {
-                        (Some(1), Some(freq)) => category.goal_target / freq as i64,
-                        (Some(1), None) => category.goal_target,
-                        (Some(cadence), _) => category.goal_target / (cadence - 1) as i64,
+                        (Some(1), Some(freq)) if freq > 0 => category.goal_target / freq as i64, // Goal repeats X months
+                        (Some(1), None) => category.goal_target, // Goal repeats monthly
+                        // TODO: Need to handle cadence = 2 which is goal repeats weekly
+                        (Some(14), _) => category.goal_target / 24, // Goal repeats every 2 years
+                        (Some(cad @ 3..=13), _) => category.goal_target / (cad - 1) as i64, // Goal repeats X months (up to yearly)
                         (_, _) => 0,
                     }
                 }
@@ -159,26 +165,34 @@ impl Expense<Uncomputed> {
                 None => category.budgeted,
             };
 
-            let mut current_amount = current_amount_budgeted;
-            let scheduled_transactions_total = self
-                .scheduled_transactions
-                .iter()
-                .map(|v| -v.amount)
-                .sum::<i64>();
+            let mut current_amount = if current_amount_budgeted >= 0 {
+                current_amount_budgeted
+            } else {
+                0
+            };
 
-            if current_amount_budgeted != scheduled_transactions_total {
-                let current_date = Local::now().date_naive();
-                let future_transactions_amount = self
+            if !self.scheduled_transactions.is_empty() && category.goal_type.is_none() {
+                let scheduled_transactions_total = self
                     .scheduled_transactions
                     .iter()
-                    .filter(|_| category.goal_type.is_none())
-                    // Current amount should only take into account scheduled transactions from future. those in past should instead be taken from budgeted section.
-                    .filter(|&st| st.date_next > current_date)
-                    .map(|st| -st.amount)
+                    .map(|v| -v.amount)
                     .sum::<i64>();
 
-                if future_transactions_amount > 0 {
-                    current_amount = future_transactions_amount;
+                if current_amount != scheduled_transactions_total {
+                    let current_date = Local::now().date_naive();
+                    let future_transactions_amount = self
+                        .scheduled_transactions
+                        .iter()
+                        // Current amount should only take into account scheduled transactions from future. those in past should instead be taken from budgeted section.
+                        .filter(|&st| st.date_next > current_date)
+                        .map(|st| -st.amount)
+                        .sum::<i64>();
+
+                    if future_transactions_amount > 0
+                        && future_transactions_amount > category.balance
+                    {
+                        current_amount = future_transactions_amount - category.balance;
+                    }
                 }
             }
 
