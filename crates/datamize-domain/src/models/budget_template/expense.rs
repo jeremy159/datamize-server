@@ -1,6 +1,8 @@
 use std::{fmt, str::FromStr};
 
-use chrono::Local;
+use chrono::{Datelike, Local, Months, NaiveDate, NaiveTime, TimeZone};
+use num_traits::FromPrimitive;
+use rrule::{Frequency, NWeekday, RRule, Tz, Weekday};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use ynab::types::{Category, GoalType};
@@ -131,9 +133,15 @@ impl Expense<Uncomputed> {
                     match (category.goal_cadence, category.goal_cadence_frequency) {
                         (Some(1), Some(freq)) if freq > 0 => category.goal_target / freq as i64, // Goal repeats X months
                         (Some(1), None) => category.goal_target, // Goal repeats monthly
-                        // TODO: Need to handle cadence = 2 which is goal repeats weekly
-                        (Some(14), _) => category.goal_target / 24, // Goal repeats every 2 years
+                        (Some(2), Some(freq)) if freq > 0 => self
+                            .compute_monthly_target_for_weekly_goal_cadence(
+                                category.goal_creation_month.unwrap(),
+                                freq as u16,
+                                category.goal_day.unwrap(),
+                                category.goal_target,
+                            ), // Goal repeats weekly
                         (Some(cad @ 3..=13), _) => category.goal_target / (cad - 1) as i64, // Goal repeats X months (up to yearly)
+                        (Some(14), _) => category.goal_target / 24, // Goal repeats every 2 years
                         (_, _) => 0,
                     }
                 }
@@ -150,6 +158,47 @@ impl Expense<Uncomputed> {
         }
 
         0
+    }
+
+    fn compute_monthly_target_for_weekly_goal_cadence(
+        &self,
+        start_date: NaiveDate,
+        interval: u16,
+        weekday: i32,
+        target: i64,
+    ) -> i64 {
+        let first_day_next_month = Local::now()
+            .checked_add_months(Months::new(1))
+            .unwrap()
+            .with_day(1)
+            .unwrap();
+        let first_day_next_month_date_time = Tz::Local(Local)
+            .from_local_datetime(&first_day_next_month.naive_local())
+            .unwrap();
+        let rrule = RRule::new(Frequency::Weekly)
+            .interval(interval)
+            .week_start(Weekday::Sun)
+            .by_weekday(vec![NWeekday::Every(Weekday::from_i32(weekday).unwrap())])
+            .until(first_day_next_month_date_time);
+
+        let first_day_of_month = Local::now().with_day(1).unwrap();
+
+        let date_time = Tz::Local(Local)
+            .from_local_datetime(&first_day_of_month.naive_local())
+            .unwrap();
+        let start_date_time = Tz::Local(Local)
+            .from_local_datetime(&start_date.and_time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()))
+            .unwrap();
+
+        let rrule_set = rrule.build(date_time).unwrap();
+        let occurences = rrule_set
+            .all(10)
+            .0
+            .into_iter()
+            .filter(|date| date >= &start_date_time)
+            .count();
+
+        target * occurences as i64
     }
 
     fn compute_current_amount(&mut self) -> i64 {

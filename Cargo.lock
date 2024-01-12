@@ -646,6 +646,7 @@ dependencies = [
  "dyn-clone",
  "fake",
  "mockall",
+ "num-traits",
  "pretty_assertions",
  "rand 0.8.5",
  "redis",

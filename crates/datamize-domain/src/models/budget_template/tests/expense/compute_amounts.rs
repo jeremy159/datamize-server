@@ -1,4 +1,4 @@
-use chrono::{Days, Local};
+use chrono::{Datelike, Days, Local, Months};
 use fake::{Fake, Faker};
 use rand::seq::SliceRandom;
 use ynab::{Category, GoalType};
@@ -111,6 +111,73 @@ fn compute_projected_amount_when_goal_target_is_plan_spending_and_cadence_monthl
         expense.projected_amount(),
         category.goal_target,
         "Is goal target when no frequency is set"
+    );
+
+    category.goal_cadence_frequency = Some(0);
+    let expense: Expense<Uncomputed> = category.clone().into();
+    let expense = expense.compute_amounts();
+
+    assert_eq!(
+        expense.projected_amount(),
+        0,
+        "Is 0 when frequency is wrongly set"
+    );
+}
+
+#[test]
+fn compute_projected_amount_when_goal_target_is_plan_spending_and_cadence_weekly() {
+    let date_first = Local::now().date_naive().with_day(1).unwrap();
+    let date_first = if date_first.month0() == 1 {
+        date_first.checked_sub_months(Months::new(1)).unwrap()
+    } else {
+        date_first
+    };
+    let mut category = Category {
+        goal_type: Some(GoalType::PlanYourSpending),
+        goal_cadence: Some(2),
+        goal_cadence_frequency: Some(1),
+        goal_day: Some(date_first.weekday().num_days_from_sunday() as i32),
+        goal_creation_month: Some(date_first),
+        ..Faker.fake()
+    };
+    let expense: Expense<Uncomputed> = category.clone().into();
+    let expense = expense.compute_amounts();
+
+    assert_eq!(
+        expense.projected_amount(),
+        category.goal_target * 5,
+        "Is goal target times 5 when goal repeats weekly starting first day of month"
+    );
+
+    category.goal_creation_month = Some(date_first.checked_add_days(Days::new(7)).unwrap());
+    let expense: Expense<Uncomputed> = category.clone().into();
+    let expense = expense.compute_amounts();
+
+    assert_eq!(
+        expense.projected_amount(),
+        category.goal_target * 4,
+        "Is goal target times 4 when goal repeats weekly starting first 7 days into month"
+    );
+
+    category.goal_creation_month = Some(date_first);
+    category.goal_cadence_frequency = Some(2);
+    let expense: Expense<Uncomputed> = category.clone().into();
+    let expense = expense.compute_amounts();
+
+    assert_eq!(
+        expense.projected_amount(),
+        category.goal_target * 3,
+        "Is goal target times 3 when goal repeats every other week starting first day of month"
+    );
+
+    category.goal_cadence_frequency = None;
+    let expense: Expense<Uncomputed> = category.clone().into();
+    let expense = expense.compute_amounts();
+
+    assert_eq!(
+        expense.projected_amount(),
+        0,
+        "Is 0 when no frequency is set"
     );
 
     category.goal_cadence_frequency = Some(0);
