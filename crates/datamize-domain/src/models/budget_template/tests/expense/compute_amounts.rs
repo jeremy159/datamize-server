@@ -1,5 +1,6 @@
 use chrono::{Datelike, Days, Local, Months};
 use fake::{Fake, Faker};
+use pretty_assertions::assert_eq;
 use rand::seq::SliceRandom;
 use ynab::{Category, GoalType};
 

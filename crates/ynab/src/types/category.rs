@@ -1,3 +1,5 @@
+use chrono::Weekday;
+use num_traits::FromPrimitive;
 use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
 use uuid::Uuid;
@@ -63,6 +65,45 @@ pub struct Category {
     #[cfg_attr(any(feature = "testutils", test), dummy(faker = "0..100000"))]
     pub goal_overall_left: Option<i64>,
     pub deleted: bool,
+}
+
+impl Category {
+    /// Will convert the i32 into a chrono::Weekday if possible. Since chrono::Weekday has
+    /// weeks starting at Mon = 0, but YNAB has it as Sun = 0,
+    /// we need to take the previous day of the week after conversion.
+    pub fn get_goal_day_as_weekday(&self) -> Option<Weekday> {
+        self.goal_day
+            .and_then(|d| Weekday::from_i32(d).map(|wd| wd.pred()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use fake::{Fake, Faker};
+
+    use super::*;
+
+    #[test]
+    fn day_is_converted_as_sunday() {
+        let category = Category {
+            goal_day: Some(0),
+            ..Faker.fake()
+        };
+
+        let weekday = category.get_goal_day_as_weekday();
+        assert_eq!(weekday, Some(Weekday::Sun))
+    }
+
+    #[test]
+    fn day_is_converted_as_monday() {
+        let category = Category {
+            goal_day: Some(1),
+            ..Faker.fake()
+        };
+
+        let weekday = category.get_goal_day_as_weekday();
+        assert_eq!(weekday, Some(Weekday::Mon))
+    }
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]

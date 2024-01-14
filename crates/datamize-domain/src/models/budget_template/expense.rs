@@ -1,7 +1,6 @@
 use std::{fmt, str::FromStr};
 
-use chrono::{Datelike, Local, Months, NaiveDate, NaiveTime, TimeZone};
-use num_traits::FromPrimitive;
+use chrono::{DateTime, Datelike, Days, Local, Months, TimeZone};
 use rrule::{Frequency, NWeekday, RRule, Tz, Weekday};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -11,6 +10,13 @@ use super::{
     Budgeter, BudgeterExt, ComputedSalary, DatamizeScheduledTransaction, ExpenseCategorization,
     ExternalExpense,
 };
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct WeeklyCadenceData {
+    dt_start: DateTime<Tz>,
+    goal_start: DateTime<Tz>,
+    dt_end: DateTime<Tz>,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct Expense<S: ExpenseState> {
@@ -30,6 +36,8 @@ pub struct Expense<S: ExpenseState> {
     category: Option<Category>,
     #[serde(skip)]
     scheduled_transactions: Vec<DatamizeScheduledTransaction>,
+    #[serde(skip)]
+    weekly_cadence_data: Option<WeeklyCadenceData>,
     #[serde(flatten)]
     extra: S,
 }
@@ -65,6 +73,46 @@ impl<S: ExpenseState> Expense<S> {
 
     pub fn scheduled_transactions(&self) -> &[DatamizeScheduledTransaction] {
         &self.scheduled_transactions
+    }
+
+    pub fn build_dates(mut self) -> Self {
+        if let Some(category) = &self.category {
+            if let Some(start_date) = category.goal_creation_month {
+                // Last day previous month
+                let dt_start = Local::now()
+                    .with_day(1)
+                    .and_then(|d| d.checked_sub_days(Days::new(1)))
+                    .and_then(|d| {
+                        Tz::Local(Local)
+                            .from_local_datetime(&d.naive_local())
+                            .single()
+                    });
+
+                let goal_start = start_date
+                    .and_hms_opt(0, 0, 0)
+                    .and_then(|d| Tz::Local(Local).from_local_datetime(&d).single());
+
+                // First day next month
+                let dt_end = Local::now()
+                    .checked_add_months(Months::new(1))
+                    .and_then(|d| d.with_day(1))
+                    .and_then(|d| {
+                        Tz::Local(Local)
+                            .from_local_datetime(&d.naive_local())
+                            .single()
+                    });
+
+                self.weekly_cadence_data = match (dt_start, goal_start, dt_end) {
+                    (Some(dt_start), Some(goal_start), Some(dt_end)) => Some(WeeklyCadenceData {
+                        dt_start,
+                        goal_start,
+                        dt_end,
+                    }),
+                    (_, _, _) => None,
+                };
+            }
+        }
+        self
     }
 
     pub fn set_categorization(mut self, expenses_categorization: &[ExpenseCategorization]) -> Self {
@@ -109,6 +157,7 @@ impl Expense<Uncomputed> {
     }
 
     pub fn compute_amounts(mut self) -> Expense<PartiallyComputed> {
+        self = self.build_dates();
         Expense {
             extra: PartiallyComputed {
                 projected_amount: self.compute_projected_amount(),
@@ -122,6 +171,7 @@ impl Expense<Uncomputed> {
             category: self.category,
             individual_associated: self.individual_associated,
             scheduled_transactions: self.scheduled_transactions,
+            weekly_cadence_data: self.weekly_cadence_data,
         }
     }
 
@@ -135,9 +185,8 @@ impl Expense<Uncomputed> {
                         (Some(1), None) => category.goal_target, // Goal repeats monthly
                         (Some(2), Some(freq)) if freq > 0 => self
                             .compute_monthly_target_for_weekly_goal_cadence(
-                                category.goal_creation_month.unwrap(),
                                 freq as u16,
-                                category.goal_day.unwrap(),
+                                category.get_goal_day_as_weekday(),
                                 category.goal_target,
                             ), // Goal repeats weekly
                         (Some(cad @ 3..=13), _) => category.goal_target / (cad - 1) as i64, // Goal repeats X months (up to yearly)
@@ -162,43 +211,32 @@ impl Expense<Uncomputed> {
 
     fn compute_monthly_target_for_weekly_goal_cadence(
         &self,
-        start_date: NaiveDate,
         interval: u16,
-        weekday: i32,
+        weekday: Option<Weekday>,
         target: i64,
     ) -> i64 {
-        let first_day_next_month = Local::now()
-            .checked_add_months(Months::new(1))
-            .unwrap()
-            .with_day(1)
-            .unwrap();
-        let first_day_next_month_date_time = Tz::Local(Local)
-            .from_local_datetime(&first_day_next_month.naive_local())
-            .unwrap();
-        let rrule = RRule::new(Frequency::Weekly)
-            .interval(interval)
-            .week_start(Weekday::Sun)
-            .by_weekday(vec![NWeekday::Every(Weekday::from_i32(weekday).unwrap())])
-            .until(first_day_next_month_date_time);
+        if let Some(dates) = &self.weekly_cadence_data {
+            let mut rrule = RRule::new(Frequency::Weekly)
+                .interval(interval)
+                .week_start(Weekday::Sun)
+                .until(dates.dt_end);
 
-        let first_day_of_month = Local::now().with_day(1).unwrap();
+            if let Some(weekday) = weekday {
+                rrule = rrule.by_weekday(vec![NWeekday::Every(weekday)])
+            }
 
-        let date_time = Tz::Local(Local)
-            .from_local_datetime(&first_day_of_month.naive_local())
-            .unwrap();
-        let start_date_time = Tz::Local(Local)
-            .from_local_datetime(&start_date.and_time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()))
-            .unwrap();
+            let rrule_set = rrule.build(dates.dt_start).unwrap();
+            let occurences = rrule_set
+                .all(10)
+                .0
+                .into_iter()
+                .filter(|date| date >= &dates.goal_start)
+                .count();
 
-        let rrule_set = rrule.build(date_time).unwrap();
-        let occurences = rrule_set
-            .all(10)
-            .0
-            .into_iter()
-            .filter(|date| date >= &start_date_time)
-            .count();
+            return target * occurences as i64;
+        }
 
-        target * occurences as i64
+        0
     }
 
     fn compute_current_amount(&mut self) -> i64 {
@@ -299,6 +337,7 @@ impl Expense<PartiallyComputed> {
             category: self.category,
             individual_associated: self.individual_associated,
             scheduled_transactions: self.scheduled_transactions,
+            weekly_cadence_data: self.weekly_cadence_data,
         }
     }
 }
@@ -484,6 +523,7 @@ impl<S: ExpenseState + fake::Dummy<fake::Faker>> fake::Dummy<fake::Faker> for Ex
         let category = config.fake_with_rng(rng);
         let scheduled_transactions = config.fake_with_rng(rng);
         let extra = config.fake_with_rng(rng);
+        let weekly_cadence_data = None;
 
         Self {
             id,
@@ -495,6 +535,7 @@ impl<S: ExpenseState + fake::Dummy<fake::Faker>> fake::Dummy<fake::Faker> for Ex
             category,
             scheduled_transactions,
             extra,
+            weekly_cadence_data,
         }
     }
 }

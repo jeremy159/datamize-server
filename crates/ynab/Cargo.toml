@@ -27,6 +27,7 @@ uuid.workspace = true
 chrono = { workspace = true, features = ["serde"] }
 async-trait.workspace = true
 reqwest = { version = "^0.11.18", default-features = false, features = ["json", "cookies", "rustls-tls"] }
+num-traits = "0.2.15"
 
 sqlx = { workspace = true, features = ["postgres"], optional = true }
 mockall = { version = "0.11.4", optional = true }
