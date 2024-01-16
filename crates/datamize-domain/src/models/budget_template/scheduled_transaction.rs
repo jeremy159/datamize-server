@@ -115,6 +115,49 @@ impl DatamizeScheduledTransaction {
         repeated_transactions
     }
 
+    /// Method to find any transactions that will be repeated more than once in a month might it be from previous or future days
+    /// and return the number of times it repeats itself.
+    pub fn get_number_of_times_transaction_repeats(&self, date: &DateTime<Local>) -> usize {
+        let mut count = 0;
+
+        if let Some(ref frequency) = self.frequency {
+            let first_day_next_month = date
+                .checked_add_months(Months::new(1))
+                .unwrap()
+                .with_day(1)
+                .unwrap();
+
+            if self.date_first < first_day_next_month.date_naive() {
+                if let Some(rrule) = frequency.as_rfc5545_rule() {
+                    let first_date_time = Tz::Local(Local)
+                        .from_local_datetime(
+                            &self
+                                .date_first
+                                .and_time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
+                        )
+                        .unwrap();
+
+                    let first_day_next_month_date_time = Tz::Local(Local)
+                        .from_local_datetime(&first_day_next_month.naive_local())
+                        .unwrap();
+
+                    let mut rrule = rrule.until(first_day_next_month_date_time);
+
+                    if self.date_first.day() == 31 {
+                        rrule = rrule.by_month_day(vec![-1]);
+                    }
+
+                    // Range is first day included but not last day
+                    let rrule_set = rrule.build(first_date_time).unwrap();
+
+                    count = rrule_set.all(10).0.len();
+                }
+            }
+        }
+
+        count
+    }
+
     /// Method to find any transactions that was scheduled in current month, might it be from previous or future days.
     pub fn get_transactions_within_month(
         &self,

@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+
+use chrono::Local;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -89,21 +92,27 @@ impl Budgeter<Configured> {
         self,
         scheduled_transactions: &[DatamizeScheduledTransaction],
     ) -> Budgeter<ComputedSalary> {
-        let mut salary = 0;
-        let salary_month = scheduled_transactions
+        let mut fragmented_salary = HashMap::new();
+        scheduled_transactions
             .iter()
             .filter(|st| match &st.payee_id {
                 Some(ref id) => self.extra.payee_ids.contains(id),
                 None => false,
             })
-            .map(|st| {
-                salary = st.amount;
-                st.amount
-                    + st.get_repeated_transactions()
-                        .iter()
-                        .map(|v| v.amount)
-                        .sum::<i64>()
-            })
+            .for_each(|st| {
+                let repeats = st.get_number_of_times_transaction_repeats(&Local::now());
+                let salary_fragment = SalaryFragment {
+                    payee_name: st.payee_name.clone().unwrap(),
+                    payee_amount: st.amount,
+                    repeats: if repeats > 0 { repeats } else { 1 },
+                };
+                fragmented_salary.insert(st.payee_id.unwrap(), salary_fragment);
+            });
+
+        let salary = fragmented_salary.values().map(|fs| fs.payee_amount).sum();
+        let salary_month = fragmented_salary
+            .values()
+            .map(|fs| fs.payee_amount * fs.repeats as i64)
             .sum();
 
         Budgeter {
@@ -111,6 +120,7 @@ impl Budgeter<Configured> {
                 salary,
                 salary_month,
                 configured: self.extra,
+                fragmented_salary,
             },
         }
     }
@@ -140,6 +150,7 @@ impl TotalBudgeter<Configured> {
                 salary: budgeters.iter().map(|b| b.extra.salary).sum(),
                 salary_month: budgeters.iter().map(|b| b.extra.salary_month).sum(),
                 configured: self.extra,
+                fragmented_salary: HashMap::new(),
             },
         }
     }
@@ -161,6 +172,14 @@ impl BudgeterExt for TotalBudgeter<Configured> {
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
+pub struct SalaryFragment {
+    payee_name: String,
+    payee_amount: i64,
+    repeats: usize,
+}
+
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct ComputedSalary {
     #[serde(flatten)]
     configured: Configured,
@@ -170,6 +189,7 @@ pub struct ComputedSalary {
     /// Total salary inflow for this month. This number can vary from one month to the other.
     #[cfg_attr(any(feature = "testutils", test), dummy(faker = "0..10000000"))]
     salary_month: i64,
+    fragmented_salary: HashMap<Uuid, SalaryFragment>,
 }
 
 impl Budgeter<ComputedSalary> {
@@ -178,15 +198,12 @@ impl Budgeter<ComputedSalary> {
         total_budgeter: &TotalBudgeter<ComputedExpenses>,
         expenses: &[&Expense<expense::Computed>],
     ) -> Budgeter<ComputedExpenses> {
-        let proportion = if total_budgeter.extra.compuded_salary.salary_month == 0 {
+        let proportion = if total_budgeter.salary_month() == 0 {
             0.0
         } else {
-            self.extra.salary_month as f64
-                / total_budgeter.extra.compuded_salary.salary_month as f64
+            self.extra.salary_month as f64 / total_budgeter.salary_month() as f64
         };
-        let common_expenses = ((proportion * (total_budgeter.extra.common_expenses as f64)
-            / 1000_f64)
-            * 1000_f64) as i64;
+        let common_expenses = (proportion * total_budgeter.extra.common_expenses as f64) as i64;
         let individual_expenses = expenses
             .iter()
             .filter(|e| e.name().contains(&self.extra.configured.name))

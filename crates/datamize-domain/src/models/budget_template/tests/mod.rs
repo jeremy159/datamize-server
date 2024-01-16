@@ -1,1 +1,2 @@
+mod budgeter;
 mod expense;
