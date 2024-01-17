@@ -5,27 +5,85 @@ use uuid::Uuid;
 use ynab::RecurFrequency;
 
 use crate::{
-    Budgeter, BudgeterConfig, BudgeterExt, Configured, DatamizeScheduledTransaction, TotalBudgeter,
+    Budgeter, BudgeterConfig, BudgeterExt, ComputedSalary, Configured,
+    DatamizeScheduledTransaction, TotalBudgeter,
 };
+
+#[derive(Debug, Clone)]
+struct Expected {
+    salary: i64,
+    salary_month: i64,
+}
+
+#[track_caller]
+fn check_method_budgeter(
+    budgeter: Budgeter<Configured>,
+    scheduled_transactions: &[DatamizeScheduledTransaction],
+    Expected {
+        salary,
+        salary_month,
+    }: Expected,
+) {
+    let caller_location = std::panic::Location::caller();
+    let caller_line_number = caller_location.line();
+    println!(
+        "check_method_budgeter called from line: {}",
+        caller_line_number
+    );
+
+    let budgeter = budgeter.compute_salary(scheduled_transactions);
+    assert_eq!(budgeter.salary(), salary);
+    assert_eq!(budgeter.salary_month(), salary_month);
+}
+
+#[track_caller]
+fn check_method_total_budgeter(
+    budgeters: &[Budgeter<ComputedSalary>],
+    Expected {
+        salary,
+        salary_month,
+    }: Expected,
+) {
+    let caller_location = std::panic::Location::caller();
+    let caller_line_number = caller_location.line();
+    println!(
+        "check_method_total_budgeter called from line: {}",
+        caller_line_number
+    );
+
+    let total_budgeter = TotalBudgeter::new();
+    let total_budgeter = total_budgeter.compute_salary(budgeters);
+
+    assert_eq!(total_budgeter.salary(), salary);
+    assert_eq!(total_budgeter.salary_month(), salary_month);
+}
 
 #[test]
 fn salary_is_0_when_no_scheduled_transactions() {
     let config: BudgeterConfig = Faker.fake();
     let budgeter: Budgeter<Configured> = config.clone().into();
-    let budgeter = budgeter.compute_salary(&[]);
-
-    assert_eq!(budgeter.salary(), 0);
-    assert_eq!(budgeter.salary_month(), 0);
+    check_method_budgeter(
+        budgeter,
+        &[],
+        Expected {
+            salary: 0,
+            salary_month: 0,
+        },
+    );
 }
 
 #[test]
 fn salary_is_0_when_no_linked_scheduled_transactions() {
     let config: BudgeterConfig = Faker.fake();
     let budgeter: Budgeter<Configured> = config.clone().into();
-    let budgeter = budgeter.compute_salary(&fake::vec![DatamizeScheduledTransaction; 1..5]);
-
-    assert_eq!(budgeter.salary(), 0);
-    assert_eq!(budgeter.salary_month(), 0);
+    check_method_budgeter(
+        budgeter,
+        &fake::vec![DatamizeScheduledTransaction; 1..5],
+        Expected {
+            salary: 0,
+            salary_month: 0,
+        },
+    );
 }
 
 #[test]
@@ -50,10 +108,14 @@ fn salary_is_linked_scheduled_transactions_when_not_repeating() {
         payee_name: Some(Faker.fake()),
         ..Faker.fake()
     };
-    let budgeter = budgeter.compute_salary(&vec![transaction.clone()]);
-
-    assert_eq!(budgeter.salary(), transaction.amount);
-    assert_eq!(budgeter.salary_month(), transaction.amount);
+    check_method_budgeter(
+        budgeter,
+        &vec![transaction.clone()],
+        Expected {
+            salary: transaction.amount,
+            salary_month: transaction.amount,
+        },
+    );
 }
 
 #[test]
@@ -78,10 +140,14 @@ fn salary_month_is_twice_linked_scheduled_transactions() {
             .unwrap(),
         ..Faker.fake()
     };
-    let budgeter = budgeter.compute_salary(&vec![transaction.clone()]);
-
-    assert_eq!(budgeter.salary(), transaction.amount);
-    assert_eq!(budgeter.salary_month(), transaction.amount * 2);
+    check_method_budgeter(
+        budgeter,
+        &vec![transaction.clone()],
+        Expected {
+            salary: transaction.amount,
+            salary_month: transaction.amount * 2,
+        },
+    );
 }
 
 #[test]
@@ -105,12 +171,13 @@ fn salary_takes_all_linked_scheduled_transactions() {
         payee_name: Some(Faker.fake()),
         ..Faker.fake()
     };
-    let budgeter = budgeter.compute_salary(&vec![first_trans.clone(), sec_trans.clone()]);
-
-    assert_eq!(budgeter.salary(), first_trans.amount + sec_trans.amount);
-    assert_eq!(
-        budgeter.salary_month(),
-        first_trans.amount + sec_trans.amount
+    check_method_budgeter(
+        budgeter,
+        &vec![first_trans.clone(), sec_trans.clone()],
+        Expected {
+            salary: first_trans.amount + sec_trans.amount,
+            salary_month: first_trans.amount + sec_trans.amount,
+        },
     );
 }
 
@@ -143,12 +210,13 @@ fn salary_takes_all_linked_scheduled_transactions_even_when_repeated() {
         payee_name: Some(Faker.fake()),
         ..Faker.fake()
     };
-    let budgeter = budgeter.compute_salary(&vec![first_trans.clone(), sec_trans.clone()]);
-
-    assert_eq!(budgeter.salary(), first_trans.amount + sec_trans.amount);
-    assert_eq!(
-        budgeter.salary_month(),
-        first_trans.amount * 2 + sec_trans.amount
+    check_method_budgeter(
+        budgeter,
+        &vec![first_trans.clone(), sec_trans.clone()],
+        Expected {
+            salary: first_trans.amount + sec_trans.amount,
+            salary_month: first_trans.amount * 2 + sec_trans.amount,
+        },
     );
 }
 
@@ -174,19 +242,25 @@ fn salary_repeats_5_times_when_frequency_is_every_week_on_first_day_of_month() {
         date_next: date_first.checked_add_days(Days::new(7)).unwrap(),
         ..Faker.fake()
     };
-    let budgeter = budgeter.compute_salary(&vec![transaction.clone()]);
-
-    assert_eq!(budgeter.salary(), transaction.amount);
-    assert_eq!(budgeter.salary_month(), transaction.amount * 5);
+    check_method_budgeter(
+        budgeter,
+        &vec![transaction.clone()],
+        Expected {
+            salary: transaction.amount,
+            salary_month: transaction.amount * 5,
+        },
+    );
 }
 
 #[test]
 fn total_salary_is_0_when_no_budgeters() {
-    let total_budgeter = TotalBudgeter::new();
-    let total_budgeter = total_budgeter.compute_salary(&[]);
-
-    assert_eq!(total_budgeter.salary(), 0);
-    assert_eq!(total_budgeter.salary_month(), 0);
+    check_method_total_budgeter(
+        &[],
+        Expected {
+            salary: 0,
+            salary_month: 0,
+        },
+    );
 }
 
 #[test]
@@ -234,15 +308,11 @@ fn total_salary_is_sum_of_all_budgeters() {
     };
     let budgeter2 = budgeter2.compute_salary(&vec![transaction.clone()]);
 
-    let total_budgeter = TotalBudgeter::new();
-    let total_budgeter = total_budgeter.compute_salary(&[budgeter1.clone(), budgeter2.clone()]);
-
-    assert_eq!(
-        total_budgeter.salary(),
-        budgeter1.salary() + budgeter2.salary()
-    );
-    assert_eq!(
-        total_budgeter.salary_month(),
-        budgeter1.salary_month() + budgeter2.salary_month()
+    check_method_total_budgeter(
+        &[budgeter1.clone(), budgeter2.clone()],
+        Expected {
+            salary: budgeter1.salary() + budgeter2.salary(),
+            salary_month: budgeter1.salary_month() + budgeter2.salary_month(),
+        },
     );
 }
