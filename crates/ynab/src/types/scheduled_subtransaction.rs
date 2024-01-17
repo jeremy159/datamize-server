@@ -51,7 +51,7 @@ impl RecurFrequency {
             RecurFrequency::Every3Months => RRule::new(Frequency::Monthly).interval(3),
             RecurFrequency::Every4Months => RRule::new(Frequency::Monthly).interval(4),
 
-            RecurFrequency::TwiceAYear => RRule::new(Frequency::Monthly)
+            RecurFrequency::TwiceAYear => RRule::new(Frequency::Yearly)
                 .by_month(&[chrono::Month::June, chrono::Month::December]),
 
             RecurFrequency::EveryOtherYear => RRule::new(Frequency::Yearly).interval(2),

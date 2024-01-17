@@ -1,5 +1,5 @@
-use chrono::{DateTime, Datelike, Local, Months, NaiveDate, NaiveTime, TimeZone};
-use rrule::{RRuleSet, Tz};
+use chrono::{DateTime, Datelike, Days, Local, Months, NaiveDate, NaiveTime, TimeZone};
+use rrule::Tz;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use ynab::types::{RecurFrequency, ScheduledTransactionDetail, SubTransaction};
@@ -75,9 +75,9 @@ impl DatamizeScheduledTransaction {
     /// * EveryOtherWeek
     /// * TwiceAMonth
     /// * Every4Weeks
+    ///
+    /// **Important** This skips the next repetition noted as `date_next` so you only get repeated transactions, not those actually coming.
     pub fn get_repeated_transactions(&self) -> Vec<DatamizeScheduledTransaction> {
-        let mut repeated_transactions = vec![];
-
         if let Some(ref frequency) = self.frequency {
             if let RecurFrequency::Daily
             | RecurFrequency::Weekly
@@ -85,129 +85,118 @@ impl DatamizeScheduledTransaction {
             | RecurFrequency::TwiceAMonth
             | RecurFrequency::Every4Weeks = frequency
             {
-                if let Some(rrule) = frequency.as_rfc5545_rule() {
-                    let date_time = Tz::Local(Local)
-                        .from_local_datetime(
-                            &self
-                                .date_next
-                                .and_time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
-                        )
-                        .unwrap();
+                let date_time = NaiveTime::from_hms_opt(0, 0, 0)
+                    .and_then(|time| {
+                        Tz::Local(Local)
+                            .from_local_datetime(&self.date_next.and_time(time))
+                            .single()
+                    })
+                    .unwrap();
 
-                    let rrule = rrule.validate(date_time).unwrap();
-                    let rrule_set = RRuleSet::new(date_time).rrule(rrule);
-                    rrule_set
-                        .all(4)
-                        .0
-                        .into_iter()
-                        .skip_while(|date| date.date_naive() == self.date_next) // Skip the first iteration as it's simply the current date_next
-                        .filter(|date| date_is_in_next_30_days(&date.date_naive()))
-                        .for_each(|date| {
-                            let mut new_transaction = self.clone();
-                            new_transaction.subtransactions = vec![];
-                            new_transaction.date_next = date.date_naive();
-                            repeated_transactions.push(new_transaction);
-                        });
+                let next_30_days = Local::now()
+                    .checked_add_months(Months::new(1))
+                    .and_then(|d| {
+                        Tz::Local(Local)
+                            .from_local_datetime(&d.naive_local())
+                            .single()
+                    })
+                    .unwrap();
+
+                if date_time <= next_30_days {
+                    if let Some(rrule) = frequency.as_rfc5545_rule() {
+                        // Range is first day included to last day included
+                        let rrule = rrule.until(next_30_days);
+
+                        let rrule_set = rrule.build(date_time).unwrap();
+                        return rrule_set
+                            .all(35)
+                            .0
+                            .into_iter()
+                            .skip_while(|date| date.date_naive() == self.date_next) // Skip the first iteration as it's simply the current date_next
+                            .map(|date| DatamizeScheduledTransaction {
+                                subtransactions: vec![],
+                                date_next: date.date_naive(),
+                                ..self.clone()
+                            })
+                            .collect();
+                    }
                 }
             }
         }
 
-        repeated_transactions
+        vec![]
     }
 
     /// Method to find any transactions that will be repeated more than once in a month might it be from previous or future days
-    /// and return the number of times it repeats itself.
-    pub fn get_number_of_times_transaction_repeats(&self, date: &DateTime<Local>) -> usize {
-        let mut count = 0;
-
+    /// and return the dates when it happens.
+    pub fn get_dates_when_transaction_repeats(&self, date: &DateTime<Local>) -> Vec<NaiveDate> {
         if let Some(ref frequency) = self.frequency {
-            let first_day_next_month = date
+            let last_day_curr_month = date
                 .checked_add_months(Months::new(1))
-                .unwrap()
-                .with_day(1)
+                .and_then(|d| d.with_day(1))
+                .and_then(|d| d.checked_sub_days(Days::new(1)))
+                .and_then(|d| {
+                    Tz::Local(Local)
+                        .from_local_datetime(&d.naive_local())
+                        .single()
+                })
                 .unwrap();
 
-            if self.date_first < first_day_next_month.date_naive() {
+            let last_day_prev_month = date
+                .naive_local()
+                .with_day(1)
+                .and_then(|d| d.checked_sub_days(Days::new(1)))
+                .and_then(|d| Tz::Local(Local).from_local_datetime(&d).single())
+                .unwrap();
+
+            if self.date_first <= last_day_curr_month.date_naive() {
                 if let Some(rrule) = frequency.as_rfc5545_rule() {
-                    let first_date_time = Tz::Local(Local)
-                        .from_local_datetime(
-                            &self
-                                .date_first
-                                .and_time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
-                        )
+                    let first_date_time = NaiveTime::from_hms_opt(0, 0, 0)
+                        .and_then(|time| {
+                            Tz::Local(Local)
+                                .from_local_datetime(&self.date_first.and_time(time))
+                                .single()
+                        })
                         .unwrap();
 
-                    let first_day_next_month_date_time = Tz::Local(Local)
-                        .from_local_datetime(&first_day_next_month.naive_local())
-                        .unwrap();
-
-                    let mut rrule = rrule.until(first_day_next_month_date_time);
+                    let mut rrule = rrule.until(last_day_curr_month);
 
                     if self.date_first.day() == 31 {
                         rrule = rrule.by_month_day(vec![-1]);
                     }
 
-                    // Range is first day included but not last day
-                    let rrule_set = rrule.build(first_date_time).unwrap();
+                    // Range is first day included to last day included
+                    let rrule_set = rrule
+                        .build(first_date_time)
+                        .map(|rr| rr.after(last_day_prev_month))
+                        .unwrap();
 
-                    count = rrule_set.all(10).0.len();
+                    return rrule_set
+                        .all(35)
+                        .0
+                        .into_iter()
+                        .map(|d| d.date_naive())
+                        .collect();
                 }
             }
         }
 
-        count
+        vec![]
     }
 
-    /// Method to find any transactions that was scheduled in current month, might it be from previous or future days.
+    /// Method to find any transactions that was scheduled in current month, might it be from previous
+    /// or future days.
     pub fn get_transactions_within_month(
         &self,
         date: &DateTime<Local>,
     ) -> Vec<DatamizeScheduledTransaction> {
-        let mut scheduled_transactions = vec![];
-
-        if let Some(ref frequency) = self.frequency {
-            let first_day_next_month = date.checked_add_months(Months::new(1)).unwrap();
-
-            if self.date_first < first_day_next_month.date_naive() {
-                if let Some(rrule) = frequency.as_rfc5545_rule() {
-                    let first_day_date_time = Tz::Local(Local)
-                        .from_local_datetime(&date.naive_local())
-                        .unwrap();
-
-                    let first_date_time = Tz::Local(Local)
-                        .from_local_datetime(
-                            &self
-                                .date_first
-                                .and_time(NaiveTime::from_hms_opt(12, 0, 0).unwrap()),
-                        )
-                        .unwrap();
-
-                    let first_day_next_month_date_time = Tz::Local(Local)
-                        .from_local_datetime(&first_day_next_month.naive_local())
-                        .unwrap();
-
-                    let mut rrule = rrule.until(first_day_next_month_date_time);
-
-                    if self.date_first.day() == 31 {
-                        rrule = rrule.by_month_day(vec![-1]);
-                    }
-
-                    // Range is first day included but not last day
-                    let rrule_set = rrule
-                        .build(first_date_time)
-                        .unwrap()
-                        .after(first_day_date_time);
-
-                    rrule_set.all_unchecked().into_iter().for_each(|date| {
-                        let mut new_transaction = self.clone();
-                        new_transaction.date_next = date.date_naive();
-                        scheduled_transactions.push(new_transaction);
-                    });
-                }
-            }
-        }
-
-        scheduled_transactions
+        self.get_dates_when_transaction_repeats(date)
+            .into_iter()
+            .map(|d| DatamizeScheduledTransaction {
+                date_next: d,
+                ..self.clone()
+            })
+            .collect()
     }
 }
 
@@ -215,7 +204,7 @@ pub fn date_is_in_next_30_days(date: &NaiveDate) -> bool {
     let current_date = Local::now().date_naive();
     let next_month_date = current_date.checked_add_months(Months::new(1)).unwrap();
 
-    date <= &next_month_date
+    date >= &current_date && date <= &next_month_date
 }
 
 impl From<ScheduledTransactionDetail> for DatamizeScheduledTransaction {

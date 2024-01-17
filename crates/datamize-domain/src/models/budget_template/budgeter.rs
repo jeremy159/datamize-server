@@ -100,7 +100,7 @@ impl Budgeter<Configured> {
                 None => false,
             })
             .for_each(|st| {
-                let repeats = st.get_number_of_times_transaction_repeats(&Local::now());
+                let repeats = st.get_dates_when_transaction_repeats(&Local::now()).len();
                 let salary_fragment = SalaryFragment {
                     payee_name: st.payee_name.clone().unwrap(),
                     payee_amount: st.amount,

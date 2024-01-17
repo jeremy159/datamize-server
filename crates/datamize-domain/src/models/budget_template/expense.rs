@@ -92,10 +92,11 @@ impl<S: ExpenseState> Expense<S> {
                     .and_hms_opt(0, 0, 0)
                     .and_then(|d| Tz::Local(Local).from_local_datetime(&d).single());
 
-                // First day next month
+                // Last day current month
                 let dt_end = Local::now()
                     .checked_add_months(Months::new(1))
                     .and_then(|d| d.with_day(1))
+                    .and_then(|d| d.checked_sub_days(Days::new(1)))
                     .and_then(|d| {
                         Tz::Local(Local)
                             .from_local_datetime(&d.naive_local())
