@@ -125,19 +125,14 @@ fn salary_month_is_twice_linked_scheduled_transactions() {
         ..Faker.fake()
     };
     let budgeter: Budgeter<Configured> = config.clone().into();
+    let date_first = Local::now().date_naive().with_day(5).unwrap();
     let transaction = DatamizeScheduledTransaction {
         amount: (1..100000).fake(),
-        frequency: Some(RecurFrequency::TwiceAMonth),
+        frequency: Some(RecurFrequency::EveryOtherWeek),
         payee_id: Some(budgeter.payee_ids()[0]),
         payee_name: Some(Faker.fake()),
-        date_first: Local::now()
-            .date_naive()
-            .checked_sub_days(Days::new(1))
-            .unwrap(),
-        date_next: Local::now()
-            .date_naive()
-            .checked_add_days(Days::new(10))
-            .unwrap(),
+        date_first,
+        date_next: date_first.checked_add_days(Days::new(14)).unwrap(),
         ..Faker.fake()
     };
     check_method_budgeter(
@@ -188,19 +183,14 @@ fn salary_takes_all_linked_scheduled_transactions_even_when_repeated() {
         ..Faker.fake()
     };
     let budgeter: Budgeter<Configured> = config.clone().into();
+    let date_first = Local::now().date_naive().with_day(5).unwrap();
     let first_trans = DatamizeScheduledTransaction {
         amount: (1..100000).fake(),
-        frequency: Some(RecurFrequency::TwiceAMonth),
+        frequency: Some(RecurFrequency::EveryOtherWeek),
         payee_id: Some(budgeter.payee_ids()[0]),
         payee_name: Some(Faker.fake()),
-        date_first: Local::now()
-            .date_naive()
-            .checked_sub_days(Days::new(1))
-            .unwrap(),
-        date_next: Local::now()
-            .date_naive()
-            .checked_add_days(Days::new(10))
-            .unwrap(),
+        date_first,
+        date_next: date_first.checked_add_days(Days::new(14)).unwrap(),
         ..Faker.fake()
     };
     let sec_trans = DatamizeScheduledTransaction {

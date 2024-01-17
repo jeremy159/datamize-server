@@ -102,7 +102,7 @@ impl Budgeter<Configured> {
             .for_each(|st| {
                 let repeats = st.get_dates_when_transaction_repeats(&Local::now()).len();
                 let salary_fragment = SalaryFragment {
-                    payee_name: st.payee_name.clone().unwrap(),
+                    payee_name: st.payee_name.clone().unwrap(), // FIXME: Handle when null...
                     payee_amount: st.amount,
                     repeats: if repeats > 0 { repeats } else { 1 },
                 };
