@@ -31,7 +31,7 @@ fn check_method_budgeter(
         caller_line_number
     );
 
-    let budgeter = budgeter.compute_salary(scheduled_transactions);
+    let budgeter = budgeter.compute_salary(scheduled_transactions, &Local::now());
     assert_eq!(budgeter.salary(), salary);
     assert_eq!(budgeter.salary_month(), salary_month);
 }
@@ -177,6 +177,42 @@ fn salary_takes_all_linked_scheduled_transactions() {
 }
 
 #[test]
+fn salary_takes_all_scheduled_transactions_of_same_payee() {
+    let payee_id = Faker.fake();
+    let payee_name: String = Faker.fake();
+    let config = BudgeterConfig {
+        payee_ids: vec![payee_id],
+        ..Faker.fake()
+    };
+
+    let budgeter: Budgeter<Configured> = config.clone().into();
+    let first_trans = DatamizeScheduledTransaction {
+        amount: (1..100000).fake(),
+        frequency: Some(RecurFrequency::Monthly),
+        payee_id: Some(payee_id),
+        payee_name: Some(payee_name.clone()),
+        date_first: Local::now().date_naive().with_day(15).unwrap(),
+        ..Faker.fake()
+    };
+    let sec_trans = DatamizeScheduledTransaction {
+        amount: (1..100000).fake(),
+        frequency: Some(RecurFrequency::Monthly),
+        payee_id: Some(payee_id),
+        payee_name: Some(payee_name),
+        date_first: Local::now().date_naive().with_day(28).unwrap(),
+        ..Faker.fake()
+    };
+    check_method_budgeter(
+        budgeter,
+        &vec![first_trans.clone(), sec_trans.clone()],
+        Expected {
+            salary: first_trans.amount + sec_trans.amount,
+            salary_month: first_trans.amount + sec_trans.amount,
+        },
+    );
+}
+
+#[test]
 fn salary_takes_all_linked_scheduled_transactions_even_when_repeated() {
     let config = BudgeterConfig {
         payee_ids: fake::vec![Uuid; 2..3],
@@ -280,7 +316,7 @@ fn total_salary_is_sum_of_all_budgeters() {
         date_next: date_first.checked_add_days(Days::new(7)).unwrap(),
         ..Faker.fake()
     };
-    let budgeter1 = budgeter1.compute_salary(&vec![transaction.clone()]);
+    let budgeter1 = budgeter1.compute_salary(&vec![transaction.clone()], &Local::now());
     let budgeter2: Budgeter<Configured> = configs[0].clone().into();
     let date_first = Local::now().date_naive().with_day(1).unwrap();
     let date_first = if date_first.month0() == 1 {
@@ -296,7 +332,7 @@ fn total_salary_is_sum_of_all_budgeters() {
         date_next: date_first.checked_add_days(Days::new(7)).unwrap(),
         ..Faker.fake()
     };
-    let budgeter2 = budgeter2.compute_salary(&vec![transaction.clone()]);
+    let budgeter2 = budgeter2.compute_salary(&vec![transaction.clone()], &Local::now());
 
     check_method_total_budgeter(
         &[budgeter1.clone(), budgeter2.clone()],

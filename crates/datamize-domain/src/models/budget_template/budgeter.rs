@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::Local;
+use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -91,8 +91,10 @@ impl Budgeter<Configured> {
     pub fn compute_salary(
         self,
         scheduled_transactions: &[DatamizeScheduledTransaction],
+        date: &DateTime<Local>,
     ) -> Budgeter<ComputedSalary> {
         let mut fragmented_salary = HashMap::new();
+        // TODO: Handle if transaction has sub transactions, e.g. DTI which included rrsp and health insurance...
         scheduled_transactions
             .iter()
             .filter(|st| match &st.payee_id {
@@ -100,18 +102,26 @@ impl Budgeter<Configured> {
                 None => false,
             })
             .for_each(|st| {
-                let repeats = st.get_dates_when_transaction_repeats(&Local::now()).len();
+                let repeats = st.get_dates_when_transaction_repeats(date).len();
                 let salary_fragment = SalaryFragment {
                     payee_name: st.payee_name.clone(),
                     payee_amount: st.amount,
                     repeats: if repeats > 0 { repeats } else { 1 },
                 };
-                fragmented_salary.insert(st.payee_id.unwrap(), salary_fragment);
+                let entry = fragmented_salary
+                    .entry(st.payee_id.unwrap()) // We know here payee_id is defined
+                    .or_insert_with(|| Vec::with_capacity(1));
+                entry.push(salary_fragment);
             });
 
-        let salary = fragmented_salary.values().map(|fs| fs.payee_amount).sum();
+        let salary = fragmented_salary
+            .values()
+            .flatten()
+            .map(|fs| fs.payee_amount)
+            .sum();
         let salary_month = fragmented_salary
             .values()
+            .flatten()
             .map(|fs| fs.payee_amount * fs.repeats as i64)
             .sum();
 
@@ -189,7 +199,7 @@ pub struct ComputedSalary {
     /// Total salary inflow for this month. This number can vary from one month to the other.
     #[cfg_attr(any(feature = "testutils", test), dummy(faker = "0..10000000"))]
     salary_month: i64,
-    fragmented_salary: HashMap<Uuid, SalaryFragment>,
+    fragmented_salary: HashMap<Uuid, Vec<SalaryFragment>>,
 }
 
 impl Budgeter<ComputedSalary> {

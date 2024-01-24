@@ -57,7 +57,8 @@ impl TemplateSummaryServiceExt for TemplateSummaryService {
         let budgeters: Vec<_> = budgeters_config
             .into_iter()
             .map(|bc| {
-                Budgeter::<Configured>::from(bc).compute_salary(&saved_scheduled_transactions)
+                Budgeter::<Configured>::from(bc)
+                    .compute_salary(&saved_scheduled_transactions, &month.into())
             })
             .collect();
 
