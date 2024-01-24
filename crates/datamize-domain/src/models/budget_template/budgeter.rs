@@ -102,7 +102,7 @@ impl Budgeter<Configured> {
             .for_each(|st| {
                 let repeats = st.get_dates_when_transaction_repeats(&Local::now()).len();
                 let salary_fragment = SalaryFragment {
-                    payee_name: st.payee_name.clone().unwrap(), // FIXME: Handle when null...
+                    payee_name: st.payee_name.clone(),
                     payee_amount: st.amount,
                     repeats: if repeats > 0 { repeats } else { 1 },
                 };
@@ -173,7 +173,7 @@ impl BudgeterExt for TotalBudgeter<Configured> {
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct SalaryFragment {
-    payee_name: String,
+    payee_name: Option<String>,
     payee_amount: i64,
     repeats: usize,
 }
