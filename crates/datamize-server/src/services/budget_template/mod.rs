@@ -1,7 +1,6 @@
 mod budgeter;
 mod category;
 mod expense_categorization;
-mod external_expense;
 mod scheduled_transaction;
 mod template_detail;
 mod template_summary;
@@ -10,7 +9,6 @@ mod template_transaction;
 pub use budgeter::*;
 pub use category::*;
 pub use expense_categorization::*;
-pub use external_expense::*;
 pub use scheduled_transaction::*;
 pub use template_detail::*;
 pub use template_summary::*;

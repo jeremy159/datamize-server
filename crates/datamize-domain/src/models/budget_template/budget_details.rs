@@ -7,7 +7,7 @@ use ynab::types::Category;
 
 use super::{
     expense::Computed, Budgeter, BudgeterExt, ComputedSalary, DatamizeScheduledTransaction,
-    Expense, ExpenseCategorization, ExpenseType, ExternalExpense, PartiallyComputed, Uncomputed,
+    Expense, ExpenseCategorization, ExpenseType, PartiallyComputed, Uncomputed,
 };
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
@@ -110,7 +110,6 @@ impl BudgetDetails {
         categories: Vec<Category>,
         scheduled_transactions: Vec<DatamizeScheduledTransaction>,
         date: &DateTime<Local>,
-        external_expenses: Vec<ExternalExpense>,
         expenses_categorization: Vec<ExpenseCategorization>,
         budgeters: &[Budgeter<ComputedSalary>],
     ) -> Self {
@@ -128,7 +127,6 @@ impl BudgetDetails {
                 }
                 expense.compute_amounts()
             })
-            .chain(external_expenses.into_iter().map(Expense::from))
             .collect::<Vec<_>>();
 
         let mut expenses: Vec<_> = expenses

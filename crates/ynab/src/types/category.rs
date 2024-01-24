@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[cfg_attr(feature = "sqlx-postgres", derive(sqlx::FromRow))]
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 /// See https://api.youneedabudget.com/v1#/Categories/getCategoryById
 pub struct Category {
     pub id: Uuid,

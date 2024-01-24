@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::{
     db::error::DbResult,
-    models::{BudgeterConfig, ExpenseCategorization, ExternalExpense},
+    models::{BudgeterConfig, ExpenseCategorization},
 };
 
 #[async_trait]
@@ -35,37 +35,6 @@ mockall::mock! {
         async fn get_by_name(&self, name: &str) -> DbResult<BudgeterConfig>;
         async fn update(&self, budgeter: &BudgeterConfig) -> DbResult<()>;
         async fn delete(&self, budgeter_id: Uuid) -> DbResult<()>;
-    }
-}
-
-#[async_trait]
-pub trait ExternalExpenseRepo: DynClone + Send + Sync {
-    async fn get_all(&self) -> DbResult<Vec<ExternalExpense>>;
-    async fn get(&self, expense_id: Uuid) -> DbResult<ExternalExpense>;
-    async fn get_by_name(&self, name: &str) -> DbResult<ExternalExpense>;
-    async fn update(&self, expense: &ExternalExpense) -> DbResult<()>;
-    async fn delete(&self, expense_id: Uuid) -> DbResult<()>;
-}
-
-clone_trait_object!(ExternalExpenseRepo);
-
-pub type DynExternalExpenseRepo = Box<dyn ExternalExpenseRepo>;
-
-#[cfg(any(feature = "testutils", test))]
-mockall::mock! {
-    pub ExternalExpenseRepoImpl {}
-
-    impl Clone for ExternalExpenseRepoImpl {
-        fn clone(&self) -> Self;
-    }
-
-    #[async_trait]
-    impl ExternalExpenseRepo for ExternalExpenseRepoImpl {
-        async fn get_all(&self) -> DbResult<Vec<ExternalExpense>>;
-        async fn get(&self, expense_id: Uuid) -> DbResult<ExternalExpense>;
-        async fn get_by_name(&self, name: &str) -> DbResult<ExternalExpense>;
-        async fn update(&self, expense: &ExternalExpense) -> DbResult<()>;
-        async fn delete(&self, expense_id: Uuid) -> DbResult<()>;
     }
 }
 

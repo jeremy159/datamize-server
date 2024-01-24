@@ -4,7 +4,7 @@ use ynab::Category;
 
 use crate::{
     Budgeter, BudgeterExt, ComputedSalary, Expense, ExpenseCategorization, ExpenseType,
-    ExternalExpense, PartiallyComputed, SubExpenseType, Uncomputed,
+    SubExpenseType, Uncomputed,
 };
 
 #[test]
@@ -15,28 +15,13 @@ fn correctly_converts_category_to_uncomputed_expense() {
     assert_eq!(category.id, expense.id());
     assert_eq!(&category.name, expense.name());
     assert!(!expense.is_external());
-    assert_eq!(Some(&category), expense.category());
+    assert_eq!(&category, expense.category());
 
     // Default value for the other fields
     assert_eq!(expense.expense_type(), &ExpenseType::default());
     assert_eq!(expense.sub_expense_type(), &SubExpenseType::default());
     assert_eq!(expense.individual_associated(), Option::default());
     assert_eq!(expense.scheduled_transactions(), Vec::default());
-}
-
-#[test]
-fn no_categorization_when_expense_does_not_have_category() {
-    let external_expense = ExternalExpense {
-        expense_type: Default::default(),
-        sub_expense_type: Default::default(),
-        ..Faker.fake()
-    };
-    let expense: Expense<PartiallyComputed> = external_expense.clone().into();
-    let expenses_categorization = fake::vec![ExpenseCategorization; 1..5];
-    let expense = expense.set_categorization(&expenses_categorization);
-
-    assert_eq!(expense.expense_type(), &ExpenseType::default());
-    assert_eq!(expense.sub_expense_type(), &SubExpenseType::default());
 }
 
 #[test]

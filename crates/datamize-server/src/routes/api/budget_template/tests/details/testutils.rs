@@ -5,15 +5,13 @@ use axum::Router;
 use datamize_domain::{
     db::{
         ynab::{MockYnabCategoryMetaRepo, MockYnabScheduledTransactionMetaRepo},
-        BudgeterConfigRepo, ExpenseCategorizationRepo, ExternalExpenseRepo,
+        BudgeterConfigRepo, ExpenseCategorizationRepo,
     },
-    BudgeterConfig, ExpenseCategorization, ExternalExpense,
+    BudgeterConfig, ExpenseCategorization,
 };
 use db_sqlite::{
     budget_providers::ynab::{SqliteYnabCategoryRepo, SqliteYnabScheduledTransactionRepo},
-    budget_template::{
-        SqliteBudgeterConfigRepo, SqliteExpenseCategorizationRepo, SqliteExternalExpenseRepo,
-    },
+    budget_template::{SqliteBudgeterConfigRepo, SqliteExpenseCategorizationRepo},
 };
 use fake::{Fake, Faker};
 use sqlx::SqlitePool;
@@ -32,7 +30,6 @@ use crate::{
 
 pub(crate) struct TestContext {
     budgeter_config_repo: Box<SqliteBudgeterConfigRepo>,
-    external_expense_repo: Box<SqliteExternalExpenseRepo>,
     expense_categorization_repo: Box<SqliteExpenseCategorizationRepo>,
     app: Router,
 }
@@ -44,7 +41,6 @@ impl TestContext {
         ynab_scheduled_transactions: ScheduledTransactionsDetailDelta,
     ) -> Self {
         let budgeter_config_repo = SqliteBudgeterConfigRepo::new_boxed(pool.clone());
-        let external_expense_repo = SqliteExternalExpenseRepo::new_boxed(pool.clone());
         let ynab_category_repo = SqliteYnabCategoryRepo::new_boxed(pool.clone());
         let ynab_category_meta_repo = MockYnabCategoryMetaRepo::new_boxed();
         let expense_categorization_repo = SqliteExpenseCategorizationRepo::new_boxed(pool.clone());
@@ -81,12 +77,10 @@ impl TestContext {
             category_service,
             scheduled_transaction_service,
             budgeter_config_repo.clone(),
-            external_expense_repo.clone(),
         );
         let app = get_detail_routes(template_detail_service);
         Self {
             budgeter_config_repo,
-            external_expense_repo,
             expense_categorization_repo,
             app,
         }
@@ -99,12 +93,6 @@ impl TestContext {
     pub(crate) async fn set_budgeters(&self, budgeters: &[BudgeterConfig]) {
         for b in budgeters {
             self.budgeter_config_repo.update(b).await.unwrap();
-        }
-    }
-
-    pub(crate) async fn set_external_expenses(&self, external_expenses: &[ExternalExpense]) {
-        for ee in external_expenses {
-            self.external_expense_repo.update(ee).await.unwrap();
         }
     }
 

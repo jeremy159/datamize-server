@@ -4,7 +4,6 @@ use axum::{
 };
 use datamize_domain::{
     BudgetSummary, BudgeterConfig, DatamizeScheduledTransaction, ExpenseCategorization,
-    ExternalExpense,
 };
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
@@ -22,11 +21,7 @@ struct YnabData(
     ScheduledTransactionsDetailDelta,
 );
 
-struct DbData(
-    Vec<ExternalExpense>,
-    Vec<BudgeterConfig>,
-    Vec<ExpenseCategorization>,
-);
+struct DbData(Vec<BudgeterConfig>, Vec<ExpenseCategorization>);
 
 async fn check_get(
     pool: SqlitePool,
@@ -37,8 +32,7 @@ async fn check_get(
 ) {
     let context = TestContext::setup(pool, ynab_data.0, ynab_data.1);
 
-    if let Some(DbData(external_expenses, budgeters_config, expenses_categorization)) = db_data {
-        context.set_external_expenses(&external_expenses).await;
+    if let Some(DbData(budgeters_config, expenses_categorization)) = db_data {
         context.set_budgeters(&budgeters_config).await;
         context
             .set_expenses_categorization(&expenses_categorization)
@@ -112,7 +106,6 @@ async fn returns_success_with_what_is_in_db(pool: SqlitePool) {
         .into_iter()
         .map(|st| st.into())
         .collect();
-    let external_expenses = fake::vec![ExternalExpense; 1..3];
     let expenses_categorization = fake::vec![ExpenseCategorization; 4];
     let expenses_categorization = ynab_categories
         .clone()
@@ -135,11 +128,7 @@ async fn returns_success_with_what_is_in_db(pool: SqlitePool) {
         pool,
         None,
         YnabData(ynab_categories, ynab_scheduled_transactions),
-        Some(DbData(
-            external_expenses,
-            budgeters_config,
-            expenses_categorization,
-        )),
+        Some(DbData(budgeters_config, expenses_categorization)),
         StatusCode::OK,
     )
     .await;

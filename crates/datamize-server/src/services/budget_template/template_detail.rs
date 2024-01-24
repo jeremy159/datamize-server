@@ -1,7 +1,5 @@
 use datamize_domain::{
-    async_trait,
-    db::{DynBudgeterConfigRepo, DynExternalExpenseRepo},
-    BudgetDetails, Budgeter, Configured, MonthTarget,
+    async_trait, db::DynBudgeterConfigRepo, BudgetDetails, Budgeter, Configured, MonthTarget,
 };
 use dyn_clone::{clone_trait_object, DynClone};
 
@@ -23,7 +21,6 @@ pub struct TemplateDetailService {
     pub category_service: DynCategoryService,
     pub scheduled_transaction_service: DynScheduledTransactionService,
     pub budgeter_config_repo: DynBudgeterConfigRepo,
-    pub external_expense_repo: DynExternalExpenseRepo,
 }
 
 impl TemplateDetailService {
@@ -31,13 +28,11 @@ impl TemplateDetailService {
         category_service: DynCategoryService,
         scheduled_transaction_service: DynScheduledTransactionService,
         budgeter_config_repo: DynBudgeterConfigRepo,
-        external_expense_repo: DynExternalExpenseRepo,
     ) -> Box<Self> {
         Box::new(TemplateDetailService {
             category_service,
             scheduled_transaction_service,
             budgeter_config_repo,
-            external_expense_repo,
         })
     }
 }
@@ -52,7 +47,6 @@ impl TemplateDetailServiceExt for TemplateDetailService {
             .scheduled_transaction_service
             .get_latest_scheduled_transactions()
             .await?;
-        let external_expenses = self.external_expense_repo.get_all().await?;
         let budgeters_config = self.budgeter_config_repo.get_all().await?;
         let budgeters: Vec<_> = budgeters_config
             .into_iter()
@@ -66,7 +60,6 @@ impl TemplateDetailServiceExt for TemplateDetailService {
             saved_categories,
             saved_scheduled_transactions,
             &month.into(),
-            external_expenses,
             expenses_categorization,
             &budgeters,
         ))
@@ -76,8 +69,7 @@ impl TemplateDetailServiceExt for TemplateDetailService {
 #[cfg(test)]
 mod tests {
     use datamize_domain::{
-        db::{MockBudgeterConfigRepoImpl, MockExternalExpenseRepoImpl},
-        DatamizeScheduledTransaction, ExpenseCategorization,
+        db::MockBudgeterConfigRepoImpl, DatamizeScheduledTransaction, ExpenseCategorization,
     };
     use fake::{Fake, Faker};
     use ynab::Category;
@@ -118,11 +110,6 @@ mod tests {
 
         let scheduled_transaction_service = Box::new(MockScheduledTransactionService {});
         let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepoImpl::new());
-        let mut external_expense_repo = Box::new(MockExternalExpenseRepoImpl::new());
-
-        external_expense_repo
-            .expect_get_all()
-            .return_once(|| Ok(vec![Faker.fake(), Faker.fake()]));
 
         budgeter_config_repo
             .expect_get_all()
@@ -132,7 +119,6 @@ mod tests {
             category_service,
             scheduled_transaction_service,
             budgeter_config_repo,
-            external_expense_repo,
         };
 
         template_details_service

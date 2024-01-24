@@ -8,7 +8,6 @@ use ynab::types::{Category, GoalType};
 
 use super::{
     Budgeter, BudgeterExt, ComputedSalary, DatamizeScheduledTransaction, ExpenseCategorization,
-    ExternalExpense,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -33,7 +32,7 @@ pub struct Expense<S: ExpenseState> {
     /// The individual associated with the expense. This is used to let know this expense is associated with a person in particular.
     individual_associated: Option<String>,
     #[serde(skip)]
-    category: Option<Category>,
+    category: Category,
     #[serde(skip)]
     scheduled_transactions: Vec<DatamizeScheduledTransaction>,
     #[serde(skip)]
@@ -67,8 +66,8 @@ impl<S: ExpenseState> Expense<S> {
         self.individual_associated.as_ref()
     }
 
-    pub fn category(&self) -> Option<&Category> {
-        self.category.as_ref()
+    pub fn category(&self) -> &Category {
+        &self.category
     }
 
     pub fn scheduled_transactions(&self) -> &[DatamizeScheduledTransaction] {
@@ -76,60 +75,53 @@ impl<S: ExpenseState> Expense<S> {
     }
 
     pub fn build_dates(mut self) -> Self {
-        if let Some(category) = &self.category {
-            if let Some(start_date) = category.goal_creation_month {
-                // Last day previous month
-                let dt_start = Local::now()
-                    .with_day(1)
-                    .and_then(|d| d.checked_sub_days(Days::new(1)))
-                    .and_then(|d| {
-                        Tz::Local(Local)
-                            .from_local_datetime(&d.naive_local())
-                            .single()
-                    });
+        if let Some(start_date) = self.category.goal_creation_month {
+            // Last day previous month
+            let dt_start = Local::now()
+                .with_day(1)
+                .and_then(|d| d.checked_sub_days(Days::new(1)))
+                .and_then(|d| {
+                    Tz::Local(Local)
+                        .from_local_datetime(&d.naive_local())
+                        .single()
+                });
 
-                let goal_start = start_date
-                    .and_hms_opt(0, 0, 0)
-                    .and_then(|d| Tz::Local(Local).from_local_datetime(&d).single());
+            let goal_start = start_date
+                .and_hms_opt(0, 0, 0)
+                .and_then(|d| Tz::Local(Local).from_local_datetime(&d).single());
 
-                // Last day current month
-                let dt_end = Local::now()
-                    .checked_add_months(Months::new(1))
-                    .and_then(|d| d.with_day(1))
-                    .and_then(|d| d.checked_sub_days(Days::new(1)))
-                    .and_then(|d| {
-                        Tz::Local(Local)
-                            .from_local_datetime(&d.naive_local())
-                            .single()
-                    });
+            // Last day current month
+            let dt_end = Local::now()
+                .checked_add_months(Months::new(1))
+                .and_then(|d| d.with_day(1))
+                .and_then(|d| d.checked_sub_days(Days::new(1)))
+                .and_then(|d| {
+                    Tz::Local(Local)
+                        .from_local_datetime(&d.naive_local())
+                        .single()
+                });
 
-                self.weekly_cadence_data = match (dt_start, goal_start, dt_end) {
-                    (Some(dt_start), Some(goal_start), Some(dt_end)) => Some(WeeklyCadenceData {
-                        dt_start,
-                        goal_start,
-                        dt_end,
-                    }),
-                    (_, _, _) => None,
-                };
-            }
+            self.weekly_cadence_data = match (dt_start, goal_start, dt_end) {
+                (Some(dt_start), Some(goal_start), Some(dt_end)) => Some(WeeklyCadenceData {
+                    dt_start,
+                    goal_start,
+                    dt_end,
+                }),
+                (_, _, _) => None,
+            };
         }
         self
     }
 
     pub fn set_categorization(mut self, expenses_categorization: &[ExpenseCategorization]) -> Self {
-        match &self.category {
-            Some(category) => {
-                match expenses_categorization
-                    .iter()
-                    .find(|c| c.id == category.category_group_id)
-                {
-                    Some(categorization) => {
-                        self.expense_type = categorization.expense_type.clone();
-                        self.sub_expense_type = categorization.sub_expense_type.clone();
-                        self
-                    }
-                    None => self,
-                }
+        match expenses_categorization
+            .iter()
+            .find(|c| c.id == self.category.category_group_id)
+        {
+            Some(categorization) => {
+                self.expense_type = categorization.expense_type.clone();
+                self.sub_expense_type = categorization.sub_expense_type.clone();
+                self
             }
             None => self,
         }
@@ -177,37 +169,36 @@ impl Expense<Uncomputed> {
     }
 
     fn compute_projected_amount(&mut self) -> i64 {
-        if let Some(category) = &self.category {
-            let projected_amount = match category.goal_type {
-                Some(GoalType::Debt) => 0, // Debt type goal should not be considered in the amount as they arlready have a scheduled transaction of the same amount
-                Some(GoalType::PlanYourSpending) => {
-                    match (category.goal_cadence, category.goal_cadence_frequency) {
-                        (Some(1), Some(freq)) if freq > 0 => category.goal_target / freq as i64, // Goal repeats X months
-                        (Some(1), None) => category.goal_target, // Goal repeats monthly
-                        (Some(2), Some(freq)) if freq > 0 => self
-                            .compute_monthly_target_for_weekly_goal_cadence(
-                                freq as u16,
-                                category.get_goal_day_as_weekday(),
-                                category.goal_target,
-                            ), // Goal repeats weekly
-                        (Some(cad @ 3..=13), _) => category.goal_target / (cad - 1) as i64, // Goal repeats X months (up to yearly)
-                        (Some(14), _) => category.goal_target / 24, // Goal repeats every 2 years
-                        (_, _) => 0,
-                    }
+        let projected_amount = match self.category.goal_type {
+            Some(GoalType::Debt) => 0, // Debt type goal should not be considered in the amount as they arlready have a scheduled transaction of the same amount
+            Some(GoalType::PlanYourSpending) => {
+                match (
+                    self.category.goal_cadence,
+                    self.category.goal_cadence_frequency,
+                ) {
+                    (Some(1), Some(freq)) if freq > 0 => self.category.goal_target / freq as i64, // Goal repeats X months
+                    (Some(1), None) => self.category.goal_target, // Goal repeats monthly
+                    (Some(2), Some(freq)) if freq > 0 => self
+                        .compute_monthly_target_for_weekly_goal_cadence(
+                            freq as u16,
+                            self.category.get_goal_day_as_weekday(),
+                            self.category.goal_target,
+                        ), // Goal repeats weekly
+                    (Some(cad @ 3..=13), _) => self.category.goal_target / (cad - 1) as i64, // Goal repeats X months (up to yearly)
+                    (Some(14), _) => self.category.goal_target / 24, // Goal repeats every 2 years
+                    (_, _) => 0,
                 }
-                Some(_) => category.goal_target,
-                None => 0,
-            };
+            }
+            Some(_) => self.category.goal_target,
+            None => 0,
+        };
 
-            return projected_amount
-                + self
-                    .scheduled_transactions
-                    .iter()
-                    .map(|v| -v.amount)
-                    .sum::<i64>();
-        }
-
-        0
+        return projected_amount
+            + self
+                .scheduled_transactions
+                .iter()
+                .map(|v| -v.amount)
+                .sum::<i64>();
     }
 
     fn compute_monthly_target_for_weekly_goal_cadence(
@@ -241,53 +232,49 @@ impl Expense<Uncomputed> {
     }
 
     fn compute_current_amount(&mut self) -> i64 {
-        if let Some(category) = &self.category {
-            let current_amount_budgeted = match category.goal_type {
-                Some(_) => match category.goal_under_funded {
-                    // If goal was fully funded, simply return what was budgeted
-                    Some(0) => category.budgeted,
-                    // If goal was partially funded, add the budgeted amount + what is left to reach goal
-                    Some(i) => i + category.budgeted,
-                    None => 0,
-                },
-                None => category.budgeted,
-            };
+        let current_amount_budgeted = match self.category.goal_type {
+            Some(_) => match self.category.goal_under_funded {
+                // If goal was fully funded, simply return what was budgeted
+                Some(0) => self.category.budgeted,
+                // If goal was partially funded, add the budgeted amount + what is left to reach goal
+                Some(i) => i + self.category.budgeted,
+                None => 0,
+            },
+            None => self.category.budgeted,
+        };
 
-            let mut current_amount = if current_amount_budgeted >= 0 {
-                current_amount_budgeted
-            } else {
-                0
-            };
+        let mut current_amount = if current_amount_budgeted >= 0 {
+            current_amount_budgeted
+        } else {
+            0
+        };
 
-            if !self.scheduled_transactions.is_empty() && category.goal_type.is_none() {
-                let scheduled_transactions_total = self
+        if !self.scheduled_transactions.is_empty() && self.category.goal_type.is_none() {
+            let scheduled_transactions_total = self
+                .scheduled_transactions
+                .iter()
+                .map(|v| -v.amount)
+                .sum::<i64>();
+
+            if current_amount != scheduled_transactions_total {
+                let current_date = Local::now().date_naive();
+                let future_transactions_amount = self
                     .scheduled_transactions
                     .iter()
-                    .map(|v| -v.amount)
+                    // Current amount should only take into account scheduled transactions from future. those in past should instead be taken from budgeted section.
+                    .filter(|&st| st.date_next > current_date)
+                    .map(|st| -st.amount)
                     .sum::<i64>();
 
-                if current_amount != scheduled_transactions_total {
-                    let current_date = Local::now().date_naive();
-                    let future_transactions_amount = self
-                        .scheduled_transactions
-                        .iter()
-                        // Current amount should only take into account scheduled transactions from future. those in past should instead be taken from budgeted section.
-                        .filter(|&st| st.date_next > current_date)
-                        .map(|st| -st.amount)
-                        .sum::<i64>();
-
-                    if future_transactions_amount > 0
-                        && future_transactions_amount > category.balance
-                    {
-                        current_amount = future_transactions_amount - category.balance;
-                    }
+                if future_transactions_amount > 0
+                    && future_transactions_amount > self.category.balance
+                {
+                    current_amount = future_transactions_amount - self.category.balance;
                 }
             }
-
-            return current_amount;
         }
 
-        0
+        current_amount
     }
 }
 
@@ -380,24 +367,7 @@ impl From<Category> for Expense<Uncomputed> {
             id: value.id,
             name: value.name.clone(),
             is_external: false,
-            category: Some(value),
-            ..Default::default()
-        }
-    }
-}
-
-impl From<ExternalExpense> for Expense<PartiallyComputed> {
-    fn from(value: ExternalExpense) -> Self {
-        Self {
-            id: value.id,
-            name: value.name,
-            extra: PartiallyComputed {
-                projected_amount: value.projected_amount,
-                current_amount: value.projected_amount,
-            },
-            expense_type: value.expense_type,
-            sub_expense_type: value.sub_expense_type,
-            is_external: true,
+            category: value,
             ..Default::default()
         }
     }

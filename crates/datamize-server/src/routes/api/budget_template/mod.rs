@@ -3,8 +3,6 @@ mod budgeters;
 mod details;
 mod expense_categorization;
 mod expenses_categorization;
-mod external_expense;
-mod external_expenses;
 mod summary;
 #[cfg(test)]
 mod tests;
@@ -18,9 +16,7 @@ use budgeter::*;
 use budgeters::*;
 use db_postgres::{
     budget_providers::ynab::{PostgresYnabCategoryRepo, PostgresYnabScheduledTransactionRepo},
-    budget_template::{
-        PostgresBudgeterConfigRepo, PostgresExpenseCategorizationRepo, PostgresExternalExpenseRepo,
-    },
+    budget_template::{PostgresBudgeterConfigRepo, PostgresExpenseCategorizationRepo},
 };
 use db_redis::budget_providers::ynab::{
     RedisYnabCategoryMetaRepo, RedisYnabScheduledTransactionMetaRepo,
@@ -28,18 +24,15 @@ use db_redis::budget_providers::ynab::{
 use details::*;
 use expense_categorization::*;
 use expenses_categorization::*;
-use external_expense::*;
-use external_expenses::*;
 use summary::*;
 use transactions::*;
 
 use crate::{
     services::budget_template::{
         BudgeterService, CategoryService, DynBudgeterService, DynExpenseCategorizationService,
-        DynExternalExpenseService, DynTemplateDetailService, DynTemplateSummaryService,
-        DynTemplateTransactionService, ExpenseCategorizationService, ExternalExpenseService,
-        ScheduledTransactionService, TemplateDetailService, TemplateSummaryService,
-        TemplateTransactionService,
+        DynTemplateDetailService, DynTemplateSummaryService, DynTemplateTransactionService,
+        ExpenseCategorizationService, ScheduledTransactionService, TemplateDetailService,
+        TemplateSummaryService, TemplateTransactionService,
     },
     startup::AppState,
 };
@@ -58,8 +51,6 @@ pub fn get_budget_template_routes<S: Clone + Send + Sync + 'static>(
         PostgresExpenseCategorizationRepo::new_boxed(app_state.db_conn_pool.clone());
     let budgeter_config_repo =
         PostgresBudgeterConfigRepo::new_boxed(app_state.db_conn_pool.clone());
-    let external_expense_repo =
-        PostgresExternalExpenseRepo::new_boxed(app_state.db_conn_pool.clone());
     let category_service = CategoryService::new_boxed(
         ynab_category_repo.clone(),
         ynab_category_meta_repo,
@@ -76,14 +67,12 @@ pub fn get_budget_template_routes<S: Clone + Send + Sync + 'static>(
         category_service.clone(),
         scheduled_transaction_service.clone(),
         budgeter_config_repo.clone(),
-        external_expense_repo.clone(),
     );
 
     let template_summary_service = TemplateSummaryService::new_boxed(
         category_service,
         scheduled_transaction_service.clone(),
         budgeter_config_repo.clone(),
-        external_expense_repo.clone(),
     );
 
     let template_transaction_service = TemplateTransactionService::new_boxed(
@@ -94,8 +83,6 @@ pub fn get_budget_template_routes<S: Clone + Send + Sync + 'static>(
 
     let budgeter_service = BudgeterService::new_arced(budgeter_config_repo);
 
-    let external_expense_service = ExternalExpenseService::new_arced(external_expense_repo);
-
     let expense_categorization_service =
         ExpenseCategorizationService::new_arced(expense_categorization_repo);
 
@@ -104,7 +91,6 @@ pub fn get_budget_template_routes<S: Clone + Send + Sync + 'static>(
         .merge(get_summary_routes(template_summary_service))
         .merge(get_transaction_routes(template_transaction_service))
         .merge(get_budgeter_routes(budgeter_service))
-        .merge(get_external_expense_routes(external_expense_service))
         .merge(get_expense_categorization_routes(
             expense_categorization_service,
         ))
@@ -141,21 +127,6 @@ fn get_budgeter_routes<S>(budgeter_service: DynBudgeterService) -> Router<S> {
                 .delete(delete_budgeter),
         )
         .with_state(budgeter_service)
-}
-
-fn get_external_expense_routes<S>(
-    external_expense_service: DynExternalExpenseService,
-) -> Router<S> {
-    Router::new()
-        .route("/external_expenses", get(get_all_external_expenses))
-        .route("/external_expense", post(create_external_expense))
-        .route(
-            "/external_expense/:external_expense_id",
-            get(get_external_expense)
-                .put(update_external_expense)
-                .delete(delete_external_expense),
-        )
-        .with_state(external_expense_service)
 }
 
 fn get_expense_categorization_routes<S>(
