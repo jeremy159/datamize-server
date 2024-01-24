@@ -10,7 +10,7 @@ fn check_method(st: &DatamizeScheduledTransaction, expected: bool) {
     let caller_line_number = caller_location.line();
     println!("check_method called from line: {}", caller_line_number);
 
-    assert_eq!(st.is_in_next_30_days(), expected);
+    assert_eq!(st.is_in_next_30_days().unwrap(), expected);
 }
 
 #[test]

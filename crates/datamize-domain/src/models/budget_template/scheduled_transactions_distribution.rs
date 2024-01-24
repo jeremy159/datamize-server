@@ -1,28 +1,19 @@
 use std::collections::{BTreeMap, HashMap};
 
-use serde::{Deserialize, Serialize, Serializer};
+use chrono::NaiveDate;
+use serde::{Deserialize, Serialize};
 
 use super::DatamizeScheduledTransaction;
 
 pub type CategoryIdToNameMap = HashMap<uuid::Uuid, String>;
 
-pub type ScheduledTransactionsDistributionMap = HashMap<String, Vec<DatamizeScheduledTransaction>>;
+pub type ScheduledTransactionsDistributionMap =
+    BTreeMap<NaiveDate, Vec<DatamizeScheduledTransaction>>;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct ScheduledTransactionsDistribution {
-    #[serde(serialize_with = "ordered_map", flatten)]
+    #[serde(flatten)]
     map: ScheduledTransactionsDistributionMap,
-}
-
-fn ordered_map<S>(
-    value: &ScheduledTransactionsDistributionMap,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    let ordered: BTreeMap<_, _> = value.iter().collect();
-    ordered.serialize(serializer)
 }
 
 impl ScheduledTransactionsDistribution {
@@ -30,6 +21,10 @@ impl ScheduledTransactionsDistribution {
         scheduled_transactions: Vec<DatamizeScheduledTransaction>,
     ) -> ScheduledTransactionsDistributionBuilder {
         ScheduledTransactionsDistributionBuilder::new(scheduled_transactions)
+    }
+
+    pub fn map(&self) -> &ScheduledTransactionsDistributionMap {
+        &self.map
     }
 }
 
@@ -55,38 +50,45 @@ impl ScheduledTransactionsDistributionBuilder {
     }
 
     pub fn build(self) -> ScheduledTransactionsDistribution {
-        let mut scheduled_transactions = self.scheduled_transactions;
-        let mut map: ScheduledTransactionsDistributionMap = HashMap::new();
+        let mut scheduled_transactions = self
+            .scheduled_transactions
+            .into_iter()
+            .filter(|t| !t.deleted)
+            .collect::<Vec<_>>();
 
-        let mut repeated_sts: Vec<DatamizeScheduledTransaction> = vec![];
+        for i in 0..scheduled_transactions.len() {
+            let dst = &scheduled_transactions[i];
 
-        for dst in scheduled_transactions.iter().filter(|dst| !dst.deleted) {
-            repeated_sts.extend(dst.get_repeated_transactions());
+            if let Some(repeated_trans) = dst.get_repeated_transactions() {
+                scheduled_transactions.extend(repeated_trans);
+            }
         }
-
-        scheduled_transactions.extend(repeated_sts);
 
         let scheduled_transactions: Vec<_> = scheduled_transactions
             .into_iter()
-            .filter(|dst| dst.is_in_next_30_days())
+            .filter(|dst| !dst.deleted && dst.is_in_next_30_days().unwrap_or(false))
             .flat_map(|dst| dst.flatten())
-            .map(|dst| match dst.category_name {
-                Some(_) => dst,
-                None => {
-                    let category_name = dst.category_id.as_ref().and_then(|id| {
+            .map(|dst| {
+                let category_name = dst.category_name.clone().or_else(|| {
+                    dst.category_id.as_ref().and_then(|id| {
                         self.category_id_to_name_map
                             .as_ref()
-                            .and_then(|category_map| category_map.get(id).cloned())
-                    });
+                            .and_then(|category_map| category_map.get(id))
+                            .cloned()
+                    })
+                });
 
-                    dst.with_category_name(category_name)
-                }
+                dst.with_category_name(category_name)
             })
             .collect();
 
+        let mut map: ScheduledTransactionsDistributionMap = BTreeMap::new();
+
         for dst in scheduled_transactions {
-            let entry = map.entry(dst.date_next.to_string());
-            entry.or_default().push(dst);
+            let entry = map
+                .entry(dst.date_next)
+                .or_insert_with(|| Vec::with_capacity(1));
+            entry.push(dst);
         }
 
         ScheduledTransactionsDistribution { map }

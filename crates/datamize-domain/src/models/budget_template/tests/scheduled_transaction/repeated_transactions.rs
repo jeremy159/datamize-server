@@ -1,4 +1,4 @@
-use chrono::{Days, Local, Months};
+use chrono::{Datelike, Days, Local, Months};
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use ynab::RecurFrequency;
@@ -11,7 +11,7 @@ fn check_method(st: &DatamizeScheduledTransaction, expected: usize) {
     let caller_line_number = caller_location.line();
     println!("check_method called from line: {}", caller_line_number);
 
-    let repeated = st.get_repeated_transactions();
+    let repeated = st.get_repeated_transactions().unwrap();
     assert_eq!(repeated.len(), expected);
     if !repeated.is_empty() {
         for r in repeated {
@@ -45,14 +45,18 @@ fn empty_when_no_frequency_that_repeats_within_a_month() {
 
 #[test]
 fn is_2_when_twice_a_month() {
-    let date_first = Local::now()
-        .date_naive()
-        .checked_sub_days(Days::new(1))
-        .unwrap();
-    let date_next = Local::now()
-        .date_naive()
-        .checked_add_days(Days::new(7))
-        .unwrap();
+    let date_first = Local::now().date_naive().with_day(1).unwrap();
+    let now = Local::now().date_naive();
+    let mut date_next = now.with_day(15).unwrap();
+    if date_next < now {
+        date_next = now
+            .with_day(1)
+            .unwrap()
+            .checked_add_months(Months::new(1))
+            .unwrap()
+            .checked_sub_days(Days::new(1))
+            .unwrap();
+    }
     let st = DatamizeScheduledTransaction {
         frequency: Some(RecurFrequency::TwiceAMonth),
         date_first,
@@ -60,7 +64,7 @@ fn is_2_when_twice_a_month() {
         ..Faker.fake()
     };
 
-    check_method(&st, 2);
+    check_method(&st, 1); // Second one is st itself
 }
 
 #[test]
