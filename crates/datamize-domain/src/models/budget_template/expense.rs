@@ -27,8 +27,6 @@ pub struct Expense<S: ExpenseState> {
     /// The sub_type the expense relates to. This can be useful for example to group only housing expenses together.
     #[serde(rename = "sub_type")]
     sub_expense_type: SubExpenseType,
-    /// To indicate if the expense comes from manually entered expenses, i.e. external to YNAB's data.
-    is_external: bool,
     /// The individual associated with the expense. This is used to let know this expense is associated with a person in particular.
     individual_associated: Option<String>,
     #[serde(skip)]
@@ -56,10 +54,6 @@ impl<S: ExpenseState> Expense<S> {
 
     pub fn sub_expense_type(&self) -> &SubExpenseType {
         &self.sub_expense_type
-    }
-
-    pub fn is_external(&self) -> bool {
-        self.is_external
     }
 
     pub fn individual_associated(&self) -> Option<&String> {
@@ -159,7 +153,6 @@ impl Expense<Uncomputed> {
             name: self.name,
             expense_type: self.expense_type,
             sub_expense_type: self.sub_expense_type,
-            is_external: self.is_external,
             category: self.category,
             individual_associated: self.individual_associated,
             scheduled_transactions: self.scheduled_transactions,
@@ -311,7 +304,6 @@ impl Expense<PartiallyComputed> {
             name: self.name,
             expense_type: self.expense_type,
             sub_expense_type: self.sub_expense_type,
-            is_external: self.is_external,
             category: self.category,
             individual_associated: self.individual_associated,
             scheduled_transactions: self.scheduled_transactions,
@@ -356,7 +348,6 @@ impl From<Category> for Expense<Uncomputed> {
         Self {
             id: value.id,
             name: value.name.clone(),
-            is_external: false,
             category: value,
             ..Default::default()
         }
@@ -479,7 +470,6 @@ impl<S: ExpenseState + fake::Dummy<fake::Faker>> fake::Dummy<fake::Faker> for Ex
         let name = config.fake_with_rng(rng);
         let expense_type = config.fake_with_rng(rng);
         let sub_expense_type = config.fake_with_rng(rng);
-        let is_external = config.fake_with_rng(rng);
         let individual_associated = config.fake_with_rng(rng);
         let category = config.fake_with_rng(rng);
         let scheduled_transactions = config.fake_with_rng(rng);
@@ -491,7 +481,6 @@ impl<S: ExpenseState + fake::Dummy<fake::Faker>> fake::Dummy<fake::Faker> for Ex
             name,
             expense_type,
             sub_expense_type,
-            is_external,
             individual_associated,
             category,
             scheduled_transactions,

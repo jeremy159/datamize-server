@@ -65,11 +65,7 @@ fn left_over_is_salary_minus_all_expenses_when_no_budgeters_match() {
     let (budgeter, individual_expenses) =
         check_method_budgeter(budgeters[0].clone(), &budgeters, &expenses);
 
-    let total_expense: i64 = expenses
-        .iter()
-        .filter(|&e| !e.is_external())
-        .map(|e| e.projected_amount())
-        .sum();
+    let total_expense: i64 = expenses.iter().map(|e| e.projected_amount()).sum();
 
     let common_expenses = (budgeter.proportion() * total_expense as f64) as i64;
 
@@ -90,12 +86,8 @@ fn left_over_is_salary_minus_common_expenses_proportionally_minus_individual_exp
     let (budgeter, individual_expenses) =
         check_method_budgeter(budgeters[0].clone(), &budgeters, &expenses);
 
-    let total_expense = expenses
-        .iter()
-        .filter(|&e| !e.is_external())
-        .map(|e| e.projected_amount())
-        .sum::<i64>()
-        - expenses[0].projected_amount();
+    let total_expense =
+        expenses.iter().map(|e| e.projected_amount()).sum::<i64>() - expenses[0].projected_amount();
 
     let common_expenses = (budgeter.proportion() * total_expense as f64) as i64;
 

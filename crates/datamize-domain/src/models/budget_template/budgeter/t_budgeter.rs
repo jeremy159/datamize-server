@@ -69,7 +69,6 @@ impl TotalBudgeter<ComputedSalary> {
 
         let common_expenses = expenses
             .iter()
-            .filter(|&e| !e.is_external())
             .filter(
                 |&e| match budgeters.iter().find(|b| e.name().contains(b.name())) {
                     Some(_) => {

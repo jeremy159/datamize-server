@@ -14,7 +14,6 @@ fn correctly_converts_category_to_uncomputed_expense() {
 
     assert_eq!(category.id, expense.id());
     assert_eq!(&category.name, expense.name());
-    assert!(!expense.is_external());
     assert_eq!(&category, expense.category());
 
     // Default value for the other fields

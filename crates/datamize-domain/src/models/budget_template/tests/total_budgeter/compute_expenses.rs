@@ -82,11 +82,7 @@ fn total_left_over_is_salary_when_no_expenses() {
 #[test]
 fn total_left_over_is_inverse_of_all_expenses_when_no_budgeters() {
     let expenses = setup_computed_expenses();
-    let total_expense: i64 = expenses
-        .iter()
-        .filter(|&e| !e.is_external())
-        .map(|e| e.projected_amount())
-        .sum();
+    let total_expense: i64 = expenses.iter().map(|e| e.projected_amount()).sum();
 
     check_method_total_budgeter(
         &[],
@@ -104,11 +100,7 @@ fn total_left_over_is_inverse_of_all_expenses_when_no_budgeters() {
 fn total_left_over_is_salary_minus_all_expenses_when_no_budgeters_match() {
     let expenses = setup_computed_expenses();
     let budgeters = setup_budgeters_with_salary();
-    let total_expense: i64 = expenses
-        .iter()
-        .filter(|&e| !e.is_external())
-        .map(|e| e.projected_amount())
-        .sum();
+    let total_expense: i64 = expenses.iter().map(|e| e.projected_amount()).sum();
 
     check_method_total_budgeter(
         &budgeters,
@@ -126,11 +118,7 @@ fn total_left_over_is_salary_minus_all_expenses_when_no_budgeters_match() {
 fn total_left_over_is_salary_minus_all_expenses_even_when_budgeters_match() {
     let expenses = setup_computed_expenses_with_first_non_external();
     let budgeters = setup_budgeters_with_salary_with_name(expenses[0].name());
-    let total_expense: i64 = expenses
-        .iter()
-        .filter(|&e| !e.is_external())
-        .map(|e| e.projected_amount())
-        .sum();
+    let total_expense: i64 = expenses.iter().map(|e| e.projected_amount()).sum();
 
     check_method_total_budgeter(
         &budgeters,
