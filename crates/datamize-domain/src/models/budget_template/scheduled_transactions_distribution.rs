@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use std::collections::{BTreeMap, HashMap};
 
 use chrono::NaiveDate;
@@ -52,7 +53,7 @@ impl ScheduledTransactionsDistributionBuilder {
     pub fn build(self) -> ScheduledTransactionsDistribution {
         let mut scheduled_transactions = self
             .scheduled_transactions
-            .into_iter()
+            .into_par_iter()
             .filter(|t| !t.deleted)
             .collect::<Vec<_>>();
 
@@ -65,7 +66,7 @@ impl ScheduledTransactionsDistributionBuilder {
         }
 
         let scheduled_transactions: Vec<_> = scheduled_transactions
-            .into_iter()
+            .into_par_iter()
             .filter(|dst| !dst.deleted && dst.is_in_next_30_days().unwrap_or(false))
             .flat_map(|dst| dst.flatten())
             .map(|dst| {

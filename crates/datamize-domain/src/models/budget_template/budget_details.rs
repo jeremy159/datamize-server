@@ -89,8 +89,8 @@ impl Default for GlobalMetadata {
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct BudgetDetails {
-    global: GlobalMetadata,
-    expenses: Vec<Expense<Computed>>,
+    pub(crate) global: GlobalMetadata,
+    pub(crate) expenses: Vec<Expense<Computed>>,
 }
 
 impl BudgetDetails {

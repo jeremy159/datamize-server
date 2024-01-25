@@ -10,6 +10,14 @@ pub struct BudgetSummary {
 }
 
 impl BudgetSummary {
+    pub fn budgeters(&self) -> &[Budgeter<ComputedExpenses>] {
+        &self.budgeters
+    }
+
+    pub fn total_budgeter(&self) -> &TotalBudgeter<ComputedExpenses> {
+        &self.total_budgeter
+    }
+
     pub fn build(budget_details: &BudgetDetails, budgeters: Vec<Budgeter<ComputedSalary>>) -> Self {
         let (total_budgeter, individual_expenses) = TotalBudgeter::new()
             .compute_salary(&budgeters)
