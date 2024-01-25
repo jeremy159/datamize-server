@@ -43,9 +43,11 @@ pub struct Category {
     /// 3-12 or 14, goal_cadence_frequency is ignored.
     #[cfg_attr(any(feature = "testutils", test), dummy(faker = "1..14"))]
     pub goal_cadence_frequency: Option<i32>,
+    #[cfg_attr(any(feature = "testutils", test), dummy(default))]
     pub goal_creation_month: Option<chrono::NaiveDate>,
     #[cfg_attr(any(feature = "testutils", test), dummy(faker = "0..100000"))]
     pub goal_target: i64,
+    #[cfg_attr(any(feature = "testutils", test), dummy(default))]
     pub goal_target_month: Option<chrono::NaiveDate>,
     #[cfg_attr(any(feature = "testutils", test), dummy(faker = "0..100"))]
     pub goal_percentage_complete: Option<i32>,

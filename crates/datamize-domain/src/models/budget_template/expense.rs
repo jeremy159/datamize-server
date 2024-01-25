@@ -150,7 +150,6 @@ impl Expense<Uncomputed> {
     }
 
     pub fn compute_amounts(mut self) -> Expense<PartiallyComputed> {
-        self = self.build_dates();
         Expense {
             extra: PartiallyComputed {
                 projected_amount: self.compute_projected_amount(),
@@ -169,8 +168,7 @@ impl Expense<Uncomputed> {
     }
 
     fn compute_projected_amount(&mut self) -> i64 {
-        let projected_amount = match self.category.goal_type {
-            Some(GoalType::Debt) => 0, // Debt type goal should not be considered in the amount as they arlready have a scheduled transaction of the same amount
+        match self.category.goal_type {
             Some(GoalType::PlanYourSpending) => {
                 match (
                     self.category.goal_cadence,
@@ -191,14 +189,7 @@ impl Expense<Uncomputed> {
             }
             Some(_) => self.category.goal_target,
             None => 0,
-        };
-
-        return projected_amount
-            + self
-                .scheduled_transactions
-                .iter()
-                .map(|v| -v.amount)
-                .sum::<i64>();
+        }
     }
 
     fn compute_monthly_target_for_weekly_goal_cadence(
@@ -217,15 +208,14 @@ impl Expense<Uncomputed> {
                 rrule = rrule.by_weekday(vec![NWeekday::Every(weekday)])
             }
 
-            let rrule_set = rrule.build(dates.dt_start).unwrap();
-            let occurences = rrule_set
-                .all(10)
-                .0
-                .into_iter()
-                .filter(|date| date >= &dates.goal_start)
-                .count();
+            if let Ok(rrule_set) = rrule.build(dates.dt_start) {
+                let occurences = rrule_set
+                    .into_iter()
+                    .filter(|date| date >= &dates.goal_start)
+                    .count();
 
-            return target * occurences as i64;
+                return target * occurences as i64;
+            }
         }
 
         0

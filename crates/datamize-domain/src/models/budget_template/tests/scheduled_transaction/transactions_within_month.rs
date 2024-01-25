@@ -11,7 +11,7 @@ fn check_method(st: &DatamizeScheduledTransaction, date: &DateTime<Local>, expec
     let caller_line_number = caller_location.line();
     println!("check_method called from line: {}", caller_line_number);
 
-    let count = st.get_transactions_within_month(date).len();
+    let count = st.get_transactions_within_month(date).unwrap().len();
     assert_eq!(count, expected);
 }
 

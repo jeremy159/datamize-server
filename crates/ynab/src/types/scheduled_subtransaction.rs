@@ -111,7 +111,9 @@ impl FromStr for RecurFrequency {
 /// See https://api.youneedabudget.com/v1#/Scheduled_Transactions/getScheduledTransactionById
 pub struct ScheduledTransactionSummary {
     pub id: Uuid,
+    #[cfg_attr(any(feature = "testutils", test), dummy(default))]
     pub date_first: chrono::NaiveDate,
+    #[cfg_attr(any(feature = "testutils", test), dummy(default))]
     pub date_next: chrono::NaiveDate,
     pub frequency: Option<RecurFrequency>,
     #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-100000..100000"))]
@@ -131,7 +133,9 @@ pub struct ScheduledTransactionSummary {
 /// See https://api.youneedabudget.com/v1#/Scheduled_Transactions/getScheduledTransactionById
 pub struct ScheduledTransactionDetail {
     pub id: Uuid,
+    #[cfg_attr(any(feature = "testutils", test), dummy(default))]
     pub date_first: chrono::NaiveDate,
+    #[cfg_attr(any(feature = "testutils", test), dummy(default))]
     pub date_next: chrono::NaiveDate,
     pub frequency: Option<RecurFrequency>,
     #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-100000..100000"))]

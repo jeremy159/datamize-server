@@ -37,7 +37,10 @@ fn check_method_projected_amount(
     );
 
     let expense: Expense<Uncomputed> = expense.into();
-    let expense = expense.with_scheduled_transactions(st).compute_amounts();
+    let expense = expense
+        .with_scheduled_transactions(st)
+        .build_dates()
+        .compute_amounts();
 
     match panic_msg {
         None => assert_eq!(expense.projected_amount(), projected_amount),
@@ -74,45 +77,9 @@ fn check_method_current_amount(
 }
 
 #[test]
-fn compute_projected_amount_is_inverted_total_of_scheduled_transactions() {
-    let category = Category {
-        goal_type: None,
-        ..Faker.fake()
-    };
-    let st = fake::vec![DatamizeScheduledTransaction; 1..3];
-
-    check_method_projected_amount(
-        category,
-        st.clone(),
-        ExpectedProjected {
-            projected_amount: st.into_iter().map(|st| -st.amount).sum(),
-        },
-        None,
-    );
-}
-
-#[test]
-fn compute_projected_amount_is_inverted_total_of_scheduled_transactions_when_goal_debt() {
-    let category = Category {
-        goal_type: Some(GoalType::Debt),
-        ..Faker.fake()
-    };
-    let st = fake::vec![DatamizeScheduledTransaction; 1..3];
-
-    check_method_projected_amount(
-        category,
-        st.clone(),
-        ExpectedProjected {
-            projected_amount: st.into_iter().map(|st| -st.amount).sum(),
-        },
-        None,
-    );
-}
-
-#[test]
-fn compute_projected_amount_is_goal_target_and_scheduled_transaction_when_goal_not_debt_or_plan_spending(
-) {
+fn compute_projected_amount_is_goal_target_when_goal_not_plan_spending() {
     let goals = [
+        GoalType::Debt,
         GoalType::MonthlyFunding,
         GoalType::TargetBalance,
         GoalType::TargetBalanceByDate,
@@ -128,7 +95,7 @@ fn compute_projected_amount_is_goal_target_and_scheduled_transaction_when_goal_n
         category,
         st.clone(),
         ExpectedProjected {
-            projected_amount: st.into_iter().map(|st| -st.amount).sum::<i64>() + goal_target,
+            projected_amount: goal_target,
         },
         None,
     );

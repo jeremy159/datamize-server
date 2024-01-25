@@ -134,7 +134,14 @@ impl DatamizeScheduledTransaction {
 
     /// Method to find any transactions that will be repeated more than once in a month might it be from previous or future days
     /// and return the dates when it happens.
-    pub fn get_dates_when_transaction_repeats(&self, date: &DateTime<Local>) -> Vec<NaiveDate> {
+    ///
+    /// **Returns** an option vec because when the transaction has valid data but nothing repeats, it will return vec![],
+    /// but when the data received was invalid, or there was an issue with building the rrule, it returns None,
+    /// as nothing could be done to determine if future transactions repeat
+    pub fn get_dates_when_transaction_repeats(
+        &self,
+        date: &DateTime<Local>,
+    ) -> Option<Vec<NaiveDate>> {
         if let Some(ref frequency) = self.frequency {
             let last_day_curr_month = date
                 .checked_add_months(Months::new(1))
@@ -144,25 +151,21 @@ impl DatamizeScheduledTransaction {
                     Tz::Local(Local)
                         .from_local_datetime(&d.naive_local())
                         .single()
-                })
-                .unwrap();
+                })?;
 
             let last_day_prev_month = date
                 .naive_local()
                 .with_day(1)
                 .and_then(|d| d.checked_sub_days(Days::new(1)))
-                .and_then(|d| Tz::Local(Local).from_local_datetime(&d).single())
-                .unwrap();
+                .and_then(|d| Tz::Local(Local).from_local_datetime(&d).single())?;
 
             if self.date_first <= last_day_curr_month.date_naive() {
                 if let Some(rrule) = frequency.as_rfc5545_rule() {
-                    let first_date_time = NaiveTime::from_hms_opt(0, 0, 0)
-                        .and_then(|time| {
-                            Tz::Local(Local)
-                                .from_local_datetime(&self.date_first.and_time(time))
-                                .single()
-                        })
-                        .unwrap();
+                    let first_date_time = NaiveTime::from_hms_opt(0, 0, 0).and_then(|time| {
+                        Tz::Local(Local)
+                            .from_local_datetime(&self.date_first.and_time(time))
+                            .single()
+                    })?;
 
                     let mut rrule = rrule.until(last_day_curr_month);
 
@@ -171,37 +174,41 @@ impl DatamizeScheduledTransaction {
                     }
 
                     // Range is first day included to last day included
-                    let rrule_set = rrule
-                        .build(first_date_time)
-                        .map(|rr| rr.after(last_day_prev_month))
-                        .unwrap();
+                    let rrule_set = rrule.build(first_date_time).ok()?;
 
-                    return rrule_set
-                        .all(35)
-                        .0
-                        .into_iter()
-                        .map(|d| d.date_naive())
-                        .collect();
+                    return Some(
+                        rrule_set
+                            .into_iter()
+                            .filter(|d| d > &last_day_prev_month)
+                            .map(|d| d.date_naive())
+                            .collect(),
+                    );
                 }
             }
         }
 
-        vec![]
+        Some(vec![])
     }
 
     /// Method to find any transactions that was scheduled in current month, might it be from previous
     /// or future days.
+    ///
+    /// **Returns** an option vec because when the transaction has valid data but nothing repeats, it will return vec![],
+    /// but when the data received was invalid, or there was an issue with building the rrule, it returns None,
+    /// as nothing could be done to determine if future transactions repeat
     pub fn get_transactions_within_month(
         &self,
         date: &DateTime<Local>,
-    ) -> Vec<DatamizeScheduledTransaction> {
-        self.get_dates_when_transaction_repeats(date)
-            .into_iter()
-            .map(|d| DatamizeScheduledTransaction {
-                date_next: d,
-                ..self.clone()
-            })
-            .collect()
+    ) -> Option<Vec<DatamizeScheduledTransaction>> {
+        Some(
+            self.get_dates_when_transaction_repeats(date)?
+                .into_iter()
+                .map(|d| DatamizeScheduledTransaction {
+                    date_next: d,
+                    ..self.clone()
+                })
+                .collect(),
+        )
     }
 }
 
