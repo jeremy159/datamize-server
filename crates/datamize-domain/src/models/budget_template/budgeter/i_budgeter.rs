@@ -34,30 +34,36 @@ impl Budgeter<Configured> {
         self,
         scheduled_transactions: &[DatamizeScheduledTransaction],
         date: &DateTime<Local>,
+        inflow_cat_id: Option<Uuid>,
     ) -> Budgeter<ComputedSalary> {
         let mut fragmented_salary = HashMap::new();
-        // TODO: Handle if transaction has sub transactions, e.g. DTI which included rrsp and health insurance...
-        scheduled_transactions
+        let filtered_trans: Vec<_> = scheduled_transactions
             .iter()
-            .filter(|st| match &st.payee_id {
-                Some(ref id) => self.extra.payee_ids.contains(id),
-                None => false,
+            .filter(|st| {
+                st.payee_id
+                    .map(|id| self.extra.payee_ids.contains(&id))
+                    .unwrap_or(false)
             })
-            .for_each(|st| {
-                let repeats = st
-                    .get_dates_when_transaction_repeats(date)
-                    .unwrap_or_default()
-                    .len();
-                let salary_fragment = SalaryFragment {
-                    payee_name: st.payee_name.clone(),
-                    payee_amount: st.amount,
-                    repeats: if repeats > 0 { repeats } else { 1 },
-                };
-                let entry = fragmented_salary
-                    .entry(st.payee_id.unwrap()) // We know here payee_id is defined
-                    .or_insert_with(|| Vec::with_capacity(1));
-                entry.push(salary_fragment);
-            });
+            .collect();
+
+        for st in filtered_trans {
+            let repeats = st
+                .get_dates_when_transaction_repeats(date)
+                .unwrap_or_default()
+                .len();
+
+            let payee_amount = Budgeter::<Configured>::get_payee_amount(st, inflow_cat_id);
+
+            let salary_fragment = SalaryFragment {
+                payee_name: st.payee_name.clone(),
+                payee_amount,
+                repeats: if repeats > 0 { repeats } else { 1 },
+            };
+            let entry = fragmented_salary
+                .entry(st.payee_id.unwrap()) // We know here payee_id is defined
+                .or_insert_with(|| Vec::with_capacity(1));
+            entry.push(salary_fragment);
+        }
 
         let salary = fragmented_salary
             .values()
@@ -77,6 +83,27 @@ impl Budgeter<Configured> {
                 configured: self.extra,
                 fragmented_salary,
             },
+        }
+    }
+
+    /// Handles if transaction has sub transactions and one of them is categorize as Ready To Assign,
+    /// e.g. Usually pay also includes rrsp and health insurance.
+    /// Will try to find the Inflow category to use this amount instead, if not found, will fall back to
+    /// the scheduled transaction amount.
+    pub(crate) fn get_payee_amount(
+        scheduled_transaction: &DatamizeScheduledTransaction,
+        inflow_cat_id: Option<Uuid>,
+    ) -> i64 {
+        if let Some(inflow) = inflow_cat_id.and_then(|inflow_cat_id| {
+            scheduled_transaction.subtransactions.iter().find(|st| {
+                st.category_id
+                    .map(|cat_id| cat_id == inflow_cat_id)
+                    .unwrap_or(false)
+            })
+        }) {
+            inflow.amount
+        } else {
+            scheduled_transaction.amount
         }
     }
 }

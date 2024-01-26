@@ -1,3 +1,4 @@
+use rayon::prelude::*;
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
@@ -57,6 +58,13 @@ impl BudgeterExt for TotalBudgeter<Configured> {
 }
 
 impl TotalBudgeter<ComputedSalary> {
+    fn is_individual_expense(
+        e: &Expense<expense::Computed>,
+        budgeters: &[Budgeter<ComputedSalary>],
+    ) -> bool {
+        budgeters.iter().any(|b| e.name().contains(b.name()))
+    }
+
     pub fn compute_expenses<'a>(
         self,
         expenses: &'a [Expense<expense::Computed>],
@@ -65,32 +73,24 @@ impl TotalBudgeter<ComputedSalary> {
         TotalBudgeter<ComputedExpenses>,
         Vec<&'a Expense<expense::Computed>>,
     ) {
-        let mut individual_expenses: Vec<&Expense<expense::Computed>> = vec![];
+        let (individual_expenses, common_expenses): (Vec<_>, Vec<_>) = expenses
+            .par_iter()
+            .partition(|e| TotalBudgeter::<ComputedSalary>::is_individual_expense(e, budgeters));
 
-        let common_expenses = expenses
-            .iter()
-            .filter(
-                |&e| match budgeters.iter().find(|b| e.name().contains(b.name())) {
-                    Some(_) => {
-                        individual_expenses.push(e);
-                        false
-                    }
-                    None => true,
-                },
-            )
+        let total_common_expenses = common_expenses
+            .par_iter()
             .map(|e| e.projected_amount())
             .sum();
-
         let total_individual_expenses = individual_expenses
-            .iter()
-            .map(|ie| ie.projected_amount())
+            .par_iter()
+            .map(|e| e.projected_amount())
             .sum();
-        let left_over = self.extra.salary_month - common_expenses - total_individual_expenses;
+        let left_over = self.extra.salary_month - total_common_expenses - total_individual_expenses;
 
         (
             TotalBudgeter {
                 extra: ComputedExpenses {
-                    common_expenses,
+                    common_expenses: total_common_expenses,
                     proportion: 1.0,
                     individual_expenses: total_individual_expenses,
                     left_over,

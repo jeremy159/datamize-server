@@ -34,7 +34,7 @@ pub fn setup_budgeters_with_salary_with_name(first_name: &str) -> Vec<Budgeter<C
         payee_name: Some(Faker.fake()),
         ..Faker.fake()
     };
-    let budgeter = budgeter.compute_salary(&vec![transaction.clone()], &Local::now());
+    let budgeter = budgeter.compute_salary(&vec![transaction.clone()], &Local::now(), Faker.fake());
 
     vec![budgeter, Faker.fake()]
 }

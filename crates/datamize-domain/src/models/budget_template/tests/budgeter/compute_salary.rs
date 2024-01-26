@@ -2,7 +2,7 @@ use chrono::{Datelike, Days, Local, Months};
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use uuid::Uuid;
-use ynab::RecurFrequency;
+use ynab::{RecurFrequency, SubTransaction};
 
 use crate::{Budgeter, BudgeterConfig, BudgeterExt, Configured, DatamizeScheduledTransaction};
 
@@ -16,6 +16,7 @@ struct Expected {
 fn check_method_budgeter(
     budgeter: Budgeter<Configured>,
     scheduled_transactions: &[DatamizeScheduledTransaction],
+    inflow_cat_id: Option<Uuid>,
     Expected {
         salary,
         salary_month,
@@ -28,7 +29,7 @@ fn check_method_budgeter(
         caller_line_number
     );
 
-    let budgeter = budgeter.compute_salary(scheduled_transactions, &Local::now());
+    let budgeter = budgeter.compute_salary(scheduled_transactions, &Local::now(), inflow_cat_id);
     assert_eq!(budgeter.salary(), salary);
     assert_eq!(budgeter.salary_month(), salary_month);
 }
@@ -40,6 +41,7 @@ fn salary_is_0_when_no_scheduled_transactions() {
     check_method_budgeter(
         budgeter,
         &[],
+        None,
         Expected {
             salary: 0,
             salary_month: 0,
@@ -54,6 +56,7 @@ fn salary_is_0_when_no_linked_scheduled_transactions() {
     check_method_budgeter(
         budgeter,
         &fake::vec![DatamizeScheduledTransaction; 1..5],
+        None,
         Expected {
             salary: 0,
             salary_month: 0,
@@ -86,6 +89,7 @@ fn salary_is_linked_scheduled_transactions_when_not_repeating() {
     check_method_budgeter(
         budgeter,
         &vec![transaction.clone()],
+        None,
         Expected {
             salary: transaction.amount,
             salary_month: transaction.amount,
@@ -113,6 +117,7 @@ fn salary_month_is_twice_linked_scheduled_transactions() {
     check_method_budgeter(
         budgeter,
         &vec![transaction.clone()],
+        None,
         Expected {
             salary: transaction.amount,
             salary_month: transaction.amount * 2,
@@ -144,6 +149,7 @@ fn salary_takes_all_linked_scheduled_transactions() {
     check_method_budgeter(
         budgeter,
         &vec![first_trans.clone(), sec_trans.clone()],
+        None,
         Expected {
             salary: first_trans.amount + sec_trans.amount,
             salary_month: first_trans.amount + sec_trans.amount,
@@ -180,6 +186,7 @@ fn salary_takes_all_scheduled_transactions_of_same_payee() {
     check_method_budgeter(
         budgeter,
         &vec![first_trans.clone(), sec_trans.clone()],
+        None,
         Expected {
             salary: first_trans.amount + sec_trans.amount,
             salary_month: first_trans.amount + sec_trans.amount,
@@ -214,6 +221,7 @@ fn salary_takes_all_linked_scheduled_transactions_even_when_repeated() {
     check_method_budgeter(
         budgeter,
         &vec![first_trans.clone(), sec_trans.clone()],
+        None,
         Expected {
             salary: first_trans.amount + sec_trans.amount,
             salary_month: first_trans.amount * 2 + sec_trans.amount,
@@ -246,9 +254,79 @@ fn salary_repeats_5_times_when_frequency_is_every_week_on_first_day_of_month() {
     check_method_budgeter(
         budgeter,
         &vec![transaction.clone()],
+        None,
         Expected {
             salary: transaction.amount,
             salary_month: transaction.amount * 5,
+        },
+    );
+}
+
+#[test]
+fn salary_takes_inflow_from_sub_transaction() {
+    let config = BudgeterConfig {
+        payee_ids: fake::vec![Uuid; 2..3],
+        ..Faker.fake()
+    };
+    let budgeter: Budgeter<Configured> = config.clone().into();
+    let inflow_cat_id = Faker.fake();
+    let amount = (1..100000).fake();
+    let inflow_amount = amount + 50000;
+
+    let subtransactions = vec![
+        SubTransaction {
+            category_id: Some(inflow_cat_id),
+            amount: inflow_amount,
+            ..Faker.fake()
+        },
+        SubTransaction { ..Faker.fake() },
+    ];
+    let transaction = DatamizeScheduledTransaction {
+        amount,
+        frequency: None,
+        payee_id: Some(budgeter.payee_ids()[0]),
+        payee_name: Some(Faker.fake()),
+        subtransactions,
+        ..Faker.fake()
+    };
+
+    check_method_budgeter(
+        budgeter,
+        &vec![transaction.clone()],
+        Some(inflow_cat_id),
+        Expected {
+            salary: inflow_amount,
+            salary_month: inflow_amount,
+        },
+    );
+}
+
+#[test]
+fn salary_does_not_take_inflow_from_sub_transaction_even_if_defined() {
+    let config = BudgeterConfig {
+        payee_ids: fake::vec![Uuid; 2..3],
+        ..Faker.fake()
+    };
+    let budgeter: Budgeter<Configured> = config.clone().into();
+    let inflow_cat_id = Faker.fake();
+
+    let subtransactions = fake::vec![SubTransaction; 2..3];
+    let transaction = DatamizeScheduledTransaction {
+        amount: (1..100000).fake(),
+        frequency: None,
+        payee_id: Some(budgeter.payee_ids()[0]),
+        payee_name: Some(Faker.fake()),
+        subtransactions,
+        ..Faker.fake()
+    };
+
+    check_method_budgeter(
+        budgeter,
+        &vec![transaction.clone()],
+        Some(inflow_cat_id),
+        Expected {
+            salary: transaction.amount,
+            salary_month: transaction.amount,
         },
     );
 }

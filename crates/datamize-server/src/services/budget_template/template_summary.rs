@@ -48,12 +48,20 @@ impl TemplateSummaryServiceExt for TemplateSummaryService {
             .scheduled_transaction_service
             .get_latest_scheduled_transactions()
             .await?;
+
+        let inflow_cat_id = saved_categories
+            .iter()
+            .find(|c| c.name.contains("Ready to Assign"))
+            .map(|c| c.id);
         let budgeters_config = self.budgeter_config_repo.get_all().await?;
         let budgeters: Vec<_> = budgeters_config
             .into_iter()
             .map(|bc| {
-                Budgeter::<Configured>::from(bc)
-                    .compute_salary(&saved_scheduled_transactions, &month.into())
+                Budgeter::<Configured>::from(bc).compute_salary(
+                    &saved_scheduled_transactions,
+                    &month.into(),
+                    inflow_cat_id,
+                )
             })
             .collect();
 
