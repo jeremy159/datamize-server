@@ -65,11 +65,6 @@ impl Budgeter<Configured> {
             entry.push(salary_fragment);
         }
 
-        let salary = fragmented_salary
-            .values()
-            .flatten()
-            .map(|fs| fs.payee_amount)
-            .sum();
         let salary_month = fragmented_salary
             .values()
             .flatten()
@@ -78,7 +73,6 @@ impl Budgeter<Configured> {
 
         Budgeter {
             extra: ComputedSalary {
-                salary,
                 salary_month,
                 configured: self.extra,
                 fragmented_salary,
@@ -166,10 +160,6 @@ impl BudgeterExt for Budgeter<ComputedSalary> {
         &self.extra.configured.payee_ids
     }
 
-    fn salary(&self) -> i64 {
-        self.extra.salary
-    }
-
     fn salary_month(&self) -> i64 {
         self.extra.salary_month
     }
@@ -186,10 +176,6 @@ impl BudgeterExt for Budgeter<ComputedExpenses> {
 
     fn payee_ids(&self) -> &[Uuid] {
         &self.extra.compuded_salary.configured.payee_ids
-    }
-
-    fn salary(&self) -> i64 {
-        self.extra.compuded_salary.salary
     }
 
     fn salary_month(&self) -> i64 {

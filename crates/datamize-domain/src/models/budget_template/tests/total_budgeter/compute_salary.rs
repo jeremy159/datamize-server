@@ -10,17 +10,13 @@ use crate::{
 
 #[derive(Debug, Clone)]
 struct Expected {
-    salary: i64,
     salary_month: i64,
 }
 
 #[track_caller]
 fn check_method_total_budgeter(
     budgeters: &[Budgeter<ComputedSalary>],
-    Expected {
-        salary,
-        salary_month,
-    }: Expected,
+    Expected { salary_month }: Expected,
 ) {
     let caller_location = std::panic::Location::caller();
     let caller_line_number = caller_location.line();
@@ -32,19 +28,12 @@ fn check_method_total_budgeter(
     let total_budgeter = TotalBudgeter::new();
     let total_budgeter = total_budgeter.compute_salary(budgeters);
 
-    assert_eq!(total_budgeter.salary(), salary);
     assert_eq!(total_budgeter.salary_month(), salary_month);
 }
 
 #[test]
 fn total_salary_is_0_when_no_budgeters() {
-    check_method_total_budgeter(
-        &[],
-        Expected {
-            salary: 0,
-            salary_month: 0,
-        },
-    );
+    check_method_total_budgeter(&[], Expected { salary_month: 0 });
 }
 
 #[test]
@@ -97,7 +86,6 @@ fn total_salary_is_sum_of_all_budgeters() {
     check_method_total_budgeter(
         &[budgeter1.clone(), budgeter2.clone()],
         Expected {
-            salary: budgeter1.salary() + budgeter2.salary(),
             salary_month: budgeter1.salary_month() + budgeter2.salary_month(),
         },
     );

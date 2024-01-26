@@ -16,10 +16,6 @@ pub trait BudgeterExt {
     fn name(&self) -> &str;
     fn payee_ids(&self) -> &[Uuid];
 
-    fn salary(&self) -> i64 {
-        Default::default()
-    }
-
     fn salary_month(&self) -> i64 {
         Default::default()
     }
@@ -58,8 +54,11 @@ pub struct Configured {
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct SalaryFragment {
+    /// Name of the payee if defined.
     payee_name: Option<String>,
+    /// Amount of this salary.
     payee_amount: i64,
+    /// Number of times this salary fragment is repeated throughout the monthé
     repeats: usize,
 }
 
@@ -68,12 +67,10 @@ pub struct SalaryFragment {
 pub struct ComputedSalary {
     #[serde(flatten)]
     configured: Configured,
-    /// Single occurence salary amount.
-    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "0..1000000"))]
-    salary: i64,
     /// Total salary inflow for this month. This number can vary from one month to the other.
     #[cfg_attr(any(feature = "testutils", test), dummy(faker = "0..10000000"))]
     salary_month: i64,
+    /// Gives a breakdown of what is composing the salary for this month.
     fragmented_salary: HashMap<Uuid, Vec<SalaryFragment>>,
 }
 

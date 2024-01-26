@@ -8,7 +8,6 @@ use crate::{Budgeter, BudgeterConfig, BudgeterExt, Configured, DatamizeScheduled
 
 #[derive(Debug, Clone)]
 struct Expected {
-    salary: i64,
     salary_month: i64,
 }
 
@@ -17,10 +16,7 @@ fn check_method_budgeter(
     budgeter: Budgeter<Configured>,
     scheduled_transactions: &[DatamizeScheduledTransaction],
     inflow_cat_id: Option<Uuid>,
-    Expected {
-        salary,
-        salary_month,
-    }: Expected,
+    Expected { salary_month }: Expected,
 ) {
     let caller_location = std::panic::Location::caller();
     let caller_line_number = caller_location.line();
@@ -30,7 +26,6 @@ fn check_method_budgeter(
     );
 
     let budgeter = budgeter.compute_salary(scheduled_transactions, &Local::now(), inflow_cat_id);
-    assert_eq!(budgeter.salary(), salary);
     assert_eq!(budgeter.salary_month(), salary_month);
 }
 
@@ -38,15 +33,7 @@ fn check_method_budgeter(
 fn salary_is_0_when_no_scheduled_transactions() {
     let config: BudgeterConfig = Faker.fake();
     let budgeter: Budgeter<Configured> = config.clone().into();
-    check_method_budgeter(
-        budgeter,
-        &[],
-        None,
-        Expected {
-            salary: 0,
-            salary_month: 0,
-        },
-    );
+    check_method_budgeter(budgeter, &[], None, Expected { salary_month: 0 });
 }
 
 #[test]
@@ -57,10 +44,7 @@ fn salary_is_0_when_no_linked_scheduled_transactions() {
         budgeter,
         &fake::vec![DatamizeScheduledTransaction; 1..5],
         None,
-        Expected {
-            salary: 0,
-            salary_month: 0,
-        },
+        Expected { salary_month: 0 },
     );
 }
 
@@ -91,7 +75,6 @@ fn salary_is_linked_scheduled_transactions_when_not_repeating() {
         &vec![transaction.clone()],
         None,
         Expected {
-            salary: transaction.amount,
             salary_month: transaction.amount,
         },
     );
@@ -119,7 +102,6 @@ fn salary_month_is_twice_linked_scheduled_transactions() {
         &vec![transaction.clone()],
         None,
         Expected {
-            salary: transaction.amount,
             salary_month: transaction.amount * 2,
         },
     );
@@ -151,7 +133,6 @@ fn salary_takes_all_linked_scheduled_transactions() {
         &vec![first_trans.clone(), sec_trans.clone()],
         None,
         Expected {
-            salary: first_trans.amount + sec_trans.amount,
             salary_month: first_trans.amount + sec_trans.amount,
         },
     );
@@ -188,7 +169,6 @@ fn salary_takes_all_scheduled_transactions_of_same_payee() {
         &vec![first_trans.clone(), sec_trans.clone()],
         None,
         Expected {
-            salary: first_trans.amount + sec_trans.amount,
             salary_month: first_trans.amount + sec_trans.amount,
         },
     );
@@ -223,7 +203,6 @@ fn salary_takes_all_linked_scheduled_transactions_even_when_repeated() {
         &vec![first_trans.clone(), sec_trans.clone()],
         None,
         Expected {
-            salary: first_trans.amount + sec_trans.amount,
             salary_month: first_trans.amount * 2 + sec_trans.amount,
         },
     );
@@ -256,7 +235,6 @@ fn salary_repeats_5_times_when_frequency_is_every_week_on_first_day_of_month() {
         &vec![transaction.clone()],
         None,
         Expected {
-            salary: transaction.amount,
             salary_month: transaction.amount * 5,
         },
     );
@@ -295,7 +273,6 @@ fn salary_takes_inflow_from_sub_transaction() {
         &vec![transaction.clone()],
         Some(inflow_cat_id),
         Expected {
-            salary: inflow_amount,
             salary_month: inflow_amount,
         },
     );
@@ -325,7 +302,6 @@ fn salary_does_not_take_inflow_from_sub_transaction_even_if_defined() {
         &vec![transaction.clone()],
         Some(inflow_cat_id),
         Expected {
-            salary: transaction.amount,
             salary_month: transaction.amount,
         },
     );

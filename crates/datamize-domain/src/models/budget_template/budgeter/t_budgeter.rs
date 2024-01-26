@@ -34,7 +34,6 @@ impl TotalBudgeter<Configured> {
     ) -> TotalBudgeter<ComputedSalary> {
         TotalBudgeter {
             extra: ComputedSalary {
-                salary: budgeters.iter().map(|b| b.salary()).sum(),
                 salary_month: budgeters.iter().map(|b| b.salary_month()).sum(),
                 configured: self.extra,
                 fragmented_salary: HashMap::new(),
@@ -115,10 +114,6 @@ impl BudgeterExt for TotalBudgeter<ComputedSalary> {
         &self.extra.configured.payee_ids
     }
 
-    fn salary(&self) -> i64 {
-        self.extra.salary
-    }
-
     fn salary_month(&self) -> i64 {
         self.extra.salary_month
     }
@@ -135,10 +130,6 @@ impl BudgeterExt for TotalBudgeter<ComputedExpenses> {
 
     fn payee_ids(&self) -> &[Uuid] {
         &self.extra.compuded_salary.configured.payee_ids
-    }
-
-    fn salary(&self) -> i64 {
-        self.extra.compuded_salary.salary
     }
 
     fn salary_month(&self) -> i64 {
