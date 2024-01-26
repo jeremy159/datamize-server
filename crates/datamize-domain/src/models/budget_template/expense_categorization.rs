@@ -40,9 +40,9 @@ impl TryFrom<CategoryGroupWithCategories> for ExpenseCategorization {
             return Err(CategoryGroupWithCategoriesConversionError);
         }
 
-        if value.name == "Hidden Categories"
-            || value.name == "Internal Master Category"
-            || value.name == "Credit Card Payments"
+        if value.name.contains("Hidden Categories")
+            || value.name.contains("Internal Master Category")
+            || value.name.contains("Credit Card Payments")
         {
             return Err(CategoryGroupWithCategoriesConversionError);
         }
@@ -62,9 +62,9 @@ impl TryFrom<CategoryGroup> for ExpenseCategorization {
             return Err(CategoryGroupConversionError);
         }
 
-        if value.name == "Hidden Categories"
-            || value.name == "Internal Master Category"
-            || value.name == "Credit Card Payments"
+        if value.name.contains("Hidden Categories")
+            || value.name.contains("Internal Master Category")
+            || value.name.contains("Credit Card Payments")
         {
             return Err(CategoryGroupConversionError);
         }
@@ -84,9 +84,11 @@ impl TryFrom<Category> for ExpenseCategorization {
             return Err(CategoryConversionError);
         }
 
-        if value.category_group_name == "Hidden Categories"
-            || value.category_group_name == "Internal Master Category"
-            || value.category_group_name == "Credit Card Payments"
+        if value.category_group_name.contains("Hidden Categories")
+            || value
+                .category_group_name
+                .contains("Internal Master Category")
+            || value.category_group_name.contains("Credit Card Payments")
         {
             return Err(CategoryConversionError);
         }
