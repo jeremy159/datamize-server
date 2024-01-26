@@ -1,9 +1,10 @@
 use anyhow::Context;
 use datamize_server::{
-    config, get_connection_pool,
+    config,
     startup::Application,
     telemetry::{get_subscriber, init_subscriber},
 };
+use db_postgres::get_connection_pool;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -15,7 +16,7 @@ async fn main() -> anyhow::Result<()> {
     init_subscriber(subscriber);
 
     let configuration = config::Settings::build()?;
-    let db_conn_pool = get_connection_pool(&configuration.database);
+    let db_conn_pool = get_connection_pool(configuration.database.with_db());
     let application = Application::build(configuration, db_conn_pool)
         .await
         .context("failed to build application")?;

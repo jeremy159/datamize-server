@@ -3,11 +3,12 @@ use std::fmt;
 use anyhow::Context;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use datamize_domain::{secrecy::Secret, EncryptedPassword, Uuid, WebScrapingAccount};
+use datamize_server::get_redis_connection_manager;
 use datamize_server::services::budget_providers::{
     ExternalAccountService, ExternalAccountServiceExt,
 };
-use datamize_server::{get_redis_connection_manager, sqlx_error::Error};
 use db_postgres::budget_providers::external::PostgresExternalAccountRepo;
+use db_postgres::Error;
 use db_redis::budget_providers::external::RedisEncryptionKeyRepo;
 use orion::aead;
 use orion::kex::SecretKey;
@@ -102,7 +103,7 @@ async fn main() -> anyhow::Result<()> {
     let args = Cli::parse();
 
     let configuration = datamize_server::config::Settings::build()?;
-    let db_conn_pool = datamize_server::get_connection_pool(&configuration.database);
+    let db_conn_pool = db_postgres::get_connection_pool(configuration.database.with_db());
     let redis_conn = get_redis_connection_manager(&configuration.redis)
         .await
         .context("failed to get redis connection manager")?;

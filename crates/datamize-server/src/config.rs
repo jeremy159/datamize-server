@@ -1,9 +1,7 @@
 use datamize_domain::secrecy::{ExposeSecret, Secret};
+use db_postgres::{PgConnectOptions, PgSslMode};
 use serde::Deserialize;
-use sqlx::{
-    postgres::{PgConnectOptions, PgSslMode},
-    ConnectOptions,
-};
+use sqlx::ConnectOptions;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Settings {

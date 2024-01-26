@@ -6,7 +6,7 @@ use std::{
 use anyhow::{Context, Ok, Result};
 use axum::{body::Body, routing::get, Router};
 use http::{header::CONTENT_TYPE, Request};
-use sqlx::{PgPool, Pool, Postgres};
+use sqlx::PgPool;
 use tokio::signal;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tower_request_id::{RequestId, RequestIdLayer};
@@ -21,7 +21,7 @@ use crate::{
 #[derive(Clone)]
 pub struct AppState {
     pub ynab_client: Arc<ynab::Client>,
-    pub db_conn_pool: Pool<Postgres>,
+    pub db_conn_pool: PgPool,
     pub redis_conn: db_redis::redis::aio::ConnectionManager,
 }
 
