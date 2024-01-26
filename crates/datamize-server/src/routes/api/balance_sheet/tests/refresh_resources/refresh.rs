@@ -8,6 +8,7 @@ use chrono::{Datelike, Local};
 use datamize_domain::{BaseFinancialResource, FinancialResourceYearly, Uuid};
 use fake::{Fake, Faker};
 use pretty_assertions::{assert_eq, assert_ne};
+use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 use ynab::Account;
@@ -16,9 +17,15 @@ use crate::routes::api::balance_sheet::tests::refresh_resources::testutils::{
     correctly_stub_resources, TestContext,
 };
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+struct CreateBody {
+    pub ids: Vec<Uuid>,
+}
+
 async fn check_refresh(
     pool: SqlitePool,
     create_year: bool,
+    body: Option<CreateBody>,
     ynab_accounts: Vec<Account>,
     resources: Vec<FinancialResourceYearly>,
     expected_status: StatusCode,
@@ -54,8 +61,9 @@ async fn check_refresh(
         .oneshot(
             Request::builder()
                 .method("POST")
+                .header("Content-Type", "application/json")
                 .uri("/resources/refresh")
-                .body(Body::empty())
+                .body(Body::from(serde_json::to_string(&body).unwrap()))
                 .unwrap(),
         )
         .await
@@ -88,6 +96,7 @@ async fn returns_404_when_no_year(pool: SqlitePool) {
     check_refresh(
         pool,
         false,
+        None,
         fake::vec![Account; 3..6],
         fake::vec![FinancialResourceYearly; 3..6],
         StatusCode::NOT_FOUND,
@@ -111,6 +120,7 @@ async fn returns_success_with_refreshed_ids(pool: SqlitePool) {
     check_refresh(
         pool,
         true,
+        None,
         ynab_accounts,
         vec![res],
         StatusCode::OK,
@@ -124,6 +134,7 @@ async fn empty_ids_when_no_ynab_accounts(pool: SqlitePool) {
     check_refresh(
         pool,
         true,
+        None,
         vec![],
         fake::vec![FinancialResourceYearly; 3..6],
         StatusCode::OK,
@@ -148,6 +159,7 @@ async fn empty_ids_when_no_ynab_accounts_linked_to_returned_resources(pool: Sqli
     check_refresh(
         pool,
         true,
+        None,
         ynab_accounts,
         resources,
         StatusCode::OK,
@@ -162,20 +174,71 @@ async fn only_update_when_different_balance(pool: SqlitePool) {
     let mut balance_per_month = BTreeMap::new();
     balance_per_month.insert(
         Local::now().date_naive().month().try_into().unwrap(),
-        ynab_account.balance,
+        ynab_account.balance.abs(),
     );
     let resource = FinancialResourceYearly {
         balance_per_month,
+        base: BaseFinancialResource {
+            ynab_account_ids: Some(vec![ynab_account.id]),
+            ..Faker.fake()
+        },
         ..Faker.fake()
     };
 
     check_refresh(
         pool,
         true,
+        None,
         vec![ynab_account],
         vec![resource],
         StatusCode::OK,
         Some(vec![]),
+    )
+    .await;
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn only_update_requested_ids(pool: SqlitePool) {
+    let ynab_accounts = fake::vec![Account; 3..6];
+    let res = FinancialResourceYearly {
+        base: BaseFinancialResource {
+            ynab_account_ids: Some(
+                ynab_accounts
+                    .clone()
+                    .into_iter()
+                    .map(|ya| ya.id)
+                    .take(2)
+                    .collect(),
+            ),
+            ..Faker.fake()
+        },
+        ..Faker.fake()
+    };
+
+    let res2 = FinancialResourceYearly {
+        base: BaseFinancialResource {
+            ynab_account_ids: Some(
+                ynab_accounts
+                    .clone()
+                    .into_iter()
+                    .map(|ya| ya.id)
+                    .skip(2)
+                    .collect(),
+            ),
+            ..Faker.fake()
+        },
+        ..Faker.fake()
+    };
+    let res_id = res.base.id;
+
+    check_refresh(
+        pool,
+        true,
+        Some(CreateBody { ids: vec![res_id] }),
+        ynab_accounts,
+        vec![res, res2],
+        StatusCode::OK,
+        Some(vec![res_id]),
     )
     .await;
 }

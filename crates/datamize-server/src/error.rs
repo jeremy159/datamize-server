@@ -20,6 +20,8 @@ pub enum AppError {
     DataIntegrityError(String),
     #[error("validation errors")]
     ValidationError,
+    #[error("media type error")]
+    MediaTypeError,
     #[error("Error in the YNAB API")]
     YnabError(#[from] ynab::Error),
     #[error(transparent)]
@@ -70,6 +72,9 @@ impl IntoResponse for AppError {
             AppError::ValidationError => (StatusCode::UNPROCESSABLE_ENTITY, "validation errors"),
             AppError::ResourceNotFound => (StatusCode::NOT_FOUND, "resource does not exist"),
             AppError::ResourceAlreadyExist => (StatusCode::CONFLICT, "resource already exist"),
+            AppError::MediaTypeError => {
+                (StatusCode::UNSUPPORTED_MEDIA_TYPE, "unsupported media type")
+            }
             AppError::YnabError(ref e) => {
                 tracing::error!("AppError::YnabError: {:?}", e);
                 (
@@ -94,6 +99,19 @@ pub enum JsonError {
 impl From<JsonRejection> for JsonError {
     fn from(value: JsonRejection) -> Self {
         Self::JsonExtractorRejection(value)
+    }
+}
+
+impl From<JsonError> for AppError {
+    fn from(value: JsonError) -> Self {
+        match value {
+            JsonError::JsonExtractorRejection(x) => match x {
+                JsonRejection::JsonDataError(_) => AppError::ValidationError,
+                JsonRejection::JsonSyntaxError(e) => AppError::DataIntegrityError(e.to_string()),
+                JsonRejection::MissingJsonContentType(_) => AppError::MediaTypeError,
+                e => AppError::InternalServerError(e.into()),
+            },
+        }
     }
 }
 

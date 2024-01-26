@@ -4,7 +4,7 @@ use chrono::{Datelike, Local};
 use datamize_domain::{
     async_trait,
     db::{DbError, DynFinResRepo, DynMonthRepo, DynYearRepo},
-    Month, MonthNum, Uuid,
+    Month, MonthNum, ResourcesToRefresh, Uuid,
 };
 use dyn_clone::{clone_trait_object, DynClone};
 use ynab::AccountRequests;
@@ -16,7 +16,10 @@ use crate::{
 
 #[async_trait]
 pub trait RefreshFinResServiceExt: DynClone + Send + Sync {
-    async fn refresh_fin_res(&mut self) -> DatamizeResult<Vec<Uuid>>;
+    async fn refresh_fin_res(
+        &mut self,
+        resources_to_refresh: Option<ResourcesToRefresh>,
+    ) -> DatamizeResult<Vec<Uuid>>;
 }
 
 clone_trait_object!(RefreshFinResServiceExt);
@@ -35,7 +38,10 @@ pub struct RefreshFinResService {
 #[async_trait]
 impl RefreshFinResServiceExt for RefreshFinResService {
     #[tracing::instrument(skip_all)]
-    async fn refresh_fin_res(&mut self) -> DatamizeResult<Vec<Uuid>> {
+    async fn refresh_fin_res(
+        &mut self,
+        resources_to_refresh: Option<ResourcesToRefresh>,
+    ) -> DatamizeResult<Vec<Uuid>> {
         let current_date = Local::now().date_naive();
         let current_year = current_date.year();
         // The only condition is that the year exists...
@@ -53,6 +59,11 @@ impl RefreshFinResServiceExt for RefreshFinResService {
         }
 
         let mut resources = self.fin_res_repo.get_from_year(current_year).await?;
+        resources.retain(|r| {
+            resources_to_refresh
+                .as_ref()
+                .map_or(true, |refresh| refresh.ids.contains(&r.base.id))
+        });
 
         let accounts = self.ynab_client.get_accounts().await?;
         let mut external_account_service = self.external_account_service.clone();

@@ -8,7 +8,7 @@ mod year;
 
 pub use financial_resource::{
     BaseFinancialResource, FinancialResourceMonthly, FinancialResourceYearly, ResourceCategory,
-    ResourceType, SaveResource,
+    ResourceType, ResourcesToRefresh, SaveResource,
 };
 pub use month::{Month, MonthNum, SaveMonth};
 pub use net_total::{NetTotal, NetTotalType};

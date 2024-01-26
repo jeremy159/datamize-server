@@ -228,3 +228,9 @@ impl From<SaveResource> for FinancialResourceYearly {
         }
     }
 }
+
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ResourcesToRefresh {
+    pub ids: Vec<Uuid>,
+}
