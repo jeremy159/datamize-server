@@ -2,12 +2,10 @@ use std::sync::Arc;
 
 use axum::Router;
 use datamize_domain::{
-    db::{
-        ynab::{MockYnabTransactionMetaRepo, YnabTransactionRepo},
-        DbResult, SavingRateRepo, YearRepo,
-    },
+    db::{ynab::YnabTransactionRepo, DbResult, SavingRateRepo, YearRepo},
     SavingRate, Uuid, Year,
 };
+use db_redis::{budget_providers::ynab::RedisYnabTransactionMetaRepo, get_test_pool};
 use db_sqlite::{
     balance_sheet::{SqliteSavingRateRepo, SqliteYearRepo},
     budget_providers::ynab::SqliteYnabTransactionRepo,
@@ -24,17 +22,18 @@ use crate::{
 pub(crate) struct TestContext {
     year_repo: Arc<SqliteYearRepo>,
     saving_rate_repo: Arc<SqliteSavingRateRepo>,
-    ynab_transaction_repo: Box<SqliteYnabTransactionRepo>,
+    ynab_transaction_repo: Arc<SqliteYnabTransactionRepo>,
     app: Router,
 }
 
 impl TestContext {
-    pub(crate) fn setup(pool: SqlitePool) -> Self {
+    pub(crate) async fn setup(pool: SqlitePool) -> Self {
+        let redis_conn_pool = get_test_pool().await;
         let year_repo = SqliteYearRepo::new_arced(pool.clone());
         let saving_rate_repo = SqliteSavingRateRepo::new_arced(pool.clone());
-        let ynab_transaction_repo = SqliteYnabTransactionRepo::new_boxed(pool);
+        let ynab_transaction_repo = SqliteYnabTransactionRepo::new_arced(pool);
 
-        let ynab_transaction_meta_repo = MockYnabTransactionMetaRepo::new_boxed();
+        let ynab_transaction_meta_repo = RedisYnabTransactionMetaRepo::new_arced(redis_conn_pool);
 
         let mut ynab_client = Arc::new(MockTransactionRequestsImpl::new());
         let ynab_client_mock = Arc::make_mut(&mut ynab_client);
@@ -42,13 +41,13 @@ impl TestContext {
             .expect_get_transactions_delta()
             .returning(|_| Ok(Faker.fake()));
 
-        let transaction_service = TransactionService::new_boxed(
+        let transaction_service = TransactionService::new_arced(
             ynab_transaction_repo.clone(),
             ynab_transaction_meta_repo,
             ynab_client,
         );
         let saving_rate_service =
-            SavingRateService::new_boxed(saving_rate_repo.clone(), transaction_service);
+            SavingRateService::new_arced(saving_rate_repo.clone(), transaction_service);
         let app = get_saving_rate_routes(saving_rate_service);
         Self {
             year_repo,

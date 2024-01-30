@@ -26,8 +26,7 @@ sqlx.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 rrule.workspace = true
-redis.workspace = true
-dyn-clone.workspace = true
+fred.workspace = true
 
 serde_repr = "^0.1.14"
 secrecy = { version = "0.8.0", features = ["serde"] }

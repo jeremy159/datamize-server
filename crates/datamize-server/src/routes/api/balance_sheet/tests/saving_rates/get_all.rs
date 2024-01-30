@@ -19,7 +19,7 @@ async fn check_get_all(
     expected_status: StatusCode,
     expected_resp: Option<Vec<SavingRate>>,
 ) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     if let Some(year) = year {
         context.insert_year(year).await;

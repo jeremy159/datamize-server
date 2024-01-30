@@ -1,11 +1,12 @@
 mod internal;
 
+use std::sync::Arc;
+
 use datamize_domain::{
     async_trait,
     db::external::{DynEncryptionKeyRepo, DynExternalAccountRepo},
     AccountType, ExternalAccount, WebScrapingAccount,
 };
-use dyn_clone::{clone_trait_object, DynClone};
 use futures::{future::BoxFuture, stream::FuturesOrdered, StreamExt};
 use internal::*;
 
@@ -13,48 +14,21 @@ use orion::kex::SecretKey;
 
 use crate::{config, error::DatamizeResult};
 
+#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
-pub trait ExternalAccountServiceExt: DynClone + Send + Sync {
+pub trait ExternalAccountServiceExt: Send + Sync {
     async fn get_all_external_accounts(&self) -> DatamizeResult<Vec<ExternalAccount>>;
-    async fn refresh_all_web_scraping_accounts(
-        &mut self,
-    ) -> DatamizeResult<Vec<WebScrapingAccount>>;
+    async fn refresh_all_web_scraping_accounts(&self) -> DatamizeResult<Vec<WebScrapingAccount>>;
 
     async fn create_external_account(&self, account: &WebScrapingAccount) -> DatamizeResult<()>;
     async fn get_external_account_by_name(&self, name: &str) -> DatamizeResult<WebScrapingAccount>;
     async fn update_external_account(&self, account: &WebScrapingAccount) -> DatamizeResult<()>;
 
-    async fn get_encryption_key(&mut self) -> DatamizeResult<Vec<u8>>;
-    async fn set_encryption_key(&mut self, key: &[u8]) -> DatamizeResult<()>;
+    async fn get_encryption_key(&self) -> DatamizeResult<Vec<u8>>;
+    async fn set_encryption_key(&self, key: &[u8]) -> DatamizeResult<()>;
 }
 
-clone_trait_object!(ExternalAccountServiceExt);
-
-pub type DynExternalAccountService = Box<dyn ExternalAccountServiceExt>;
-
-#[cfg(test)]
-mockall::mock! {
-    pub ExternalAccountService {}
-
-    impl Clone for ExternalAccountService {
-        fn clone(&self) -> Self;
-    }
-
-    #[async_trait]
-    impl ExternalAccountServiceExt for ExternalAccountService {
-        async fn get_all_external_accounts(&self) -> DatamizeResult<Vec<ExternalAccount>>;
-        async fn refresh_all_web_scraping_accounts(
-            &mut self,
-        ) -> DatamizeResult<Vec<WebScrapingAccount>>;
-
-        async fn create_external_account(&self, account: &WebScrapingAccount) -> DatamizeResult<()>;
-        async fn get_external_account_by_name(&self, name: &str) -> DatamizeResult<WebScrapingAccount>;
-        async fn update_external_account(&self, account: &WebScrapingAccount) -> DatamizeResult<()>;
-
-        async fn get_encryption_key(&mut self) -> DatamizeResult<Vec<u8>>;
-        async fn set_encryption_key(&mut self, key: &[u8]) -> DatamizeResult<()>;
-    }
-}
+pub type DynExternalAccountService = Arc<dyn ExternalAccountServiceExt>;
 
 #[derive(Clone)]
 pub struct ExternalAccountService {
@@ -76,9 +50,7 @@ impl ExternalAccountServiceExt for ExternalAccountService {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn refresh_all_web_scraping_accounts(
-        &mut self,
-    ) -> DatamizeResult<Vec<WebScrapingAccount>> {
+    async fn refresh_all_web_scraping_accounts(&self) -> DatamizeResult<Vec<WebScrapingAccount>> {
         let configuration = config::Settings::build()?;
         let webdriver_location = configuration.webdriver.connection_string();
 
@@ -177,22 +149,22 @@ impl ExternalAccountServiceExt for ExternalAccountService {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn get_encryption_key(&mut self) -> DatamizeResult<Vec<u8>> {
+    async fn get_encryption_key(&self) -> DatamizeResult<Vec<u8>> {
         Ok(self.encryption_key_repo.get().await?)
     }
 
     #[tracing::instrument(skip_all)]
-    async fn set_encryption_key(&mut self, key: &[u8]) -> DatamizeResult<()> {
+    async fn set_encryption_key(&self, key: &[u8]) -> DatamizeResult<()> {
         Ok(self.encryption_key_repo.set(key).await?)
     }
 }
 
 impl ExternalAccountService {
-    pub fn new_boxed(
+    pub fn new_arced(
         external_account_repo: DynExternalAccountRepo,
         encryption_key_repo: DynEncryptionKeyRepo,
-    ) -> Box<Self> {
-        Box::new(Self {
+    ) -> Arc<Self> {
+        Arc::new(Self {
             external_account_repo,
             encryption_key_repo,
         })

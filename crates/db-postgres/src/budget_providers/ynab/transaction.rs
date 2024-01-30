@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use datamize_domain::{
     async_trait,
     db::{ynab::YnabTransactionRepo, DbResult},
@@ -12,8 +14,8 @@ pub struct PostgresYnabTransactionRepo {
 }
 
 impl PostgresYnabTransactionRepo {
-    pub fn new_boxed(db_conn_pool: PgPool) -> Box<Self> {
-        Box::new(Self { db_conn_pool })
+    pub fn new_arced(db_conn_pool: PgPool) -> Arc<Self> {
+        Arc::new(Self { db_conn_pool })
     }
 }
 

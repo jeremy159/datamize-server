@@ -1,8 +1,11 @@
+use std::sync::Arc;
+
 use axum::Router;
 use datamize_domain::{
-    db::external::{ExternalAccountRepo, MockEncryptionKeyRepo},
+    db::external::{EncryptionKeyRepo, ExternalAccountRepo},
     ExternalAccount, SecretPassword, WebScrapingAccount,
 };
+use db_redis::{budget_providers::external::RedisEncryptionKeyRepo, get_test_pool};
 use db_sqlite::budget_providers::external::SqliteExternalAccountRepo;
 use fake::{Fake, Faker};
 use sqlx::SqlitePool;
@@ -13,16 +16,18 @@ use crate::{
 };
 
 pub(crate) struct TestContext {
-    external_account_repo: Box<SqliteExternalAccountRepo>,
+    external_account_repo: Arc<SqliteExternalAccountRepo>,
     app: Router,
 }
 
 impl TestContext {
-    pub(crate) fn setup(pool: SqlitePool) -> Self {
-        let external_account_repo = SqliteExternalAccountRepo::new_boxed(pool.clone());
-        let encryption_key_repo = MockEncryptionKeyRepo::new_boxed();
+    pub(crate) async fn setup(pool: SqlitePool) -> Self {
+        let redis_conn_pool = get_test_pool().await;
+        let external_account_repo = SqliteExternalAccountRepo::new_arced(pool.clone());
+        let encryption_key_repo = RedisEncryptionKeyRepo::new_arced(redis_conn_pool);
+        encryption_key_repo.set(&fake::vec![u8; 6]).await.unwrap();
         let external_account_service =
-            ExternalAccountService::new_boxed(external_account_repo.clone(), encryption_key_repo);
+            ExternalAccountService::new_arced(external_account_repo.clone(), encryption_key_repo);
 
         let app = get_external_routes(external_account_service);
         Self {

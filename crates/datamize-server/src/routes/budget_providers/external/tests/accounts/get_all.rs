@@ -17,7 +17,7 @@ async fn check_get_all(
     expected_status: StatusCode,
     expected_resp: Option<Vec<ExternalAccount>>,
 ) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     if let Some(expected_resp) = expected_resp.clone() {
         context

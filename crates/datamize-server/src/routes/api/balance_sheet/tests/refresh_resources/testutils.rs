@@ -2,9 +2,10 @@ use std::sync::Arc;
 
 use axum::Router;
 use datamize_domain::{
-    db::{external::MockEncryptionKeyRepo, DbResult, FinResRepo, MonthData, MonthRepo, YearRepo},
+    db::{external::EncryptionKeyRepo, DbResult, FinResRepo, MonthData, MonthRepo, YearRepo},
     FinancialResourceYearly, Month, MonthNum, Uuid, Year,
 };
+use db_redis::{budget_providers::external::RedisEncryptionKeyRepo, get_test_pool};
 use db_sqlite::{
     balance_sheet::{SqliteFinResRepo, SqliteMonthRepo, SqliteYearRepo},
     budget_providers::external::SqliteExternalAccountRepo,
@@ -25,14 +26,20 @@ pub(crate) struct TestContext {
 }
 
 impl TestContext {
-    pub(crate) fn setup(pool: SqlitePool, ynab_calls: usize, ynab_accounts: Vec<Account>) -> Self {
+    pub(crate) async fn setup(
+        pool: SqlitePool,
+        ynab_calls: usize,
+        ynab_accounts: Vec<Account>,
+    ) -> Self {
+        let redis_conn_pool = get_test_pool().await;
         let year_repo = SqliteYearRepo::new_arced(pool.clone());
         let month_repo = SqliteMonthRepo::new_arced(pool.clone());
         let fin_res_repo = SqliteFinResRepo::new_arced(pool.clone());
-        let external_account_repo = SqliteExternalAccountRepo::new_boxed(pool.clone());
-        let encryption_key_repo = MockEncryptionKeyRepo::new_boxed();
+        let external_account_repo = SqliteExternalAccountRepo::new_arced(pool.clone());
+        let encryption_key_repo = RedisEncryptionKeyRepo::new_arced(redis_conn_pool);
+        encryption_key_repo.set(&fake::vec![u8; 6]).await.unwrap();
         let external_account_service =
-            ExternalAccountService::new_boxed(external_account_repo.clone(), encryption_key_repo);
+            ExternalAccountService::new_arced(external_account_repo.clone(), encryption_key_repo);
         let mut ynab_client = Arc::new(MockAccountRequestsImpl::new());
         let ynab_client_mock = Arc::make_mut(&mut ynab_client);
         ynab_client_mock
@@ -40,7 +47,7 @@ impl TestContext {
             .times(ynab_calls)
             .returning(move || Ok(ynab_accounts.clone()));
 
-        let fin_res_service = RefreshFinResService::new_boxed(
+        let fin_res_service = RefreshFinResService::new_arced(
             fin_res_repo.clone(),
             month_repo.clone(),
             year_repo.clone(),

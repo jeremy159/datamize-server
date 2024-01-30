@@ -6,7 +6,6 @@ use datamize_domain::{
     db::{DbError, DynFinResRepo, DynMonthRepo, DynYearRepo},
     Month, MonthNum, ResourcesToRefresh, Uuid,
 };
-use dyn_clone::{clone_trait_object, DynClone};
 use ynab::AccountRequests;
 
 use crate::{
@@ -15,16 +14,14 @@ use crate::{
 };
 
 #[async_trait]
-pub trait RefreshFinResServiceExt: DynClone + Send + Sync {
+pub trait RefreshFinResServiceExt: Send + Sync {
     async fn refresh_fin_res(
-        &mut self,
+        &self,
         resources_to_refresh: Option<ResourcesToRefresh>,
     ) -> DatamizeResult<Vec<Uuid>>;
 }
 
-clone_trait_object!(RefreshFinResServiceExt);
-
-pub type DynRefreshFinResService = Box<dyn RefreshFinResServiceExt>;
+pub type DynRefreshFinResService = Arc<dyn RefreshFinResServiceExt>;
 
 #[derive(Clone)]
 pub struct RefreshFinResService {
@@ -39,7 +36,7 @@ pub struct RefreshFinResService {
 impl RefreshFinResServiceExt for RefreshFinResService {
     #[tracing::instrument(skip_all)]
     async fn refresh_fin_res(
-        &mut self,
+        &self,
         resources_to_refresh: Option<ResourcesToRefresh>,
     ) -> DatamizeResult<Vec<Uuid>> {
         let current_date = Local::now().date_naive();
@@ -66,7 +63,7 @@ impl RefreshFinResServiceExt for RefreshFinResService {
         });
 
         let accounts = self.ynab_client.get_accounts().await?;
-        let mut external_account_service = self.external_account_service.clone();
+        let external_account_service = self.external_account_service.clone();
         let external_accounts = spawn_blocking_with_tracing(move || async move {
             external_account_service
                 .refresh_all_web_scraping_accounts()
@@ -156,14 +153,14 @@ impl RefreshFinResServiceExt for RefreshFinResService {
 }
 
 impl RefreshFinResService {
-    pub fn new_boxed(
+    pub fn new_arced(
         fin_res_repo: DynFinResRepo,
         month_repo: DynMonthRepo,
         year_repo: DynYearRepo,
         external_account_service: DynExternalAccountService,
         ynab_client: Arc<dyn AccountRequests + Send + Sync>,
-    ) -> Box<Self> {
-        Box::new(Self {
+    ) -> Arc<Self> {
+        Arc::new(Self {
             year_repo,
             month_repo,
             fin_res_repo,

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use datamize_domain::{
     async_trait,
     db::{external::ExternalAccountRepo, DbResult},
@@ -12,8 +14,8 @@ pub struct SqliteExternalAccountRepo {
 }
 
 impl SqliteExternalAccountRepo {
-    pub fn new_boxed(db_conn_pool: SqlitePool) -> Box<Self> {
-        Box::new(Self { db_conn_pool })
+    pub fn new_arced(db_conn_pool: SqlitePool) -> Arc<Self> {
+        Arc::new(Self { db_conn_pool })
     }
 }
 

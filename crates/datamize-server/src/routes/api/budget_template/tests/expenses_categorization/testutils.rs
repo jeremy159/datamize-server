@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::Router;
 use datamize_domain::{
     db::{DbResult, ExpenseCategorizationRepo},
@@ -12,13 +14,13 @@ use crate::{
 };
 
 pub(crate) struct TestContext {
-    expense_categorization_repo: Box<SqliteExpenseCategorizationRepo>,
+    expense_categorization_repo: Arc<SqliteExpenseCategorizationRepo>,
     app: Router,
 }
 
 impl TestContext {
     pub(crate) fn setup(pool: SqlitePool) -> Self {
-        let expense_categorization_repo = SqliteExpenseCategorizationRepo::new_boxed(pool.clone());
+        let expense_categorization_repo = SqliteExpenseCategorizationRepo::new_arced(pool.clone());
 
         let expense_categorization_service =
             ExpenseCategorizationService::new_arced(expense_categorization_repo.clone());

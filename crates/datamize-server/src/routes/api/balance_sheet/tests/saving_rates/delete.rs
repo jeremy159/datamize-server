@@ -17,7 +17,7 @@ async fn check_delete(
     expected_status: StatusCode,
     expected_resp: Option<SavingRate>,
 ) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     if create_year {
         let year = expected_resp.clone().unwrap_or_else(|| Faker.fake()).year;

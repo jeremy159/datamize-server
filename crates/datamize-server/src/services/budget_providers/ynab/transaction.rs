@@ -6,15 +6,14 @@ use datamize_domain::{
     db::ynab::{DynYnabTransactionMetaRepo, DynYnabTransactionRepo},
     Uuid,
 };
-use dyn_clone::{clone_trait_object, DynClone};
 use ynab::{TransactionDetail, TransactionRequests};
 
 use crate::error::DatamizeResult;
 
 #[async_trait]
-pub trait TransactionServiceExt: DynClone + Send + Sync {
-    async fn refresh_saved_transactions(&mut self) -> DatamizeResult<()>;
-    async fn get_latest_transactions(&mut self) -> DatamizeResult<Vec<TransactionDetail>>;
+pub trait TransactionServiceExt: Send + Sync {
+    async fn refresh_saved_transactions(&self) -> DatamizeResult<()>;
+    async fn get_latest_transactions(&self) -> DatamizeResult<Vec<TransactionDetail>>;
     async fn get_transactions_by_category_id(
         &self,
         category_id: Uuid,
@@ -25,9 +24,7 @@ pub trait TransactionServiceExt: DynClone + Send + Sync {
     ) -> DatamizeResult<Vec<TransactionDetail>>;
 }
 
-clone_trait_object!(TransactionServiceExt);
-
-pub type DynTransactionService = Box<dyn TransactionServiceExt>;
+pub type DynTransactionService = Arc<dyn TransactionServiceExt>;
 
 #[derive(Clone)]
 pub struct TransactionService {
@@ -39,7 +36,7 @@ pub struct TransactionService {
 #[async_trait]
 impl TransactionServiceExt for TransactionService {
     #[tracing::instrument(skip(self))]
-    async fn refresh_saved_transactions(&mut self) -> DatamizeResult<()> {
+    async fn refresh_saved_transactions(&self) -> DatamizeResult<()> {
         let saved_transactions_delta = self.ynab_transaction_meta_repo.get_delta().await.ok();
 
         let transactions_delta = self
@@ -62,7 +59,7 @@ impl TransactionServiceExt for TransactionService {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn get_latest_transactions(&mut self) -> DatamizeResult<Vec<TransactionDetail>> {
+    async fn get_latest_transactions(&self) -> DatamizeResult<Vec<TransactionDetail>> {
         self.refresh_saved_transactions().await?;
 
         Ok(self
@@ -99,12 +96,12 @@ impl TransactionServiceExt for TransactionService {
 }
 
 impl TransactionService {
-    pub fn new_boxed(
+    pub fn new_arced(
         ynab_transaction_repo: DynYnabTransactionRepo,
         ynab_transaction_meta_repo: DynYnabTransactionMetaRepo,
         ynab_client: Arc<dyn TransactionRequests + Send + Sync>,
-    ) -> Box<Self> {
-        Box::new(TransactionService {
+    ) -> Arc<Self> {
+        Arc::new(TransactionService {
             ynab_transaction_repo,
             ynab_transaction_meta_repo,
             ynab_client,

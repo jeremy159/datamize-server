@@ -3,7 +3,6 @@ use std::fmt;
 use anyhow::Context;
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use datamize_domain::{secrecy::Secret, EncryptedPassword, Uuid, WebScrapingAccount};
-use datamize_server::get_redis_connection_manager;
 use datamize_server::services::budget_providers::{
     ExternalAccountService, ExternalAccountServiceExt,
 };
@@ -104,21 +103,21 @@ async fn main() -> anyhow::Result<()> {
 
     let configuration = datamize_server::config::Settings::build()?;
     let db_conn_pool = db_postgres::get_connection_pool(configuration.database.with_db());
-    let redis_conn = get_redis_connection_manager(&configuration.redis)
+    let redis_conn_pool = db_redis::get_connection_pool(&configuration.redis.connection_string())
         .await
         .context("failed to get redis connection manager")?;
 
-    let mut external_account_service = ExternalAccountService {
-        external_account_repo: Box::new(PostgresExternalAccountRepo { db_conn_pool }),
-        encryption_key_repo: Box::new(RedisEncryptionKeyRepo { redis_conn }),
+    let external_account_service = ExternalAccountService {
+        external_account_repo: PostgresExternalAccountRepo::new_arced(db_conn_pool),
+        encryption_key_repo: RedisEncryptionKeyRepo::new_arced(redis_conn_pool),
     };
 
     match args.command {
         Commands::Create(create_args) => {
-            create_account(&mut external_account_service, args.name, create_args).await?
+            create_account(&external_account_service, args.name, create_args).await?
         }
         Commands::Update(updated_args) => {
-            update_account(&mut external_account_service, args.name, updated_args).await?
+            update_account(&external_account_service, args.name, updated_args).await?
         }
     }
 
@@ -126,7 +125,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn create_account(
-    external_account_service: &mut impl ExternalAccountServiceExt,
+    external_account_service: &impl ExternalAccountServiceExt,
     name: String,
     args: CreateArgs,
 ) -> anyhow::Result<()> {
@@ -155,7 +154,7 @@ async fn create_account(
 }
 
 async fn update_account(
-    external_account_service: &mut impl ExternalAccountServiceExt,
+    external_account_service: &impl ExternalAccountServiceExt,
     name: String,
     args: UpdateArgs,
 ) -> anyhow::Result<()> {
@@ -195,7 +194,7 @@ async fn update_account(
 }
 
 async fn get_encryption_key(
-    external_account_service: &mut impl ExternalAccountServiceExt,
+    external_account_service: &impl ExternalAccountServiceExt,
 ) -> anyhow::Result<SecretKey> {
     Ok(match external_account_service.get_encryption_key().await {
         Ok(ref val) => {

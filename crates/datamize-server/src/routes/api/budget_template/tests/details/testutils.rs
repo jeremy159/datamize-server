@@ -4,10 +4,14 @@ use async_trait::async_trait;
 use axum::Router;
 use datamize_domain::{
     db::{
-        ynab::{MockYnabCategoryMetaRepo, MockYnabScheduledTransactionMetaRepo},
+        ynab::{YnabCategoryMetaRepo, YnabScheduledTransactionMetaRepo},
         BudgeterConfigRepo, ExpenseCategorizationRepo,
     },
     BudgeterConfig, ExpenseCategorization,
+};
+use db_redis::{
+    budget_providers::ynab::{RedisYnabCategoryMetaRepo, RedisYnabScheduledTransactionMetaRepo},
+    get_test_pool,
 };
 use db_sqlite::{
     budget_providers::ynab::{SqliteYnabCategoryRepo, SqliteYnabScheduledTransactionRepo},
@@ -29,21 +33,26 @@ use crate::{
 };
 
 pub(crate) struct TestContext {
-    budgeter_config_repo: Box<SqliteBudgeterConfigRepo>,
-    expense_categorization_repo: Box<SqliteExpenseCategorizationRepo>,
+    budgeter_config_repo: Arc<SqliteBudgeterConfigRepo>,
+    expense_categorization_repo: Arc<SqliteExpenseCategorizationRepo>,
     app: Router,
 }
 
 impl TestContext {
-    pub(crate) fn setup(
+    pub(crate) async fn setup(
         pool: SqlitePool,
         ynab_categories: CategoryGroupWithCategoriesDelta,
         ynab_scheduled_transactions: ScheduledTransactionsDetailDelta,
     ) -> Self {
-        let budgeter_config_repo = SqliteBudgeterConfigRepo::new_boxed(pool.clone());
-        let ynab_category_repo = SqliteYnabCategoryRepo::new_boxed(pool.clone());
-        let ynab_category_meta_repo = MockYnabCategoryMetaRepo::new_boxed();
-        let expense_categorization_repo = SqliteExpenseCategorizationRepo::new_boxed(pool.clone());
+        let redis_conn_pool = get_test_pool().await;
+        let budgeter_config_repo = SqliteBudgeterConfigRepo::new_arced(pool.clone());
+        let ynab_category_repo = SqliteYnabCategoryRepo::new_arced(pool.clone());
+        let ynab_category_meta_repo = RedisYnabCategoryMetaRepo::new_arced(redis_conn_pool.clone());
+        ynab_category_meta_repo
+            .set_delta(Faker.fake())
+            .await
+            .unwrap();
+        let expense_categorization_repo = SqliteExpenseCategorizationRepo::new_arced(pool.clone());
         let mut ynab_client = Arc::new(MockMonthAndCategoriesRequestsImpl::new());
         let ynab_client_mock = Arc::make_mut(&mut ynab_client);
         ynab_client_mock
@@ -52,28 +61,32 @@ impl TestContext {
         ynab_client_mock
             .expect_get_month_by_date()
             .returning(|_| Ok(Faker.fake()));
-        let category_service = CategoryService::new_boxed(
+        let category_service = CategoryService::new_arced(
             ynab_category_repo,
             ynab_category_meta_repo,
             expense_categorization_repo.clone(),
             ynab_client,
         );
         let ynab_scheduled_transaction_repo =
-            SqliteYnabScheduledTransactionRepo::new_boxed(pool.clone());
+            SqliteYnabScheduledTransactionRepo::new_arced(pool.clone());
         let ynab_scheduled_transaction_meta_repo =
-            MockYnabScheduledTransactionMetaRepo::new_boxed();
+            RedisYnabScheduledTransactionMetaRepo::new_arced(redis_conn_pool);
+        ynab_scheduled_transaction_meta_repo
+            .set_delta(Faker.fake())
+            .await
+            .unwrap();
         let mut ynab_client = Arc::new(MockScheduledTransactionRequestsImpl::new());
         let ynab_client_mock = Arc::make_mut(&mut ynab_client);
         ynab_client_mock
             .expect_get_scheduled_transactions_delta()
             .returning(move |_| Ok(ynab_scheduled_transactions.clone()));
-        let scheduled_transaction_service = ScheduledTransactionService::new_boxed(
+        let scheduled_transaction_service = ScheduledTransactionService::new_arced(
             ynab_scheduled_transaction_repo,
             ynab_scheduled_transaction_meta_repo,
             ynab_client,
         );
 
-        let template_detail_service = TemplateDetailService::new_boxed(
+        let template_detail_service = TemplateDetailService::new_arced(
             category_service,
             scheduled_transaction_service,
             budgeter_config_repo.clone(),

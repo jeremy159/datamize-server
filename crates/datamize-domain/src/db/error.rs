@@ -41,15 +41,12 @@ impl From<sqlx::Error> for DbError {
     }
 }
 
-impl From<redis::RedisError> for DbError {
-    fn from(e: redis::RedisError) -> Self {
-        match e.kind() {
-            redis::ErrorKind::AuthenticationFailed
-            | redis::ErrorKind::BusyLoadingError
-            | redis::ErrorKind::ClusterDown
-            | redis::ErrorKind::MasterDown => Self::Unavailable,
-            redis::ErrorKind::ResponseError | redis::ErrorKind::TypeError => {
-                Self::DataIntegrityError(e.to_string())
+impl From<fred::error::RedisError> for DbError {
+    fn from(e: fred::error::RedisError) -> Self {
+        match e {
+            e if *e.kind() == fred::error::RedisErrorKind::NotFound => Self::NotFound,
+            e if e.details().starts_with("WRONGTYPE") => {
+                Self::DataIntegrityError(e.details().to_string())
             }
             _ => Self::BackendError(e.to_string()),
         }

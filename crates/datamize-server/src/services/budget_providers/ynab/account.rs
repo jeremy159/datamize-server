@@ -5,19 +5,16 @@ use datamize_domain::{
     async_trait,
     db::ynab::{DynYnabAccountMetaRepo, DynYnabAccountRepo},
 };
-use dyn_clone::{clone_trait_object, DynClone};
 use ynab::{Account, AccountRequests};
 
 use crate::error::DatamizeResult;
 
 #[async_trait]
-pub trait YnabAccountServiceExt: DynClone + Send + Sync {
-    async fn get_all_ynab_accounts(&mut self) -> DatamizeResult<Vec<Account>>;
+pub trait YnabAccountServiceExt: Send + Sync {
+    async fn get_all_ynab_accounts(&self) -> DatamizeResult<Vec<Account>>;
 }
 
-clone_trait_object!(YnabAccountServiceExt);
-
-pub type DynYnabAccountService = Box<dyn YnabAccountServiceExt>;
+pub type DynYnabAccountService = Arc<dyn YnabAccountServiceExt>;
 
 #[derive(Clone)]
 pub struct YnabAccountService {
@@ -29,7 +26,7 @@ pub struct YnabAccountService {
 #[async_trait]
 impl YnabAccountServiceExt for YnabAccountService {
     #[tracing::instrument(skip(self))]
-    async fn get_all_ynab_accounts(&mut self) -> DatamizeResult<Vec<Account>> {
+    async fn get_all_ynab_accounts(&self) -> DatamizeResult<Vec<Account>> {
         let saved_accounts_delta = self.ynab_account_meta_repo.get_delta().await.ok();
 
         let accounts_delta = self
@@ -65,12 +62,12 @@ impl YnabAccountServiceExt for YnabAccountService {
 }
 
 impl YnabAccountService {
-    pub fn new_boxed(
+    pub fn new_arced(
         ynab_account_repo: DynYnabAccountRepo,
         ynab_account_meta_repo: DynYnabAccountMetaRepo,
         ynab_client: Arc<dyn AccountRequests + Send + Sync>,
-    ) -> Box<Self> {
-        Box::new(YnabAccountService {
+    ) -> Arc<Self> {
+        Arc::new(YnabAccountService {
             ynab_account_repo,
             ynab_account_meta_repo,
             ynab_client,

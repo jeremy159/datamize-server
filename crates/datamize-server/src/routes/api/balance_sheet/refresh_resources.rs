@@ -18,7 +18,7 @@ use crate::{
 /// Will return an array of ids for Financial Resources updated.
 #[tracing::instrument(skip_all)]
 pub async fn refresh_balance_sheet_resources(
-    State(mut fin_res_service): State<DynRefreshFinResService>,
+    State(fin_res_service): State<DynRefreshFinResService>,
     payload: Result<Json<ResourcesToRefresh>, JsonRejection>,
 ) -> HttpJsonDatamizeResult<Vec<Uuid>> {
     println!("{payload:#?}");

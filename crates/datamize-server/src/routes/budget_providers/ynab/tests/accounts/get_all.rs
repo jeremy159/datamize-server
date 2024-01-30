@@ -21,7 +21,7 @@ async fn check_get_all(
     mut db_data: Option<DbData>,
     expected_status: StatusCode,
 ) {
-    let context = TestContext::setup(pool, ynab_data.0.clone());
+    let context = TestContext::setup(pool, ynab_data.0.clone()).await;
 
     if let Some(DbData(mut accounts)) = db_data.clone() {
         accounts.retain(|a| !a.deleted);

@@ -27,7 +27,7 @@ async fn check_get(
     db_data: Option<DbData>,
     expected_status: StatusCode,
 ) {
-    let context = TestContext::setup(pool, ynab_data.0, ynab_calls);
+    let context = TestContext::setup(pool, ynab_data.0, ynab_calls).await;
 
     if let Some(DbData(categories)) = db_data {
         context.set_categories(&categories).await;

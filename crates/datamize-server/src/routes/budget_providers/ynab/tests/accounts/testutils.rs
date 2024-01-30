@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
 use axum::Router;
-use datamize_domain::db::ynab::{MockYnabAccountMetaRepo, YnabAccountRepo};
+use datamize_domain::db::ynab::{YnabAccountMetaRepo, YnabAccountRepo};
+use db_redis::{budget_providers::ynab::RedisYnabAccountMetaRepo, get_test_pool};
 use db_sqlite::budget_providers::ynab::SqliteYnabAccountRepo;
+use fake::{Fake, Faker};
 use sqlx::SqlitePool;
 use ynab::{Account, AccountsDelta, MockAccountRequestsImpl};
 
@@ -12,21 +14,26 @@ use crate::{
 };
 
 pub(crate) struct TestContext {
-    ynab_account_repo: Box<SqliteYnabAccountRepo>,
+    ynab_account_repo: Arc<SqliteYnabAccountRepo>,
     app: Router,
 }
 
 impl TestContext {
-    pub(crate) fn setup(pool: SqlitePool, ynab_accounts: AccountsDelta) -> Self {
-        let ynab_account_repo = SqliteYnabAccountRepo::new_boxed(pool.clone());
-        let ynab_account_meta_repo = MockYnabAccountMetaRepo::new_boxed();
+    pub(crate) async fn setup(pool: SqlitePool, ynab_accounts: AccountsDelta) -> Self {
+        let redis_conn_pool = get_test_pool().await;
+        let ynab_account_repo = SqliteYnabAccountRepo::new_arced(pool.clone());
+        let ynab_account_meta_repo = RedisYnabAccountMetaRepo::new_arced(redis_conn_pool);
+        ynab_account_meta_repo
+            .set_delta(Faker.fake())
+            .await
+            .unwrap();
         let mut ynab_client = Arc::new(MockAccountRequestsImpl::new());
         let ynab_client_mock = Arc::make_mut(&mut ynab_client);
         ynab_client_mock
             .expect_get_accounts_delta()
             .returning(move |_| Ok(ynab_accounts.clone()));
 
-        let ynab_account_service = YnabAccountService::new_boxed(
+        let ynab_account_service = YnabAccountService::new_arced(
             ynab_account_repo.clone(),
             ynab_account_meta_repo,
             ynab_client,

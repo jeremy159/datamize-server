@@ -35,10 +35,9 @@ chrono.workspace = true
 futures.workspace = true
 orion.workspace = true
 thiserror.workspace = true
-dyn-clone.workspace = true
 sqlx.workspace = true
 
-axum = "0.6"
+axum = "0.6" # TODO: Update to axum 0.7 (and hyper 1.0)
 axum-extra = "^0.7.4"
 tower = "0.4.13"
 tower-request-id = "0.2.1"
@@ -57,6 +56,7 @@ itertools = "0.12.0"
 # Local Deps
 datamize-domain = { workspace = true, features = ["testutils"] }
 ynab = { workspace = true, features = ["testutils"] }
+db-redis = { workspace = true, features = ["testutils"] }
 db-sqlite.workspace = true
 
 # Non-Local Deps

@@ -30,7 +30,7 @@ async fn check_update(
     expected_status: StatusCode,
     expected_resp: Option<SavingRate>,
 ) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     if create_year {
         let year = req_body.clone().expect("missing body to create year").year;

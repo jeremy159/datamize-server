@@ -1,4 +1,5 @@
-use dyn_clone::{clone_trait_object, DynClone};
+use std::sync::Arc;
+
 use futures::{stream::FuturesUnordered, StreamExt};
 use ynab::TransactionDetail;
 
@@ -14,23 +15,18 @@ use crate::{
 };
 
 #[async_trait]
-pub trait SavingRateServiceExt: DynClone + Send + Sync {
-    async fn get_all_from_year(&mut self, year: i32) -> DatamizeResult<Vec<SavingRate>>;
-    async fn get_saving_rate(&mut self, saving_rate_id: Uuid) -> DatamizeResult<SavingRate>;
+pub trait SavingRateServiceExt: Send + Sync {
+    async fn get_all_from_year(&self, year: i32) -> DatamizeResult<Vec<SavingRate>>;
+    async fn get_saving_rate(&self, saving_rate_id: Uuid) -> DatamizeResult<SavingRate>;
     async fn create_saving_rate(
-        &mut self,
+        &self,
         new_saving_rate: SaveSavingRate,
     ) -> DatamizeResult<SavingRate>;
-    async fn update_saving_rate(
-        &mut self,
-        new_saving_rate: SavingRate,
-    ) -> DatamizeResult<SavingRate>;
-    async fn delete_saving_rate(&mut self, saving_rate_id: Uuid) -> DatamizeResult<SavingRate>;
+    async fn update_saving_rate(&self, new_saving_rate: SavingRate) -> DatamizeResult<SavingRate>;
+    async fn delete_saving_rate(&self, saving_rate_id: Uuid) -> DatamizeResult<SavingRate>;
 }
 
-clone_trait_object!(SavingRateServiceExt);
-
-pub type DynSavingRateService = Box<dyn SavingRateServiceExt>;
+pub type DynSavingRateService = Arc<dyn SavingRateServiceExt>;
 
 #[derive(Clone)]
 pub struct SavingRateService {
@@ -41,7 +37,7 @@ pub struct SavingRateService {
 #[async_trait]
 impl SavingRateServiceExt for SavingRateService {
     #[tracing::instrument(skip(self))]
-    async fn get_all_from_year(&mut self, year: i32) -> DatamizeResult<Vec<SavingRate>> {
+    async fn get_all_from_year(&self, year: i32) -> DatamizeResult<Vec<SavingRate>> {
         let mut saving_rates = self.saving_rate_repo.get_from_year(year).await?;
         self.transaction_service
             .refresh_saved_transactions()
@@ -57,7 +53,7 @@ impl SavingRateServiceExt for SavingRateService {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn get_saving_rate(&mut self, saving_rate_id: Uuid) -> DatamizeResult<SavingRate> {
+    async fn get_saving_rate(&self, saving_rate_id: Uuid) -> DatamizeResult<SavingRate> {
         let mut saving_rate = self.saving_rate_repo.get(saving_rate_id).await?;
         self.transaction_service
             .refresh_saved_transactions()
@@ -71,7 +67,7 @@ impl SavingRateServiceExt for SavingRateService {
 
     #[tracing::instrument(skip_all)]
     async fn create_saving_rate(
-        &mut self,
+        &self,
         new_saving_rate: SaveSavingRate,
     ) -> DatamizeResult<SavingRate> {
         let Err(DbError::NotFound) = self
@@ -95,10 +91,7 @@ impl SavingRateServiceExt for SavingRateService {
         Ok(saving_rate)
     }
 
-    async fn update_saving_rate(
-        &mut self,
-        new_saving_rate: SavingRate,
-    ) -> DatamizeResult<SavingRate> {
+    async fn update_saving_rate(&self, new_saving_rate: SavingRate) -> DatamizeResult<SavingRate> {
         let Ok(_) = self.saving_rate_repo.get(new_saving_rate.id).await else {
             return Err(AppError::ResourceNotFound);
         };
@@ -118,7 +111,7 @@ impl SavingRateServiceExt for SavingRateService {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn delete_saving_rate(&mut self, saving_rate_id: Uuid) -> DatamizeResult<SavingRate> {
+    async fn delete_saving_rate(&self, saving_rate_id: Uuid) -> DatamizeResult<SavingRate> {
         let mut saving_rate = self.saving_rate_repo.get(saving_rate_id).await?;
         self.saving_rate_repo.delete(saving_rate_id).await?;
 
@@ -134,17 +127,17 @@ impl SavingRateServiceExt for SavingRateService {
 }
 
 impl SavingRateService {
-    pub fn new_boxed(
+    pub fn new_arced(
         saving_rate_repo: DynSavingRateRepo,
         transaction_service: DynTransactionService,
-    ) -> Box<Self> {
-        Box::new(Self {
+    ) -> Arc<Self> {
+        Arc::new(Self {
             saving_rate_repo,
             transaction_service,
         })
     }
 
-    async fn get_transactions_for(&mut self, saving_rate: &SavingRate) -> Vec<TransactionDetail> {
+    async fn get_transactions_for(&self, saving_rate: &SavingRate) -> Vec<TransactionDetail> {
         let transactions = {
             let mut t1 = saving_rate
                 .savings

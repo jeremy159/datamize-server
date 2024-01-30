@@ -1,20 +1,19 @@
+use std::sync::Arc;
+
 use datamize_domain::{
     async_trait, db::DynBudgeterConfigRepo, BudgetDetails, Budgeter, Configured, MonthTarget,
 };
-use dyn_clone::{clone_trait_object, DynClone};
 
 use crate::error::DatamizeResult;
 
 use super::{DynCategoryService, DynScheduledTransactionService};
 
 #[async_trait]
-pub trait TemplateDetailServiceExt: DynClone + Send + Sync {
-    async fn get_template_details(&mut self, month: MonthTarget) -> DatamizeResult<BudgetDetails>;
+pub trait TemplateDetailServiceExt: Send + Sync {
+    async fn get_template_details(&self, month: MonthTarget) -> DatamizeResult<BudgetDetails>;
 }
 
-clone_trait_object!(TemplateDetailServiceExt);
-
-pub type DynTemplateDetailService = Box<dyn TemplateDetailServiceExt>;
+pub type DynTemplateDetailService = Arc<dyn TemplateDetailServiceExt>;
 
 #[derive(Clone)]
 pub struct TemplateDetailService {
@@ -24,12 +23,12 @@ pub struct TemplateDetailService {
 }
 
 impl TemplateDetailService {
-    pub fn new_boxed(
+    pub fn new_arced(
         category_service: DynCategoryService,
         scheduled_transaction_service: DynScheduledTransactionService,
         budgeter_config_repo: DynBudgeterConfigRepo,
-    ) -> Box<Self> {
-        Box::new(TemplateDetailService {
+    ) -> Arc<Self> {
+        Arc::new(TemplateDetailService {
             category_service,
             scheduled_transaction_service,
             budgeter_config_repo,
@@ -40,7 +39,7 @@ impl TemplateDetailService {
 #[async_trait]
 impl TemplateDetailServiceExt for TemplateDetailService {
     #[tracing::instrument(skip(self))]
-    async fn get_template_details(&mut self, month: MonthTarget) -> DatamizeResult<BudgetDetails> {
+    async fn get_template_details(&self, month: MonthTarget) -> DatamizeResult<BudgetDetails> {
         let (saved_categories, expenses_categorization) =
             self.category_service.get_categories_of_month(month).await?;
         let saved_scheduled_transactions = self
@@ -77,7 +76,7 @@ impl TemplateDetailServiceExt for TemplateDetailService {
 #[cfg(test)]
 mod tests {
     use datamize_domain::{
-        db::MockBudgeterConfigRepoImpl, DatamizeScheduledTransaction, ExpenseCategorization,
+        db::MockBudgeterConfigRepo, DatamizeScheduledTransaction, ExpenseCategorization,
     };
     use fake::{Fake, Faker};
     use ynab::Category;
@@ -94,7 +93,7 @@ mod tests {
         #[async_trait]
         impl CategoryServiceExt for MockCategoryService {
             async fn get_categories_of_month(
-                &mut self,
+                &self,
                 _month: MonthTarget,
             ) -> DatamizeResult<(Vec<Category>, Vec<ExpenseCategorization>)> {
                 Ok((
@@ -104,26 +103,26 @@ mod tests {
             }
         }
 
-        let category_service = Box::new(MockCategoryService {});
+        let category_service = Arc::new(MockCategoryService {});
         #[derive(Clone)]
         struct MockScheduledTransactionService {}
         #[async_trait]
         impl ScheduledTransactionServiceExt for MockScheduledTransactionService {
             async fn get_latest_scheduled_transactions(
-                &mut self,
+                &self,
             ) -> DatamizeResult<Vec<DatamizeScheduledTransaction>> {
                 Ok(fake::vec![DatamizeScheduledTransaction; 1..5])
             }
         }
 
-        let scheduled_transaction_service = Box::new(MockScheduledTransactionService {});
-        let mut budgeter_config_repo = Box::new(MockBudgeterConfigRepoImpl::new());
+        let scheduled_transaction_service = Arc::new(MockScheduledTransactionService {});
+        let budgeter_config_repo = Arc::new(MockBudgeterConfigRepo::new());
 
-        budgeter_config_repo
-            .expect_get_all()
-            .return_once(|| Ok(vec![Faker.fake(), Faker.fake()]));
+        // budgeter_config_repo
+        //     .expect_get_all()
+        //     .return_once(|| Ok(vec![Faker.fake(), Faker.fake()]));
 
-        let mut template_details_service = TemplateDetailService {
+        let template_details_service = TemplateDetailService {
             category_service,
             scheduled_transaction_service,
             budgeter_config_repo,

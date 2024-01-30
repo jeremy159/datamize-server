@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::{
     body::Body,
     http::{Request, StatusCode},
@@ -16,15 +18,12 @@ async fn get_template_summary_success_with_no_query_params() {
     struct MockTemplateSummaryService {}
     #[async_trait]
     impl TemplateSummaryServiceExt for MockTemplateSummaryService {
-        async fn get_template_summary(
-            &mut self,
-            month: MonthTarget,
-        ) -> DatamizeResult<BudgetSummary> {
+        async fn get_template_summary(&self, month: MonthTarget) -> DatamizeResult<BudgetSummary> {
             assert_eq!(month, MonthTarget::Current);
             Ok(BudgetSummary::default())
         }
     }
-    let template_summary_service = Box::new(MockTemplateSummaryService {});
+    let template_summary_service = Arc::new(MockTemplateSummaryService {});
 
     let app = get_summary_routes(template_summary_service);
     let response = app
@@ -50,15 +49,12 @@ async fn get_template_summary_success_with_query_params() {
     struct MockTemplateSummaryService {}
     #[async_trait]
     impl TemplateSummaryServiceExt for MockTemplateSummaryService {
-        async fn get_template_summary(
-            &mut self,
-            month: MonthTarget,
-        ) -> DatamizeResult<BudgetSummary> {
+        async fn get_template_summary(&self, month: MonthTarget) -> DatamizeResult<BudgetSummary> {
             assert_eq!(month, MonthTarget::Previous);
             Ok(BudgetSummary::default())
         }
     }
-    let template_summary_service = Box::new(MockTemplateSummaryService {});
+    let template_summary_service = Arc::new(MockTemplateSummaryService {});
 
     let app = get_summary_routes(template_summary_service);
     let response = app
@@ -84,14 +80,11 @@ async fn get_template_summary_error_400_with_unsupported_query_param_value() {
     struct MockTemplateSummaryService {}
     #[async_trait]
     impl TemplateSummaryServiceExt for MockTemplateSummaryService {
-        async fn get_template_summary(
-            &mut self,
-            _month: MonthTarget,
-        ) -> DatamizeResult<BudgetSummary> {
+        async fn get_template_summary(&self, _month: MonthTarget) -> DatamizeResult<BudgetSummary> {
             Ok(BudgetSummary::default())
         }
     }
-    let template_summary_service = Box::new(MockTemplateSummaryService {});
+    let template_summary_service = Arc::new(MockTemplateSummaryService {});
 
     let app = get_summary_routes(template_summary_service);
     let response = app

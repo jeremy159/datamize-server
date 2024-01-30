@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::Router;
 use datamize_domain::{
     db::{BudgeterConfigRepo, DbResult},
@@ -11,13 +13,13 @@ use crate::{
 };
 
 pub(crate) struct TestContext {
-    budgeter_config_repo: Box<SqliteBudgeterConfigRepo>,
+    budgeter_config_repo: Arc<SqliteBudgeterConfigRepo>,
     app: Router,
 }
 
 impl TestContext {
     pub(crate) fn setup(pool: SqlitePool) -> Self {
-        let budgeter_config_repo = SqliteBudgeterConfigRepo::new_boxed(pool.clone());
+        let budgeter_config_repo = SqliteBudgeterConfigRepo::new_arced(pool.clone());
 
         let budgeter_service = BudgeterService::new_arced(budgeter_config_repo.clone());
         let app = get_budgeter_routes(budgeter_service);

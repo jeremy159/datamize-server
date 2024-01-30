@@ -5,33 +5,17 @@ use datamize_domain::{
     async_trait,
     db::ynab::{DynYnabPayeeMetaRepo, DynYnabPayeeRepo},
 };
-use dyn_clone::{clone_trait_object, DynClone};
 use ynab::{Payee, PayeeRequests};
 
 use crate::error::DatamizeResult;
 
+#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
-pub trait YnabPayeeServiceExt: DynClone + Send + Sync {
-    async fn get_all_ynab_payees(&mut self) -> DatamizeResult<Vec<Payee>>;
+pub trait YnabPayeeServiceExt: Send + Sync {
+    async fn get_all_ynab_payees(&self) -> DatamizeResult<Vec<Payee>>;
 }
 
-clone_trait_object!(YnabPayeeServiceExt);
-
-pub type DynYnabPayeeService = Box<dyn YnabPayeeServiceExt>;
-
-#[cfg(test)]
-mockall::mock! {
-    pub YnabPayeeService {}
-
-    impl Clone for YnabPayeeService {
-        fn clone(&self) -> Self;
-    }
-
-    #[async_trait]
-    impl YnabPayeeServiceExt for YnabPayeeService {
-        async fn get_all_ynab_payees(&mut self) -> DatamizeResult<Vec<Payee>>;
-    }
-}
+pub type DynYnabPayeeService = Arc<dyn YnabPayeeServiceExt>;
 
 #[derive(Clone)]
 pub struct YnabPayeeService {
@@ -43,7 +27,7 @@ pub struct YnabPayeeService {
 #[async_trait]
 impl YnabPayeeServiceExt for YnabPayeeService {
     #[tracing::instrument(skip(self))]
-    async fn get_all_ynab_payees(&mut self) -> DatamizeResult<Vec<Payee>> {
+    async fn get_all_ynab_payees(&self) -> DatamizeResult<Vec<Payee>> {
         let saved_payees_delta = self.ynab_payee_meta_repo.get_delta().await.ok();
 
         let payees_delta = self
@@ -79,12 +63,12 @@ impl YnabPayeeServiceExt for YnabPayeeService {
 }
 
 impl YnabPayeeService {
-    pub fn new_boxed(
+    pub fn new_arced(
         ynab_payee_repo: DynYnabPayeeRepo,
         ynab_payee_meta_repo: DynYnabPayeeMetaRepo,
         ynab_client: Arc<dyn PayeeRequests + Send + Sync>,
-    ) -> Box<Self> {
-        Box::new(Self {
+    ) -> Arc<Self> {
+        Arc::new(Self {
             ynab_payee_repo,
             ynab_payee_meta_repo,
             ynab_client,

@@ -31,8 +31,8 @@ fn date_is_too_far_in_future() {
     let st = DatamizeScheduledTransaction {
         date_next: Local::now()
             .date_naive()
-            .checked_add_days(Days::new(1))
-            .and_then(|d| d.checked_add_months(Months::new(1)))
+            .checked_add_months(Months::new(1))
+            .and_then(|d| d.checked_add_days(Days::new(1)))
             .unwrap(),
         ..Faker.fake()
     };

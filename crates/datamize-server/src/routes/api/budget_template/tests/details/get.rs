@@ -31,7 +31,7 @@ async fn check_get(
     expected_status: StatusCode,
     expected_resp: Option<BudgetDetails>,
 ) {
-    let context = TestContext::setup(pool, ynab_data.0, ynab_data.1);
+    let context = TestContext::setup(pool, ynab_data.0, ynab_data.1).await;
 
     if let Some(DbData(budgeters_config, expenses_categorization)) = db_data {
         context.set_budgeters(&budgeters_config).await;

@@ -34,7 +34,8 @@ async fn check_refresh(
     let context = match create_year {
         true => TestContext::setup(pool, 1, ynab_accounts),
         false => TestContext::setup(pool, 0, ynab_accounts),
-    };
+    }
+    .await;
 
     let date = Local::now().date_naive();
     let year = date.year();

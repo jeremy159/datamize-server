@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use axum::Router;
-use datamize_domain::db::ynab::{MockYnabScheduledTransactionMetaRepo, YnabCategoryRepo};
+use datamize_domain::db::ynab::{YnabCategoryRepo, YnabScheduledTransactionMetaRepo};
+use db_redis::{budget_providers::ynab::RedisYnabScheduledTransactionMetaRepo, get_test_pool};
 use db_sqlite::budget_providers::ynab::{
     SqliteYnabCategoryRepo, SqliteYnabScheduledTransactionRepo,
 };
@@ -18,27 +19,32 @@ use crate::{
 };
 
 pub(crate) struct TestContext {
-    ynab_category_repo: Box<SqliteYnabCategoryRepo>,
+    ynab_category_repo: Arc<SqliteYnabCategoryRepo>,
     app: Router,
 }
 
 impl TestContext {
-    pub(crate) fn setup(
+    pub(crate) async fn setup(
         pool: SqlitePool,
         ynab_scheduled_transactions: ScheduledTransactionsDetailDelta,
         ynab_calls: usize,
     ) -> Self {
-        let ynab_category_repo = SqliteYnabCategoryRepo::new_boxed(pool.clone());
+        let redis_conn_pool = get_test_pool().await;
+        let ynab_category_repo = SqliteYnabCategoryRepo::new_arced(pool.clone());
         let ynab_scheduled_transaction_repo =
-            SqliteYnabScheduledTransactionRepo::new_boxed(pool.clone());
+            SqliteYnabScheduledTransactionRepo::new_arced(pool.clone());
         let ynab_scheduled_transaction_meta_repo =
-            MockYnabScheduledTransactionMetaRepo::new_boxed();
+            RedisYnabScheduledTransactionMetaRepo::new_arced(redis_conn_pool);
+        ynab_scheduled_transaction_meta_repo
+            .set_delta(Faker.fake())
+            .await
+            .unwrap();
         let mut ynab_client = Arc::new(MockScheduledTransactionRequestsImpl::new());
         let ynab_client_mock = Arc::make_mut(&mut ynab_client);
         ynab_client_mock
             .expect_get_scheduled_transactions_delta()
             .returning(move |_| Ok(ynab_scheduled_transactions.clone()));
-        let scheduled_transaction_service = ScheduledTransactionService::new_boxed(
+        let scheduled_transaction_service = ScheduledTransactionService::new_arced(
             ynab_scheduled_transaction_repo,
             ynab_scheduled_transaction_meta_repo,
             ynab_client,
@@ -51,7 +57,7 @@ impl TestContext {
             .times(ynab_calls)
             .returning(move |_| Ok(Faker.fake()));
 
-        let template_transaction_service = TemplateTransactionService::new_boxed(
+        let template_transaction_service = TemplateTransactionService::new_arced(
             scheduled_transaction_service,
             ynab_category_repo.clone(),
             ynab_client,

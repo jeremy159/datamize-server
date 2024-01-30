@@ -13,7 +13,7 @@ use crate::error::HttpJsonDatamizeResult;
 /// Possible values to pass in query params are `previous` and `next`. If nothing is specified,
 /// the current month will be used.
 pub async fn template_details(
-    State(mut template_detail_service): State<DynTemplateDetailService>,
+    State(template_detail_service): State<DynTemplateDetailService>,
     template_params: Query<TemplateParams>,
 ) -> HttpJsonDatamizeResult<BudgetDetails> {
     let month = template_params.month.unwrap_or_default();

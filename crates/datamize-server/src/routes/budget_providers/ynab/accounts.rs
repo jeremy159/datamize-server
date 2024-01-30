@@ -6,7 +6,7 @@ use crate::{error::HttpJsonDatamizeResult, services::budget_providers::DynYnabAc
 /// Returns all accounts from YNAB's API.
 #[tracing::instrument(name = "Get all accounts from YNAB's API", skip_all)]
 pub async fn get_ynab_accounts(
-    State(mut ynab_account_service): State<DynYnabAccountService>,
+    State(ynab_account_service): State<DynYnabAccountService>,
 ) -> HttpJsonDatamizeResult<Vec<Account>> {
     Ok(Json(ynab_account_service.get_all_ynab_accounts().await?))
 }

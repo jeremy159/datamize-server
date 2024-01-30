@@ -40,42 +40,42 @@ use crate::{
 pub fn get_budget_template_routes<S: Clone + Send + Sync + 'static>(
     app_state: &AppState,
 ) -> Router<S> {
-    let ynab_category_repo = PostgresYnabCategoryRepo::new_boxed(app_state.db_conn_pool.clone());
+    let ynab_category_repo = PostgresYnabCategoryRepo::new_arced(app_state.db_conn_pool.clone());
     let ynab_category_meta_repo =
-        RedisYnabCategoryMetaRepo::new_boxed(app_state.redis_conn.clone());
+        RedisYnabCategoryMetaRepo::new_arced(app_state.redis_conn_pool.clone());
     let ynab_scheduled_transaction_repo =
-        PostgresYnabScheduledTransactionRepo::new_boxed(app_state.db_conn_pool.clone());
+        PostgresYnabScheduledTransactionRepo::new_arced(app_state.db_conn_pool.clone());
     let ynab_scheduled_transaction_meta_repo =
-        RedisYnabScheduledTransactionMetaRepo::new_boxed(app_state.redis_conn.clone());
+        RedisYnabScheduledTransactionMetaRepo::new_arced(app_state.redis_conn_pool.clone());
     let expense_categorization_repo =
-        PostgresExpenseCategorizationRepo::new_boxed(app_state.db_conn_pool.clone());
+        PostgresExpenseCategorizationRepo::new_arced(app_state.db_conn_pool.clone());
     let budgeter_config_repo =
-        PostgresBudgeterConfigRepo::new_boxed(app_state.db_conn_pool.clone());
-    let category_service = CategoryService::new_boxed(
+        PostgresBudgeterConfigRepo::new_arced(app_state.db_conn_pool.clone());
+    let category_service = CategoryService::new_arced(
         ynab_category_repo.clone(),
         ynab_category_meta_repo,
         expense_categorization_repo.clone(),
         app_state.ynab_client.clone(),
     );
-    let scheduled_transaction_service = ScheduledTransactionService::new_boxed(
+    let scheduled_transaction_service = ScheduledTransactionService::new_arced(
         ynab_scheduled_transaction_repo,
         ynab_scheduled_transaction_meta_repo,
         app_state.ynab_client.clone(),
     );
 
-    let template_detail_service = TemplateDetailService::new_boxed(
+    let template_detail_service = TemplateDetailService::new_arced(
         category_service.clone(),
         scheduled_transaction_service.clone(),
         budgeter_config_repo.clone(),
     );
 
-    let template_summary_service = TemplateSummaryService::new_boxed(
+    let template_summary_service = TemplateSummaryService::new_arced(
         category_service,
         scheduled_transaction_service.clone(),
         budgeter_config_repo.clone(),
     );
 
-    let template_transaction_service = TemplateTransactionService::new_boxed(
+    let template_transaction_service = TemplateTransactionService::new_arced(
         scheduled_transaction_service,
         ynab_category_repo,
         app_state.ynab_client.clone(),

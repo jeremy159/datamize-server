@@ -69,6 +69,7 @@ impl FromStr for ResourceType {
     }
 }
 
+// TODO: Update flag 'editable' to instead be 'syncable', i.e. meaning the resource can be sync with either ynab or external accounts.
 /// A resource with economic value. It represents either an asset or a liability
 /// and adds more data to it.
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
@@ -114,6 +115,7 @@ impl BaseFinancialResource {
     }
 }
 
+// TODO: Make a resource the same with mutliple years.
 /// A resource represented within a year. It has a BTreeMap of balance per months.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct FinancialResourceYearly {

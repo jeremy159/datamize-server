@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::{
     body::Body,
     http::{Request, StatusCode},
@@ -16,15 +18,12 @@ async fn get_template_details_success_with_no_query_params() {
     struct MockTemplateDetailService {}
     #[async_trait]
     impl TemplateDetailServiceExt for MockTemplateDetailService {
-        async fn get_template_details(
-            &mut self,
-            month: MonthTarget,
-        ) -> DatamizeResult<BudgetDetails> {
+        async fn get_template_details(&self, month: MonthTarget) -> DatamizeResult<BudgetDetails> {
             assert_eq!(month, MonthTarget::Current);
             Ok(BudgetDetails::default())
         }
     }
-    let template_detail_service = Box::new(MockTemplateDetailService {});
+    let template_detail_service = Arc::new(MockTemplateDetailService {});
 
     let app = get_detail_routes(template_detail_service);
     let response = app
@@ -50,15 +49,12 @@ async fn get_template_details_success_with_query_params() {
     struct MockTemplateDetailService {}
     #[async_trait]
     impl TemplateDetailServiceExt for MockTemplateDetailService {
-        async fn get_template_details(
-            &mut self,
-            month: MonthTarget,
-        ) -> DatamizeResult<BudgetDetails> {
+        async fn get_template_details(&self, month: MonthTarget) -> DatamizeResult<BudgetDetails> {
             assert_eq!(month, MonthTarget::Previous);
             Ok(BudgetDetails::default())
         }
     }
-    let template_detail_service = Box::new(MockTemplateDetailService {});
+    let template_detail_service = Arc::new(MockTemplateDetailService {});
 
     let app = get_detail_routes(template_detail_service);
     let response = app
@@ -84,14 +80,11 @@ async fn get_template_details_error_400_with_unsupported_query_param_value() {
     struct MockTemplateDetailService {}
     #[async_trait]
     impl TemplateDetailServiceExt for MockTemplateDetailService {
-        async fn get_template_details(
-            &mut self,
-            _month: MonthTarget,
-        ) -> DatamizeResult<BudgetDetails> {
+        async fn get_template_details(&self, _month: MonthTarget) -> DatamizeResult<BudgetDetails> {
             Ok(BudgetDetails::default())
         }
     }
-    let template_detail_service = Box::new(MockTemplateDetailService {});
+    let template_detail_service = Arc::new(MockTemplateDetailService {});
 
     let app = get_detail_routes(template_detail_service);
     let response = app

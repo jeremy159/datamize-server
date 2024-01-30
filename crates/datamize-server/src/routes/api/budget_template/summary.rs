@@ -12,7 +12,7 @@ use crate::{error::HttpJsonDatamizeResult, services::budget_template::DynTemplat
 /// Possible values to pass in query params are `previous` and `next`. If nothing is specified,
 /// the current month will be used.
 pub async fn template_summary(
-    State(mut template_summary_service): State<DynTemplateSummaryService>,
+    State(template_summary_service): State<DynTemplateSummaryService>,
     template_params: Query<TemplateParams>,
 ) -> HttpJsonDatamizeResult<BudgetSummary> {
     let month = template_params.month.unwrap_or_default();

@@ -5,7 +5,6 @@ use datamize_domain::{
     async_trait, db::ynab::DynYnabCategoryRepo, CategoryIdToNameMap, DatamizeScheduledTransaction,
     ScheduledTransactionsDistribution, Uuid,
 };
-use dyn_clone::{clone_trait_object, DynClone};
 use futures::{stream::FuturesUnordered, StreamExt};
 use ynab::CategoryRequests;
 
@@ -14,15 +13,11 @@ use crate::error::DatamizeResult;
 use super::DynScheduledTransactionService;
 
 #[async_trait]
-pub trait TemplateTransactionServiceExt: DynClone + Send + Sync {
-    async fn get_template_transactions(
-        &mut self,
-    ) -> DatamizeResult<ScheduledTransactionsDistribution>;
+pub trait TemplateTransactionServiceExt: Send + Sync {
+    async fn get_template_transactions(&self) -> DatamizeResult<ScheduledTransactionsDistribution>;
 }
 
-clone_trait_object!(TemplateTransactionServiceExt);
-
-pub type DynTemplateTransactionService = Box<dyn TemplateTransactionServiceExt>;
+pub type DynTemplateTransactionService = Arc<dyn TemplateTransactionServiceExt>;
 
 #[derive(Clone)]
 pub struct TemplateTransactionService {
@@ -32,12 +27,12 @@ pub struct TemplateTransactionService {
 }
 
 impl TemplateTransactionService {
-    pub fn new_boxed(
+    pub fn new_arced(
         scheduled_transaction_service: DynScheduledTransactionService,
         ynab_category_repo: DynYnabCategoryRepo,
         ynab_client: Arc<dyn CategoryRequests + Sync + Send>,
-    ) -> Box<Self> {
-        Box::new(TemplateTransactionService {
+    ) -> Arc<Self> {
+        Arc::new(TemplateTransactionService {
             scheduled_transaction_service,
             ynab_category_repo,
             ynab_client,
@@ -58,9 +53,7 @@ impl TemplateTransactionService {
 #[async_trait]
 impl TemplateTransactionServiceExt for TemplateTransactionService {
     #[tracing::instrument(skip(self))]
-    async fn get_template_transactions(
-        &mut self,
-    ) -> DatamizeResult<ScheduledTransactionsDistribution> {
+    async fn get_template_transactions(&self) -> DatamizeResult<ScheduledTransactionsDistribution> {
         let saved_scheduled_transactions = self
             .scheduled_transaction_service
             .get_latest_scheduled_transactions()

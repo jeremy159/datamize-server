@@ -14,7 +14,6 @@ use tracing::error_span;
 
 use crate::{
     config::Settings,
-    get_redis_connection_manager,
     routes::{get_api_routes, get_budget_providers_routes, health_check},
 };
 
@@ -22,7 +21,7 @@ use crate::{
 pub struct AppState {
     pub ynab_client: Arc<ynab::Client>,
     pub db_conn_pool: PgPool,
-    pub redis_conn: db_redis::redis::aio::ConnectionManager,
+    pub redis_conn_pool: db_redis::RedisPool,
 }
 
 pub struct Application {
@@ -33,16 +32,16 @@ pub struct Application {
 
 impl Application {
     pub async fn build(configuration: Settings, db_conn_pool: PgPool) -> Result<Self> {
-        //TODO: Check if worth it to change to https://docs.rs/fred/latest/fred/ as async redis client
-        let redis_conn = get_redis_connection_manager(&configuration.redis)
-            .await
-            .context("failed to get redis connection manager")?;
+        let redis_conn_pool =
+            db_redis::get_connection_pool(&configuration.redis.connection_string())
+                .await
+                .context("failed to get redis connection pool")?;
         let ynab_client = Arc::new(configuration.ynab_client.client());
 
         let app_state = AppState {
             ynab_client,
             db_conn_pool,
-            redis_conn,
+            redis_conn_pool,
         };
 
         let address = format!(

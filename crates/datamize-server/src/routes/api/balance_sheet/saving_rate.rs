@@ -14,7 +14,7 @@ use crate::{
 #[tracing::instrument(name = "Get a saving rate", skip_all)]
 pub async fn balance_sheet_saving_rate(
     Path(saving_rate_id): Path<Uuid>,
-    State(mut saving_rate_service): State<DynSavingRateService>,
+    State(saving_rate_service): State<DynSavingRateService>,
 ) -> HttpJsonDatamizeResult<SavingRate> {
     Ok(Json(
         saving_rate_service.get_saving_rate(saving_rate_id).await?,
@@ -25,7 +25,7 @@ pub async fn balance_sheet_saving_rate(
 #[tracing::instrument(skip_all)]
 pub async fn update_balance_sheet_saving_rate(
     Path(_saving_rate_id): Path<Uuid>,
-    State(mut saving_rate_service): State<DynSavingRateService>,
+    State(saving_rate_service): State<DynSavingRateService>,
     WithRejection(Json(body), _): WithRejection<Json<SavingRate>, JsonError>,
 ) -> HttpJsonDatamizeResult<SavingRate> {
     Ok(Json(saving_rate_service.update_saving_rate(body).await?))
@@ -35,7 +35,7 @@ pub async fn update_balance_sheet_saving_rate(
 #[tracing::instrument(skip_all)]
 pub async fn delete_balance_sheet_saving_rate(
     Path(saving_rate_id): Path<Uuid>,
-    State(mut saving_rate_service): State<DynSavingRateService>,
+    State(saving_rate_service): State<DynSavingRateService>,
 ) -> HttpJsonDatamizeResult<SavingRate> {
     Ok(Json(
         saving_rate_service

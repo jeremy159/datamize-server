@@ -78,7 +78,7 @@ async fn check_create(
     expected_status: StatusCode,
     expected_resp: Option<SavingRate>,
 ) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     if create_year {
         let year = body.clone().expect("missing body to create year").year;
@@ -140,7 +140,7 @@ async fn returns_404_when_year_does_not_exist(pool: SqlitePool) {
 async fn returns_409_when_saving_rate_already_exists(pool: SqlitePool) {
     let body: CreateBody = Faker.fake();
     {
-        let context = TestContext::setup(pool.clone());
+        let context = TestContext::setup(pool.clone()).await;
         let year = body.year;
         context.insert_year(year).await;
         context.set_saving_rates(&[body.clone().into()]).await;

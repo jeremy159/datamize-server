@@ -16,14 +16,14 @@ use crate::{
 #[tracing::instrument(name = "Get all saving rates from a year", skip_all)]
 pub async fn balance_sheet_saving_rates(
     Path(year): Path<i32>,
-    State(mut saving_rate_service): State<DynSavingRateService>,
+    State(saving_rate_service): State<DynSavingRateService>,
 ) -> HttpJsonDatamizeResult<Vec<SavingRate>> {
     Ok(Json(saving_rate_service.get_all_from_year(year).await?))
 }
 
 #[tracing::instrument(skip_all)]
 pub async fn create_balance_sheet_saving_rate(
-    State(mut saving_rate_service): State<DynSavingRateService>,
+    State(saving_rate_service): State<DynSavingRateService>,
     WithRejection(Json(body), _): WithRejection<Json<SaveSavingRate>, JsonError>,
 ) -> Result<impl IntoResponse, AppError> {
     Ok((

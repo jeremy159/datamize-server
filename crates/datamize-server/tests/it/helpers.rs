@@ -1,9 +1,9 @@
 use datamize_server::{
-    config, get_redis_connection_manager,
+    config,
     startup::Application,
     telemetry::{get_subscriber, init_subscriber},
 };
-use db_redis::redis::aio::ConnectionManager;
+use db_redis::{get_connection_pool, RedisPool};
 use once_cell::sync::Lazy;
 use sqlx::PgPool;
 use wiremock::MockServer;
@@ -25,7 +25,7 @@ pub struct TestApp {
     pub address: String,
     pub port: u16,
     pub db_pool: PgPool,
-    pub redis_pool: ConnectionManager,
+    pub redis_pool: RedisPool,
     pub api_client: reqwest::Client,
     pub ynab_server: MockServer,
     pub ynab_client: ynab::Client,
@@ -67,7 +67,7 @@ pub async fn spawn_app(db_pool: PgPool) -> TestApp {
         address: format!("http://localhost:{}", application_port),
         port: application_port,
         db_pool,
-        redis_pool: get_redis_connection_manager(&configuration.redis)
+        redis_pool: get_connection_pool(&configuration.redis.connection_string())
             .await
             .expect("Failed to start connection to redis."),
         api_client: client,
