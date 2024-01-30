@@ -1,3 +1,4 @@
+use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -30,9 +31,12 @@ pub struct DateFormat {
 pub struct BaseBudgetSumary {
     pub id: Uuid,
     pub name: String,
-    pub last_modified_on: String,
-    pub first_month: String,
-    pub last_month: String,
+    #[cfg_attr(any(feature = "testutils", test), dummy(default))]
+    pub last_modified_on: Option<DateTime<Utc>>,
+    #[cfg_attr(any(feature = "testutils", test), dummy(default))]
+    pub first_month: Option<NaiveDate>,
+    #[cfg_attr(any(feature = "testutils", test), dummy(default))]
+    pub last_month: Option<NaiveDate>,
     pub date_format: DateFormat,
     pub currency_format: CurrencyFormat,
 }
@@ -72,9 +76,12 @@ impl AsRef<BaseBudgetSumary> for BudgetSummaryWithAccounts {
 pub struct BudgetDetail {
     pub id: Uuid,
     pub name: String,
-    pub last_modified_on: String,
-    pub first_month: String,
-    pub last_month: String,
+    #[cfg_attr(any(feature = "testutils", test), dummy(default))]
+    pub last_modified_on: Option<DateTime<Utc>>,
+    #[cfg_attr(any(feature = "testutils", test), dummy(default))]
+    pub first_month: Option<NaiveDate>,
+    #[cfg_attr(any(feature = "testutils", test), dummy(default))]
+    pub last_month: Option<NaiveDate>,
     pub date_format: DateFormat,
     pub currency_format: CurrencyFormat,
     pub accounts: Vec<Account>,
