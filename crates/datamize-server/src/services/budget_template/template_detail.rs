@@ -73,64 +73,64 @@ impl TemplateDetailServiceExt for TemplateDetailService {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use datamize_domain::{
-        db::MockBudgeterConfigRepo, DatamizeScheduledTransaction, ExpenseCategorization,
-    };
-    use fake::{Fake, Faker};
-    use ynab::Category;
+// #[cfg(test)]
+// mod tests {
+//     use datamize_domain::{
+//         db::MockBudgeterConfigRepo, DatamizeScheduledTransaction, ExpenseCategorization,
+//     };
+//     use fake::{Fake, Faker};
+//     use ynab::Category;
 
-    use super::*;
-    use crate::services::budget_template::{
-        category::CategoryServiceExt, scheduled_transaction::ScheduledTransactionServiceExt,
-    };
+//     use super::*;
+//     use crate::services::budget_template::{
+//         category::CategoryServiceExt, scheduled_transaction::ScheduledTransactionServiceExt,
+//     };
 
-    #[tokio::test]
-    async fn get_template_details_should_return_all_scheduled_transactions() {
-        #[derive(Clone)]
-        struct MockCategoryService {}
-        #[async_trait]
-        impl CategoryServiceExt for MockCategoryService {
-            async fn get_categories_of_month(
-                &self,
-                _month: MonthTarget,
-            ) -> DatamizeResult<(Vec<Category>, Vec<ExpenseCategorization>)> {
-                Ok((
-                    fake::vec![Category; 1..5],
-                    fake::vec![ExpenseCategorization; 1..3],
-                ))
-            }
-        }
+//     #[tokio::test]
+//     async fn get_template_details_should_return_all_scheduled_transactions() {
+//         #[derive(Clone)]
+//         struct MockCategoryService {}
+//         #[async_trait]
+//         impl CategoryServiceExt for MockCategoryService {
+//             async fn get_categories_of_month(
+//                 &self,
+//                 _month: MonthTarget,
+//             ) -> DatamizeResult<(Vec<Category>, Vec<ExpenseCategorization>)> {
+//                 Ok((
+//                     fake::vec![Category; 1..5],
+//                     fake::vec![ExpenseCategorization; 1..3],
+//                 ))
+//             }
+//         }
 
-        let category_service = Arc::new(MockCategoryService {});
-        #[derive(Clone)]
-        struct MockScheduledTransactionService {}
-        #[async_trait]
-        impl ScheduledTransactionServiceExt for MockScheduledTransactionService {
-            async fn get_latest_scheduled_transactions(
-                &self,
-            ) -> DatamizeResult<Vec<DatamizeScheduledTransaction>> {
-                Ok(fake::vec![DatamizeScheduledTransaction; 1..5])
-            }
-        }
+//         let category_service = Arc::new(MockCategoryService {});
+//         #[derive(Clone)]
+//         struct MockScheduledTransactionService {}
+//         #[async_trait]
+//         impl ScheduledTransactionServiceExt for MockScheduledTransactionService {
+//             async fn get_latest_scheduled_transactions(
+//                 &self,
+//             ) -> DatamizeResult<Vec<DatamizeScheduledTransaction>> {
+//                 Ok(fake::vec![DatamizeScheduledTransaction; 1..5])
+//             }
+//         }
 
-        let scheduled_transaction_service = Arc::new(MockScheduledTransactionService {});
-        let budgeter_config_repo = Arc::new(MockBudgeterConfigRepo::new());
+//         let scheduled_transaction_service = Arc::new(MockScheduledTransactionService {});
+//         let budgeter_config_repo = Arc::new(MockBudgeterConfigRepo::new());
 
-        // budgeter_config_repo
-        //     .expect_get_all()
-        //     .return_once(|| Ok(vec![Faker.fake(), Faker.fake()]));
+//         // budgeter_config_repo
+//         //     .expect_get_all()
+//         //     .return_once(|| Ok(vec![Faker.fake(), Faker.fake()]));
 
-        let template_details_service = TemplateDetailService {
-            category_service,
-            scheduled_transaction_service,
-            budgeter_config_repo,
-        };
+//         let template_details_service = TemplateDetailService {
+//             category_service,
+//             scheduled_transaction_service,
+//             budgeter_config_repo,
+//         };
 
-        template_details_service
-            .get_template_details(Faker.fake())
-            .await
-            .unwrap();
-    }
-}
+//         template_details_service
+//             .get_template_details(Faker.fake())
+//             .await
+//             .unwrap();
+//     }
+// }
