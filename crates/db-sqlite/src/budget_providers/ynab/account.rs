@@ -124,7 +124,6 @@ impl YnabAccountRepo for SqliteYnabAccountRepo {
                     debt_interest_rates,
                     debt_minimum_payments,
                     debt_escrow_amounts,
-                    
                 ).execute(&self.db_conn_pool).await?;
         }
 
