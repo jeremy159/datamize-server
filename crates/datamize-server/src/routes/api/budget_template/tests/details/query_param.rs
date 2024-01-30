@@ -5,6 +5,7 @@ use axum::{
     http::{Request, StatusCode},
 };
 use datamize_domain::{async_trait, BudgetDetails, MonthTarget};
+use http_body_util::BodyExt;
 use tower::ServiceExt;
 
 use crate::{
@@ -38,7 +39,7 @@ async fn get_template_details_success_with_no_query_params() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
     let body: BudgetDetails = serde_json::from_slice(&body).unwrap();
     assert_eq!(body, BudgetDetails::default());
 }
@@ -69,7 +70,7 @@ async fn get_template_details_success_with_query_params() {
 
     assert_eq!(response.status(), StatusCode::OK);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
     let body: BudgetDetails = serde_json::from_slice(&body).unwrap();
     assert_eq!(body, BudgetDetails::default());
 }

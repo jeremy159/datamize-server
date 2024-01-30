@@ -4,6 +4,7 @@ use axum::{
 };
 use datamize_domain::SavingRate;
 use fake::{Fake, Faker};
+use http_body_util::BodyExt;
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 use tower::ServiceExt;
@@ -49,7 +50,7 @@ async fn check_delete(
 
     assert_eq!(response.status(), expected_status);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     if let Some(mut expected_resp) = expected_resp {
         expected_resp.compute_totals(&transactions);

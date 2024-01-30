@@ -27,12 +27,12 @@ uuid.workspace = true
 chrono = { workspace = true, features = ["serde"] }
 async-trait.workspace = true
 reqwest = { version = "^0.11.18", default-features = false, features = ["json", "cookies", "rustls-tls"] }
-num-traits = "0.2.15"
+num-traits = "0.2"
 
 sqlx = { workspace = true, features = ["postgres"], optional = true }
-mockall = { version = "0.11.4", optional = true }
-fake = { version = "^2.6.1", optional = true, features = ["chrono", "derive", "uuid"] }
+mockall = { version = "0.12", optional = true }
+fake = { version = "^2.9", optional = true, features = ["chrono", "derive", "uuid"] }
 
 [dev-dependencies]
-fake = { version = "^2.6.1", features = ["chrono", "derive", "uuid"] }
-mockall = "0.11.4"
+fake = { version = "^2.9", features = ["chrono", "derive", "uuid"] }
+mockall = "0.12"

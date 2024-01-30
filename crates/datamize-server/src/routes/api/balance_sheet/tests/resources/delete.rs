@@ -4,6 +4,7 @@ use axum::{
 };
 use datamize_domain::FinancialResourceYearly;
 use fake::{Fake, Faker};
+use http_body_util::BodyExt;
 use pretty_assertions::{assert_eq, assert_ne};
 use sqlx::SqlitePool;
 use tower::ServiceExt;
@@ -62,7 +63,7 @@ async fn check_delete(
 
     assert_eq!(response.status(), expected_status);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     if let Some(expected) = expected_resp {
         let body: FinancialResourceYearly = serde_json::from_slice(&body).unwrap();

@@ -1,13 +1,10 @@
-use std::{
-    net::{SocketAddr, TcpListener},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use anyhow::{Context, Ok, Result};
 use axum::{body::Body, routing::get, Router};
 use http::{header::CONTENT_TYPE, Request};
 use sqlx::PgPool;
-use tokio::signal;
+use tokio::{net::TcpListener, signal};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tower_request_id::{RequestId, RequestIdLayer};
 use tracing::error_span;
@@ -25,7 +22,7 @@ pub struct AppState {
 }
 
 pub struct Application {
-    socket_addr: SocketAddr,
+    listener: TcpListener,
     port: u16,
     app: Router,
 }
@@ -49,7 +46,7 @@ impl Application {
             configuration.application.host, configuration.application.port
         );
 
-        let listener = TcpListener::bind(address)?;
+        let listener = TcpListener::bind(address).await?;
         let socket_addr = listener.local_addr().context(format!(
             "failed to parse {}:{} to SocketAddr",
             configuration.application.host, configuration.application.port
@@ -107,7 +104,7 @@ impl Application {
             .with_state(app_state);
 
         Ok(Self {
-            socket_addr,
+            listener,
             port,
             app,
         })
@@ -118,10 +115,9 @@ impl Application {
     }
 
     pub async fn run(self) -> Result<()> {
-        tracing::debug!("listening on {}", self.socket_addr);
+        tracing::debug!("listening on {}", self.listener.local_addr()?);
         // run it with hyper
-        axum::Server::bind(&self.socket_addr)
-            .serve(self.app.into_make_service())
+        axum::serve(self.listener, self.app.into_make_service())
             .with_graceful_shutdown(Application::shutdown_signal())
             .await
             .context("failed to start hyper server")?;

@@ -6,6 +6,7 @@ use chrono::{Datelike, NaiveDate};
 use datamize_domain::SavingRate;
 use db_sqlite::balance_sheet::sabotage_saving_rates_table;
 use fake::{faker::chrono::en::Date, Fake};
+use http_body_util::BodyExt;
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 use tower::ServiceExt;
@@ -49,7 +50,7 @@ async fn check_get_all(
 
     assert_eq!(response.status(), expected_status);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     if let Some(mut expected_resp) = expected_resp {
         expected_resp

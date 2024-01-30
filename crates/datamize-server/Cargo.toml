@@ -37,19 +37,19 @@ orion.workspace = true
 thiserror.workspace = true
 sqlx.workspace = true
 
-axum = "0.6" # TODO: Update to axum 0.7 (and hyper 1.0)
-axum-extra = "^0.7.4"
-tower = "0.4.13"
-tower-request-id = "0.2.1"
-tower-http = { version = "^0.4.1", features = ["trace", "cors"] }
-http = "0.2.9"
-tracing-subscriber = { version = "0.3.17", features = ["env-filter", "registry"] }
-tracing-log = "0.1.3"
-config = { version = "0.13.3", features = ["toml"], default-features = false }
-num-traits = "0.2.15"
-fantoccini = { version = "0.19.3", features = ["rustls-tls"] }
-nom = "7.1.3"
-itertools = "0.12.0"
+axum = "0.7"
+axum-extra = "^0.9"
+tower = "0.4"
+tower-request-id = "0.3"
+tower-http = { version = "^0.5", features = ["trace", "cors"] }
+http = "1.0"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "registry"] }
+tracing-log = "0.2"
+config = { version = "0.13", features = ["toml"], default-features = false }
+num-traits = "0.2"
+fantoccini = { version = "0.19", features = ["rustls-tls"] }
+nom = "7.1"
+itertools = "0.12"
 
 
 [dev-dependencies]
@@ -60,12 +60,13 @@ db-redis = { workspace = true, features = ["testutils"] }
 db-sqlite.workspace = true
 
 # Non-Local Deps
-fake = { version = "^2.6.1", features = ["chrono", "derive", "uuid"] }
-once_cell = "1.18"
-rand = "^0.8.5"
+fake = { version = "^2.9", features = ["chrono", "derive", "uuid"] }
+once_cell = "1.19"
+rand = "^0.8"
 reqwest = { version = "^0.11.18", default-features = false, features = ["json", "cookies", "rustls-tls"] }
 wiremock = "^0.5.19"
-mockall = "0.11.4"
-hyper = { version = "0.14", features = ["full"] }
+mockall = "0.12"
+hyper = { version = "1.1", features = ["full"] }
 serde_repr = "^0.1.14"
 pretty_assertions = "^1.4"
+http-body-util = "0.1"

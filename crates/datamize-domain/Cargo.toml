@@ -32,8 +32,8 @@ serde_repr = "^0.1.14"
 secrecy = { version = "0.8.0", features = ["serde"] }
 rayon = "1.8"
 
-mockall = { version = "0.11.4", optional = true }
-fake = { version = "^2.6.1", optional = true, features = [
+mockall = { version = "0.12", optional = true }
+fake = { version = "^2.9", optional = true, features = [
   "chrono",
   "derive",
   "uuid",
@@ -43,7 +43,7 @@ fake = { version = "^2.6.1", optional = true, features = [
 # Local Deps
 ynab = { workspace = true, features = ["testutils"] }
 
-fake = { version = "^2.6.1", features = ["chrono", "derive", "uuid"] }
-mockall = "0.11.4"
+fake = { version = "^2.9", features = ["chrono", "derive", "uuid"] }
+mockall = "0.12"
 pretty_assertions = "^1.4"
-rand = "^0.8.5"
+rand = "^0.8"

@@ -4,6 +4,7 @@ use axum::{
 };
 use datamize_domain::ExpenseCategorization;
 use db_sqlite::budget_template::sabotage_expenses_categorization_table;
+use http_body_util::BodyExt;
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 use tower::ServiceExt;
@@ -34,7 +35,7 @@ async fn check_get_all(
 
     assert_eq!(response.status(), expected_status);
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     if let Some(expected) = expected_resp {
         let body: Vec<ExpenseCategorization> = serde_json::from_slice(&body).unwrap();
