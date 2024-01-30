@@ -1,5 +1,6 @@
-use std::{fmt, str::FromStr};
+use std::{collections::HashMap, fmt, str::FromStr};
 
+use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -25,6 +26,16 @@ pub struct Account {
     pub transfer_payee_id: Uuid,
     pub direct_import_linked: Option<bool>,
     pub direct_import_in_error: Option<bool>,
+    #[cfg_attr(any(feature = "testutils", test), dummy(default))]
+    pub last_reconciled_at: Option<DateTime<Utc>>,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
+    pub debt_original_balance: Option<i64>,
+    #[cfg_attr(any(feature = "testutils", test), dummy(default))]
+    pub debt_interest_rates: HashMap<NaiveDate, i64>,
+    #[cfg_attr(any(feature = "testutils", test), dummy(default))]
+    pub debt_minimum_payments: HashMap<NaiveDate, i64>,
+    #[cfg_attr(any(feature = "testutils", test), dummy(default))]
+    pub debt_escrow_amounts: HashMap<NaiveDate, i64>,
     pub deleted: bool,
 }
 
@@ -52,6 +63,9 @@ pub enum AccountType {
     Mortgage,
     AutoLoan,
     StudentLoan,
+    PersonalLoan,
+    MedicalDebt,
+    OtherDebt,
 }
 
 impl fmt::Display for AccountType {
@@ -67,6 +81,9 @@ impl fmt::Display for AccountType {
             AccountType::Mortgage => write!(f, "mortgage"),
             AccountType::AutoLoan => write!(f, "autoLoan"),
             AccountType::StudentLoan => write!(f, "studentLoan"),
+            AccountType::PersonalLoan => write!(f, "personalLoan"),
+            AccountType::MedicalDebt => write!(f, "medicalDebt"),
+            AccountType::OtherDebt => write!(f, "otherDebt"),
         }
     }
 }
@@ -89,6 +106,9 @@ impl FromStr for AccountType {
             "mortgage" => Ok(AccountType::Mortgage),
             "autoLoan" => Ok(AccountType::AutoLoan),
             "studentLoan" => Ok(AccountType::StudentLoan),
+            "personalLoan" => Ok(AccountType::PersonalLoan),
+            "medicalDebt" => Ok(AccountType::MedicalDebt),
+            "otherDebt" => Ok(AccountType::OtherDebt),
             _ => Err(ParseAccountTypeError),
         }
     }

@@ -1,0 +1,31 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    INSERT INTO accounts (id, name, type, on_budget, closed, note, balance, cleared_balance, uncleared_balance, transfer_payee_id, direct_import_linked, direct_import_in_error, deleted, last_reconciled_at, debt_original_balance, debt_interest_rates, debt_minimum_payments, debt_escrow_amounts)\n                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)\n                    ON CONFLICT (id) DO UPDATE SET\n                    name = EXCLUDED.name,\n                    type = EXCLUDED.type,\n                    on_budget = EXCLUDED.on_budget,\n                    closed = EXCLUDED.closed,\n                    note = EXCLUDED.note,\n                    balance = EXCLUDED.balance,\n                    cleared_balance = EXCLUDED.cleared_balance,\n                    uncleared_balance = EXCLUDED.uncleared_balance,\n                    transfer_payee_id = EXCLUDED.transfer_payee_id,\n                    direct_import_linked = EXCLUDED.direct_import_linked,\n                    direct_import_in_error = EXCLUDED.direct_import_in_error,\n                    deleted = EXCLUDED.deleted,\n                    last_reconciled_at = EXCLUDED.last_reconciled_at,\n                    debt_original_balance = EXCLUDED.debt_original_balance,\n                    debt_interest_rates = EXCLUDED.debt_interest_rates,\n                    debt_minimum_payments = EXCLUDED.debt_minimum_payments,\n                    debt_escrow_amounts = EXCLUDED.debt_escrow_amounts;\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Varchar",
+        "Bool",
+        "Bool",
+        "Text",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Uuid",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Timestamptz",
+        "Int8",
+        "Jsonb",
+        "Jsonb",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ac41565f86eaba43858fd5648a658b4fbacc94b410744758beaa7ce495507770"
+}

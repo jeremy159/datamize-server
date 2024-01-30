@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT \n                id as \"id: Uuid\",\n                name,\n                type AS \"account_type: AccountType\",\n                on_budget,\n                closed,\n                note,\n                balance,\n                cleared_balance,\n                uncleared_balance,\n                transfer_payee_id as \"transfer_payee_id: Uuid\",\n                direct_import_linked,\n                direct_import_in_error,\n                deleted\n            FROM accounts\n            ",
+  "query": "\n            SELECT \n                id as \"id: Uuid\",\n                name,\n                type AS \"account_type: AccountType\",\n                on_budget,\n                closed,\n                note,\n                balance,\n                cleared_balance,\n                uncleared_balance,\n                transfer_payee_id as \"transfer_payee_id: Uuid\",\n                direct_import_linked,\n                direct_import_in_error,\n                deleted,\n                last_reconciled_at as \"last_reconciled_at: DateTime<Utc>\",\n                debt_original_balance,\n                debt_interest_rates,\n                debt_minimum_payments,\n                debt_escrow_amounts\n            FROM accounts\n            ",
   "describe": {
     "columns": [
       {
@@ -67,6 +67,31 @@
         "name": "deleted",
         "ordinal": 12,
         "type_info": "Bool"
+      },
+      {
+        "name": "last_reconciled_at: DateTime<Utc>",
+        "ordinal": 13,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "debt_original_balance",
+        "ordinal": 14,
+        "type_info": "Int64"
+      },
+      {
+        "name": "debt_interest_rates",
+        "ordinal": 15,
+        "type_info": "Text"
+      },
+      {
+        "name": "debt_minimum_payments",
+        "ordinal": 16,
+        "type_info": "Text"
+      },
+      {
+        "name": "debt_escrow_amounts",
+        "ordinal": 17,
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -85,8 +110,13 @@
       false,
       true,
       true,
+      false,
+      true,
+      true,
+      false,
+      false,
       false
     ]
   },
-  "hash": "c0ee39ab5ee5c1fd45c342fc36e508f433d7d021cac2103ed3225c15d6d75f1d"
+  "hash": "cc15aa7f6e20a14982393af0d4e8622443c68013fb46483e1a3b9a9bf604ffa7"
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                id,\n                name,\n                type AS \"account_type: AccountType\",\n                on_budget,\n                closed,\n                note,\n                balance,\n                cleared_balance,\n                uncleared_balance,\n                transfer_payee_id,\n                direct_import_linked,\n                direct_import_in_error,\n                deleted\n            FROM accounts\n            ",
+  "query": "\n            SELECT \n                id,\n                name,\n                type,\n                on_budget,\n                closed,\n                note,\n                balance,\n                cleared_balance,\n                uncleared_balance,\n                transfer_payee_id,\n                direct_import_linked,\n                direct_import_in_error,\n                deleted,\n                last_reconciled_at,\n                debt_original_balance,\n                debt_interest_rates,\n                debt_minimum_payments,\n                debt_escrow_amounts\n            FROM accounts\n            ",
   "describe": {
     "columns": [
       {
@@ -15,7 +15,7 @@
       },
       {
         "ordinal": 2,
-        "name": "account_type: AccountType",
+        "name": "type",
         "type_info": "Varchar"
       },
       {
@@ -67,6 +67,31 @@
         "ordinal": 12,
         "name": "deleted",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 13,
+        "name": "last_reconciled_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "debt_original_balance",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 15,
+        "name": "debt_interest_rates",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 16,
+        "name": "debt_minimum_payments",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 17,
+        "name": "debt_escrow_amounts",
+        "type_info": "Jsonb"
       }
     ],
     "parameters": {
@@ -85,8 +110,13 @@
       false,
       true,
       true,
+      false,
+      true,
+      true,
+      false,
+      false,
       false
     ]
   },
-  "hash": "f08693e788803ac32a0a963847b5a69cddd566181fbdc22128c2df3e50ecd2c7"
+  "hash": "4b677dbe44951b6dfd370011b27bb3dde65e04886d261853f1a426928b54e9d3"
 }
