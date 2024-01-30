@@ -86,10 +86,11 @@ fn compute_projected_amount_is_goal_target_when_goal_not_plan_spending() {
     ];
     let category = Category {
         goal_type: Some(goals.choose(&mut rand::thread_rng()).unwrap().to_owned()),
+        goal_target: Some((0..100000).fake()),
         ..Faker.fake()
     };
     let st = fake::vec![DatamizeScheduledTransaction; 1];
-    let goal_target = category.goal_target;
+    let goal_target = category.goal_target.unwrap();
 
     check_method_projected_amount(
         category,
@@ -107,9 +108,10 @@ fn compute_projected_amount_when_goal_target_is_plan_spending_and_cadence_monthl
         goal_type: Some(GoalType::PlanYourSpending),
         goal_cadence: Some(1),
         goal_cadence_frequency: Some((1..13).fake()),
+        goal_target: Some((0..100000).fake()),
         ..Faker.fake()
     };
-    let goal_target = category.goal_target;
+    let goal_target = category.goal_target.unwrap();
     let goal_cadence_frequency = category.goal_cadence_frequency.unwrap() as i64;
     check_method_projected_amount(
         category.clone(),
@@ -121,7 +123,7 @@ fn compute_projected_amount_when_goal_target_is_plan_spending_and_cadence_monthl
     );
 
     category.goal_cadence_frequency = None;
-    let goal_target = category.goal_target;
+    let goal_target = category.goal_target.unwrap();
     check_method_projected_amount(
         category.clone(),
         vec![],
@@ -156,9 +158,10 @@ fn compute_projected_amount_when_goal_target_is_plan_spending_and_cadence_weekly
         goal_cadence_frequency: Some(1),
         goal_day: Some(date_first.weekday().num_days_from_sunday() as i32),
         goal_creation_month: Some(date_first),
+        goal_target: Some((0..100000).fake()),
         ..Faker.fake()
     };
-    let goal_target = category.goal_target;
+    let goal_target = category.goal_target.unwrap();
     check_method_projected_amount(
         category.clone(),
         vec![],
@@ -169,7 +172,7 @@ fn compute_projected_amount_when_goal_target_is_plan_spending_and_cadence_weekly
     );
 
     category.goal_creation_month = Some(date_first.checked_add_days(Days::new(7)).unwrap());
-    let goal_target = category.goal_target;
+    let goal_target = category.goal_target.unwrap();
     check_method_projected_amount(
         category.clone(),
         vec![],
@@ -181,7 +184,7 @@ fn compute_projected_amount_when_goal_target_is_plan_spending_and_cadence_weekly
 
     category.goal_creation_month = Some(date_first);
     category.goal_cadence_frequency = Some(2);
-    let goal_target = category.goal_target;
+    let goal_target = category.goal_target.unwrap();
     check_method_projected_amount(
         category.clone(),
         vec![],
@@ -220,9 +223,10 @@ fn compute_projected_amount_when_goal_target_is_plan_spending_and_cadence_every_
         goal_type: Some(GoalType::PlanYourSpending),
         goal_cadence: Some(14),
         goal_cadence_frequency: Faker.fake(),
+        goal_target: Some((0..100000).fake()),
         ..Faker.fake()
     };
-    let goal_target = category.goal_target;
+    let goal_target = category.goal_target.unwrap();
     check_method_projected_amount(
         category,
         vec![],
@@ -241,9 +245,10 @@ fn compute_projected_amount_when_goal_target_is_plan_spending_and_cadence_every_
         goal_type: Some(GoalType::PlanYourSpending),
         goal_cadence: Some(cadence),
         goal_cadence_frequency: Faker.fake(),
+        goal_target: Some((0..100000).fake()),
         ..Faker.fake()
     };
-    let goal_target = category.goal_target;
+    let goal_target = category.goal_target.unwrap();
     check_method_projected_amount(
         category,
         vec![],

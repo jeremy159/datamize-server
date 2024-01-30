@@ -15,7 +15,7 @@ CREATE TABLE categories(
   goal_cadence INTEGER,
   goal_cadence_frequency INTEGER,
   goal_creation_month DATE,
-  goal_target BIGINT NOT NULL,
+  goal_target BIGINT,
   goal_target_month DATE,
   goal_percentage_complete INTEGER,
   goal_months_to_budget INTEGER,

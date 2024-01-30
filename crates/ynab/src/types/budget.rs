@@ -32,13 +32,13 @@ pub struct BaseBudgetSumary {
     pub id: Uuid,
     pub name: String,
     #[cfg_attr(any(feature = "testutils", test), dummy(default))]
-    pub last_modified_on: Option<DateTime<Utc>>,
+    pub last_modified_on: DateTime<Utc>,
     #[cfg_attr(any(feature = "testutils", test), dummy(default))]
-    pub first_month: Option<NaiveDate>,
+    pub first_month: NaiveDate,
     #[cfg_attr(any(feature = "testutils", test), dummy(default))]
-    pub last_month: Option<NaiveDate>,
-    pub date_format: DateFormat,
-    pub currency_format: CurrencyFormat,
+    pub last_month: NaiveDate,
+    pub date_format: Option<DateFormat>,
+    pub currency_format: Option<CurrencyFormat>,
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
@@ -77,13 +77,13 @@ pub struct BudgetDetail {
     pub id: Uuid,
     pub name: String,
     #[cfg_attr(any(feature = "testutils", test), dummy(default))]
-    pub last_modified_on: Option<DateTime<Utc>>,
+    pub last_modified_on: DateTime<Utc>,
     #[cfg_attr(any(feature = "testutils", test), dummy(default))]
-    pub first_month: Option<NaiveDate>,
+    pub first_month: NaiveDate,
     #[cfg_attr(any(feature = "testutils", test), dummy(default))]
-    pub last_month: Option<NaiveDate>,
-    pub date_format: DateFormat,
-    pub currency_format: CurrencyFormat,
+    pub last_month: NaiveDate,
+    pub date_format: Option<DateFormat>,
+    pub currency_format: Option<CurrencyFormat>,
     pub accounts: Vec<Account>,
     pub payees: Vec<Payee>,
     pub payee_locations: Vec<PayeeLocation>,

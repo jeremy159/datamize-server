@@ -166,21 +166,22 @@ impl Expense<Uncomputed> {
                 match (
                     self.category.goal_cadence,
                     self.category.goal_cadence_frequency,
+                    self.category.goal_target,
                 ) {
-                    (Some(1), Some(freq)) if freq > 0 => self.category.goal_target / freq as i64, // Goal repeats X months
-                    (Some(1), None) => self.category.goal_target, // Goal repeats monthly
-                    (Some(2), Some(freq)) if freq > 0 => self
+                    (Some(1), Some(freq), Some(target)) if freq > 0 => target / freq as i64, // Goal repeats X months
+                    (Some(1), None, Some(target)) => target, // Goal repeats monthly
+                    (Some(2), Some(freq), Some(target)) if freq > 0 => self
                         .compute_monthly_target_for_weekly_goal_cadence(
                             freq as u16,
                             self.category.get_goal_day_as_weekday(),
-                            self.category.goal_target,
+                            target,
                         ), // Goal repeats weekly
-                    (Some(cad @ 3..=13), _) => self.category.goal_target / (cad - 1) as i64, // Goal repeats X months (up to yearly)
-                    (Some(14), _) => self.category.goal_target / 24, // Goal repeats every 2 years
-                    (_, _) => 0,
+                    (Some(cad @ 3..=13), _, Some(target)) => target / (cad - 1) as i64, // Goal repeats X months (up to yearly)
+                    (Some(14), _, Some(target)) => target / 24, // Goal repeats every 2 years
+                    (_, _, _) => 0,
                 }
             }
-            Some(_) => self.category.goal_target,
+            Some(_) => self.category.goal_target.unwrap_or(0),
             None => 0,
         }
     }

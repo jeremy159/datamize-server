@@ -46,7 +46,7 @@ pub struct Category {
     #[cfg_attr(any(feature = "testutils", test), dummy(default))]
     pub goal_creation_month: Option<chrono::NaiveDate>,
     #[cfg_attr(any(feature = "testutils", test), dummy(faker = "0..100000"))]
-    pub goal_target: i64,
+    pub goal_target: Option<i64>,
     #[cfg_attr(any(feature = "testutils", test), dummy(default))]
     pub goal_target_month: Option<chrono::NaiveDate>,
     #[cfg_attr(any(feature = "testutils", test), dummy(faker = "0..100"))]
