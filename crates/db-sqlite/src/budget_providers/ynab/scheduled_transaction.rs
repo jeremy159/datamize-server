@@ -30,7 +30,7 @@ impl YnabScheduledTransactionRepo for SqliteYnabScheduledTransactionRepo {
                 id as "id: Uuid",
                 date_first as "date_first: NaiveDate",
                 date_next as "date_next: NaiveDate",
-                frequency as "frequency?: RecurFrequency",
+                frequency as "frequency: RecurFrequency",
                 amount,
                 memo,
                 flag_color,

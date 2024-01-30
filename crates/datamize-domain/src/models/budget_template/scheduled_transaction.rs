@@ -2,7 +2,10 @@ use chrono::{DateTime, Datelike, Days, Local, Months, NaiveDate, NaiveTime, Time
 use rrule::Tz;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use ynab::types::{RecurFrequency, ScheduledTransactionDetail, SubTransaction};
+use ynab::{
+    types::{RecurFrequency, ScheduledTransactionDetail},
+    ScheduledSubTransaction,
+};
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -12,7 +15,7 @@ pub struct DatamizeScheduledTransaction {
     pub date_first: chrono::NaiveDate,
     #[cfg_attr(any(feature = "testutils", test), dummy(default))]
     pub date_next: chrono::NaiveDate,
-    pub frequency: Option<RecurFrequency>,
+    pub frequency: RecurFrequency,
     #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-100000..-1"))]
     pub amount: i64,
     pub memo: Option<String>,
@@ -23,7 +26,7 @@ pub struct DatamizeScheduledTransaction {
     pub account_name: String,
     pub payee_name: Option<String>,
     pub category_name: Option<String>,
-    pub subtransactions: Vec<SubTransaction>,
+    pub subtransactions: Vec<ScheduledSubTransaction>,
 }
 
 impl DatamizeScheduledTransaction {
@@ -87,46 +90,43 @@ impl DatamizeScheduledTransaction {
     /// but when the data received was invalid, or there was an issue with building the rrule, it returns None,
     /// as nothing could be done to determine if future transactions repeat
     pub fn get_repeated_transactions(&self) -> Option<Vec<DatamizeScheduledTransaction>> {
-        if let Some(ref frequency) = self.frequency {
-            if let RecurFrequency::Daily
-            | RecurFrequency::Weekly
-            | RecurFrequency::EveryOtherWeek
-            | RecurFrequency::TwiceAMonth
-            | RecurFrequency::Every4Weeks = frequency
-            {
-                let date_time = NaiveTime::from_hms_opt(0, 0, 0).and_then(|time| {
+        if let RecurFrequency::Daily
+        | RecurFrequency::Weekly
+        | RecurFrequency::EveryOtherWeek
+        | RecurFrequency::TwiceAMonth
+        | RecurFrequency::Every4Weeks = self.frequency
+        {
+            let date_time = NaiveTime::from_hms_opt(0, 0, 0).and_then(|time| {
+                Tz::Local(Local)
+                    .from_local_datetime(&self.date_next.and_time(time))
+                    .single()
+            })?;
+
+            let next_30_days = Local::now()
+                .checked_add_months(Months::new(1))
+                .and_then(|d| {
                     Tz::Local(Local)
-                        .from_local_datetime(&self.date_next.and_time(time))
+                        .from_local_datetime(&d.naive_local())
                         .single()
                 })?;
 
-                let next_30_days =
-                    Local::now()
-                        .checked_add_months(Months::new(1))
-                        .and_then(|d| {
-                            Tz::Local(Local)
-                                .from_local_datetime(&d.naive_local())
-                                .single()
-                        })?;
+            if date_time <= next_30_days {
+                if let Some(rrule) = self.frequency.as_rfc5545_rule() {
+                    // Range is first day included to last day included
+                    let rrule = rrule.until(next_30_days);
 
-                if date_time <= next_30_days {
-                    if let Some(rrule) = frequency.as_rfc5545_rule() {
-                        // Range is first day included to last day included
-                        let rrule = rrule.until(next_30_days);
-
-                        let rrule_set = rrule.build(date_time).ok()?;
-                        return Some(
-                            rrule_set
-                                .into_iter()
-                                .skip_while(|date| date.date_naive() == self.date_next) // Skip the first iteration as it's simply the current date_next
-                                .map(|date| DatamizeScheduledTransaction {
-                                    subtransactions: vec![],
-                                    date_next: date.date_naive(),
-                                    ..self.clone()
-                                })
-                                .collect(),
-                        );
-                    }
+                    let rrule_set = rrule.build(date_time).ok()?;
+                    return Some(
+                        rrule_set
+                            .into_iter()
+                            .skip_while(|date| date.date_naive() == self.date_next) // Skip the first iteration as it's simply the current date_next
+                            .map(|date| DatamizeScheduledTransaction {
+                                subtransactions: vec![],
+                                date_next: date.date_naive(),
+                                ..self.clone()
+                            })
+                            .collect(),
+                    );
                 }
             }
         }
@@ -144,7 +144,7 @@ impl DatamizeScheduledTransaction {
         &self,
         date: &DateTime<Local>,
     ) -> Option<Vec<NaiveDate>> {
-        if let Some(ref frequency) = self.frequency {
+        if self.frequency != RecurFrequency::Never {
             let last_day_curr_month = date
                 .checked_add_months(Months::new(1))
                 .and_then(|d| d.with_day(1))
@@ -162,7 +162,7 @@ impl DatamizeScheduledTransaction {
                 .and_then(|d| Tz::Local(Local).from_local_datetime(&d).single())?;
 
             if self.date_first <= last_day_curr_month.date_naive() {
-                if let Some(rrule) = frequency.as_rfc5545_rule() {
+                if let Some(rrule) = self.frequency.as_rfc5545_rule() {
                     let first_date_time = NaiveTime::from_hms_opt(0, 0, 0).and_then(|time| {
                         Tz::Local(Local)
                             .from_local_datetime(&self.date_first.and_time(time))

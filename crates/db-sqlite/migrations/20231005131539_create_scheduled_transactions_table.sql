@@ -3,7 +3,7 @@ CREATE TABLE scheduled_transactions(
   id BLOB NOT NULL,
   date_first DATE NOT NULL,
   date_next DATE NOT NULL,
-  frequency TEXT,
+  frequency TEXT NOT NULL,
   amount BIGINT NOT NULL,
   memo TEXT,
   flag_color TEXT,

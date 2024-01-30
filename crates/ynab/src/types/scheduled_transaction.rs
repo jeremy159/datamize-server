@@ -3,8 +3,6 @@ use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
 use uuid::Uuid;
 
-use crate::SubTransaction;
-
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[cfg_attr(feature = "sqlx-postgres", derive(sqlx::Type))]
 #[cfg_attr(feature = "sqlx-postgres", sqlx(type_name = "frequency"))]
@@ -115,7 +113,7 @@ pub struct ScheduledTransactionSummary {
     pub date_first: chrono::NaiveDate,
     #[cfg_attr(any(feature = "testutils", test), dummy(default))]
     pub date_next: chrono::NaiveDate,
-    pub frequency: Option<RecurFrequency>,
+    pub frequency: RecurFrequency,
     #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-100000..100000"))]
     pub amount: i64,
     pub memo: Option<String>,
@@ -137,7 +135,7 @@ pub struct ScheduledTransactionDetail {
     pub date_first: chrono::NaiveDate,
     #[cfg_attr(any(feature = "testutils", test), dummy(default))]
     pub date_next: chrono::NaiveDate,
-    pub frequency: Option<RecurFrequency>,
+    pub frequency: RecurFrequency,
     #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-100000..100000"))]
     pub amount: i64,
     pub memo: Option<String>,
@@ -150,7 +148,21 @@ pub struct ScheduledTransactionDetail {
     pub account_name: String,
     pub payee_name: Option<String>,
     pub category_name: Option<String>,
-    pub subtransactions: Vec<SubTransaction>,
+    pub subtransactions: Vec<ScheduledSubTransaction>,
+}
+
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ScheduledSubTransaction {
+    pub id: Uuid,
+    pub scheduled_transaction_id: Uuid,
+    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-100000..100000"))]
+    pub amount: i64,
+    pub memo: Option<String>,
+    pub payee_id: Option<Uuid>,
+    pub category_id: Option<Uuid>,
+    pub transfer_account_id: Option<Uuid>,
+    pub deleted: bool,
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]

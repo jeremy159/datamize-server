@@ -4,7 +4,7 @@ use chrono::{Days, Local, NaiveDate};
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use uuid::Uuid;
-use ynab::{RecurFrequency, SubTransaction};
+use ynab::{RecurFrequency, ScheduledSubTransaction};
 
 use crate::{CategoryIdToNameMap, DatamizeScheduledTransaction, ScheduledTransactionsDistribution};
 
@@ -66,7 +66,7 @@ fn empty_when_transaction_deleted() {
             .date_naive()
             .checked_add_days(Days::new(1))
             .unwrap(),
-        frequency: Some(RecurFrequency::Every3Months),
+        frequency: RecurFrequency::Every3Months,
         subtransactions: vec![],
         deleted: true,
         ..Faker.fake()
@@ -89,7 +89,7 @@ fn trans_present_once_when_not_repeating_in_month() {
             .date_naive()
             .checked_add_days(Days::new(1))
             .unwrap(),
-        frequency: Some(RecurFrequency::Every3Months),
+        frequency: RecurFrequency::Every3Months,
         subtransactions: vec![],
         deleted: false,
         ..Faker.fake()
@@ -113,14 +113,14 @@ fn adds_both_trans_due_on_same_date() {
         .unwrap();
     let first_trans = DatamizeScheduledTransaction {
         date_next,
-        frequency: Some(RecurFrequency::Every3Months),
+        frequency: RecurFrequency::Every3Months,
         subtransactions: vec![],
         deleted: false,
         ..Faker.fake()
     };
     let sec_trans = DatamizeScheduledTransaction {
         date_next,
-        frequency: Some(RecurFrequency::Every4Months),
+        frequency: RecurFrequency::Every4Months,
         subtransactions: vec![],
         deleted: false,
         ..Faker.fake()
@@ -144,7 +144,7 @@ fn adds_all_occurence_of_trans_repeating_in_month() {
     let first_date = Local::now().date_naive();
     let trans = DatamizeScheduledTransaction {
         date_next: first_date,
-        frequency: Some(RecurFrequency::EveryOtherWeek),
+        frequency: RecurFrequency::EveryOtherWeek,
         subtransactions: vec![],
         deleted: false,
         ..Faker.fake()
@@ -177,7 +177,7 @@ fn empty_when_date_is_too_far_in_future() {
         .unwrap();
     let trans = DatamizeScheduledTransaction {
         date_next,
-        frequency: Some(RecurFrequency::EveryOtherMonth),
+        frequency: RecurFrequency::EveryOtherMonth,
         subtransactions: vec![],
         deleted: false,
         ..Faker.fake()
@@ -200,13 +200,13 @@ fn only_trans_when_sub_trans_are_deleted() {
             .date_naive()
             .checked_add_days(Days::new(1))
             .unwrap(),
-        frequency: Some(RecurFrequency::Every3Months),
+        frequency: RecurFrequency::Every3Months,
         subtransactions: vec![
-            SubTransaction {
+            ScheduledSubTransaction {
                 deleted: true,
                 ..Faker.fake()
             },
-            SubTransaction {
+            ScheduledSubTransaction {
                 deleted: true,
                 ..Faker.fake()
             },
@@ -227,11 +227,11 @@ fn only_trans_when_sub_trans_are_deleted() {
 
 #[test]
 fn sub_trans_replace_trans() {
-    let sub_trans1 = SubTransaction {
+    let sub_trans1 = ScheduledSubTransaction {
         deleted: false,
         ..Faker.fake()
     };
-    let sub_trans2 = SubTransaction {
+    let sub_trans2 = ScheduledSubTransaction {
         deleted: false,
         ..Faker.fake()
     };
@@ -240,7 +240,7 @@ fn sub_trans_replace_trans() {
             .date_naive()
             .checked_add_days(Days::new(1))
             .unwrap(),
-        frequency: Some(RecurFrequency::Every3Months),
+        frequency: RecurFrequency::Every3Months,
         subtransactions: vec![sub_trans1.clone(), sub_trans2.clone()],
         deleted: false,
         ..Faker.fake()
@@ -290,7 +290,7 @@ fn no_category_name_when_no_cat_id() {
             .date_naive()
             .checked_add_days(Days::new(1))
             .unwrap(),
-        frequency: Some(RecurFrequency::Every3Months),
+        frequency: RecurFrequency::Every3Months,
         subtransactions: vec![],
         deleted: false,
         category_name: None,
@@ -317,7 +317,7 @@ fn use_category_name_found_in_cat_id_to_name_map() {
             .date_naive()
             .checked_add_days(Days::new(1))
             .unwrap(),
-        frequency: Some(RecurFrequency::Every3Months),
+        frequency: RecurFrequency::Every3Months,
         subtransactions: vec![],
         deleted: false,
         category_name: None,
@@ -351,7 +351,7 @@ fn no_category_name_when_not_found_in_cat_id_to_name_map() {
             .date_naive()
             .checked_add_days(Days::new(1))
             .unwrap(),
-        frequency: Some(RecurFrequency::Every3Months),
+        frequency: RecurFrequency::Every3Months,
         subtransactions: vec![],
         deleted: false,
         category_name: None,
@@ -379,7 +379,7 @@ fn no_category_name_when_cat_id_to_name_map_not_defined() {
             .date_naive()
             .checked_add_days(Days::new(1))
             .unwrap(),
-        frequency: Some(RecurFrequency::Every3Months),
+        frequency: RecurFrequency::Every3Months,
         subtransactions: vec![],
         deleted: false,
         category_name: None,

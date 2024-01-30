@@ -1,7 +1,7 @@
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use uuid::Uuid;
-use ynab::SubTransaction;
+use ynab::ScheduledSubTransaction;
 
 use crate::DatamizeScheduledTransaction;
 
@@ -31,7 +31,7 @@ fn returns_only_itself_when_no_sub_transactions() {
 #[test]
 fn returns_itself_when_all_sub_transactions_are_deleted() {
     let st = DatamizeScheduledTransaction {
-        subtransactions: vec![SubTransaction {
+        subtransactions: vec![ScheduledSubTransaction {
             deleted: true,
             ..Faker.fake()
         }],
@@ -44,7 +44,7 @@ fn returns_itself_when_all_sub_transactions_are_deleted() {
 #[test]
 fn returns_only_sub_trans_when_non_deleted() {
     let st = DatamizeScheduledTransaction {
-        subtransactions: vec![SubTransaction {
+        subtransactions: vec![ScheduledSubTransaction {
             deleted: false,
             ..Faker.fake()
         }],

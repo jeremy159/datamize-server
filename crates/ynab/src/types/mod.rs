@@ -3,7 +3,7 @@ mod budget;
 mod category;
 mod month;
 mod payee;
-mod scheduled_subtransaction;
+mod scheduled_transaction;
 mod transaction;
 
 pub use account::*;
@@ -11,7 +11,7 @@ pub use budget::*;
 pub use category::*;
 pub use month::*;
 pub use payee::*;
-pub use scheduled_subtransaction::*;
+pub use scheduled_transaction::*;
 pub use transaction::*;
 
 use serde::{Deserialize, Serialize};

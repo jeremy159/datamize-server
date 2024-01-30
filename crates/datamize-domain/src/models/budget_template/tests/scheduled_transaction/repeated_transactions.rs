@@ -26,7 +26,7 @@ fn check_method(st: &DatamizeScheduledTransaction, expected: usize) {
 #[test]
 fn empty_when_no_frequency() {
     let st = DatamizeScheduledTransaction {
-        frequency: None,
+        frequency: RecurFrequency::Never,
         ..Faker.fake()
     };
 
@@ -36,7 +36,7 @@ fn empty_when_no_frequency() {
 #[test]
 fn empty_when_no_frequency_that_repeats_within_a_month() {
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::EveryOtherMonth),
+        frequency: RecurFrequency::EveryOtherMonth,
         ..Faker.fake()
     };
 
@@ -59,7 +59,7 @@ fn is_2_when_twice_a_month() {
             .unwrap();
     }
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::TwiceAMonth),
+        frequency: RecurFrequency::TwiceAMonth,
         date_first,
         date_next,
         ..Faker.fake()
@@ -76,7 +76,7 @@ fn is_4_when_every_week_and_starting_yesterday() {
         .unwrap();
     let date_next = date_first.checked_add_days(Days::new(7)).unwrap();
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::Weekly),
+        frequency: RecurFrequency::Weekly,
         date_first,
         date_next,
         ..Faker.fake()
@@ -97,7 +97,7 @@ fn is_5_when_every_week_and_starting_7_days_ago() {
         date_next = date_next.checked_add_days(Days::new(7)).unwrap();
     }
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::Weekly),
+        frequency: RecurFrequency::Weekly,
         date_first,
         date_next,
         ..Faker.fake()
@@ -114,7 +114,7 @@ fn is_2_when_every_other_week_and_starting_yesterday() {
         .unwrap();
     let date_next = date_first.checked_add_days(Days::new(14)).unwrap();
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::EveryOtherWeek),
+        frequency: RecurFrequency::EveryOtherWeek,
         date_first,
         date_next,
         ..Faker.fake()
@@ -131,7 +131,7 @@ fn is_2_when_every_other_week_and_starting_7_days_ago() {
         .unwrap();
     let date_next = date_first.checked_add_days(Days::new(14)).unwrap();
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::EveryOtherWeek),
+        frequency: RecurFrequency::EveryOtherWeek,
         date_first,
         date_next,
         ..Faker.fake()
@@ -151,7 +151,7 @@ fn is_1_when_every_4_week_and_next_date_in_middle() {
         .checked_add_days(Days::new(14))
         .unwrap();
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::Every4Weeks),
+        frequency: RecurFrequency::Every4Weeks,
         date_first,
         date_next,
         ..Faker.fake()
@@ -171,7 +171,7 @@ fn is_2_when_every_4_week_and_next_date_tomorrow() {
         .checked_add_days(Days::new(1))
         .unwrap();
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::Every4Weeks),
+        frequency: RecurFrequency::Every4Weeks,
         date_first,
         date_next,
         ..Faker.fake()
@@ -191,7 +191,7 @@ fn is_num_days_current_month_when_daily() {
         .checked_add_days(Days::new(1))
         .unwrap();
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::Daily),
+        frequency: RecurFrequency::Daily,
         date_first,
         date_next,
         ..Faker.fake()

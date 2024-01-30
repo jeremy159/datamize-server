@@ -18,7 +18,7 @@ fn check_method(st: &DatamizeScheduledTransaction, date: &DateTime<Local>, expec
 #[test]
 fn zero_when_no_frequency() {
     let st = DatamizeScheduledTransaction {
-        frequency: None,
+        frequency: RecurFrequency::Never,
         ..Faker.fake()
     };
 
@@ -30,29 +30,29 @@ fn zero_when_no_frequency_that_repeats_within_a_month() {
     let now = Local::now().date_naive();
     let mut st = DatamizeScheduledTransaction {
         date_first: now.checked_sub_months(Months::new(1)).unwrap(),
-        frequency: Some(RecurFrequency::EveryOtherMonth),
+        frequency: RecurFrequency::EveryOtherMonth,
         ..Faker.fake()
     };
 
     check_method(&st, &Local::now(), 0);
 
-    st.frequency = Some(RecurFrequency::Never);
+    st.frequency = RecurFrequency::Never;
     check_method(&st, &Local::now(), 0);
 
-    st.frequency = Some(RecurFrequency::Every3Months);
+    st.frequency = RecurFrequency::Every3Months;
     st.date_first = now.checked_sub_months(Months::new(1)).unwrap();
     check_method(&st, &Local::now(), 0);
 
-    st.frequency = Some(RecurFrequency::Every4Months);
+    st.frequency = RecurFrequency::Every4Months;
     check_method(&st, &Local::now(), 0);
 
-    st.frequency = Some(RecurFrequency::TwiceAYear);
+    st.frequency = RecurFrequency::TwiceAYear;
     check_method(&st, &Local::now(), 0);
 
-    st.frequency = Some(RecurFrequency::Yearly);
+    st.frequency = RecurFrequency::Yearly;
     check_method(&st, &Local::now(), 0);
 
-    st.frequency = Some(RecurFrequency::EveryOtherYear);
+    st.frequency = RecurFrequency::EveryOtherYear;
     check_method(&st, &Local::now(), 0);
 }
 
@@ -61,31 +61,31 @@ fn one_when_non_monthly_frequency_that_is_due_in_current_month() {
     let now = Local::now().date_naive();
     let mut st = DatamizeScheduledTransaction {
         date_first: now.checked_sub_months(Months::new(2)).unwrap(),
-        frequency: Some(RecurFrequency::EveryOtherMonth),
+        frequency: RecurFrequency::EveryOtherMonth,
         ..Faker.fake()
     };
 
     check_method(&st, &Local::now(), 1);
 
-    st.frequency = Some(RecurFrequency::Every3Months);
+    st.frequency = RecurFrequency::Every3Months;
     st.date_first = now.checked_sub_months(Months::new(3)).unwrap();
     check_method(&st, &Local::now(), 1);
 
-    st.frequency = Some(RecurFrequency::Every4Months);
+    st.frequency = RecurFrequency::Every4Months;
     st.date_first = now.checked_sub_months(Months::new(4)).unwrap();
     check_method(&st, &Local::now(), 1);
 
     // For now, since twice a year repeats only on june and december.
-    st.frequency = Some(RecurFrequency::TwiceAYear);
+    st.frequency = RecurFrequency::TwiceAYear;
     st.date_first = NaiveDate::from_ymd_opt(2023, 12, 15).unwrap();
     let jun_10 = Local::with_ymd_and_hms(&Local, 2024, 6, 10, 0, 0, 0).unwrap();
     check_method(&st, &jun_10, 1);
 
-    st.frequency = Some(RecurFrequency::Yearly);
+    st.frequency = RecurFrequency::Yearly;
     st.date_first = now.checked_sub_months(Months::new(12)).unwrap();
     check_method(&st, &Local::now(), 1);
 
-    st.frequency = Some(RecurFrequency::EveryOtherYear);
+    st.frequency = RecurFrequency::EveryOtherYear;
     st.date_first = now.checked_sub_months(Months::new(24)).unwrap();
     check_method(&st, &Local::now(), 1);
 }
@@ -94,7 +94,7 @@ fn one_when_non_monthly_frequency_that_is_due_in_current_month() {
 fn is_1_when_monthly() {
     let date_first = Local::now().date_naive();
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::Monthly),
+        frequency: RecurFrequency::Monthly,
         date_first,
         ..Faker.fake()
     };
@@ -106,7 +106,7 @@ fn is_1_when_monthly() {
 fn is_1_when_monthly_even_on_last_day() {
     let date_first = NaiveDate::from_ymd_opt(2024, 1, 31).unwrap();
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::Monthly),
+        frequency: RecurFrequency::Monthly,
         date_first,
         ..Faker.fake()
     };
@@ -120,7 +120,7 @@ fn is_1_when_monthly_even_on_last_day() {
 fn is_2_when_twice_a_month() {
     let date_first = Local::now().date_naive().with_day(1).unwrap();
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::TwiceAMonth),
+        frequency: RecurFrequency::TwiceAMonth,
         date_first,
         ..Faker.fake()
     };
@@ -132,7 +132,7 @@ fn is_2_when_twice_a_month() {
 fn is_4_when_every_week_and_starting_on_fifth_day() {
     let date_first = Local::now().date_naive().with_day(5).unwrap();
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::Weekly),
+        frequency: RecurFrequency::Weekly,
         date_first,
         ..Faker.fake()
     };
@@ -149,7 +149,7 @@ fn is_5_when_every_week_and_starting_first_day_of_month() {
         date_first
     };
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::Weekly),
+        frequency: RecurFrequency::Weekly,
         date_first,
         ..Faker.fake()
     };
@@ -166,7 +166,7 @@ fn is_3_when_every_other_week_and_starting_beginning_of_month() {
         date_first
     };
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::EveryOtherWeek),
+        frequency: RecurFrequency::EveryOtherWeek,
         date_first,
         ..Faker.fake()
     };
@@ -178,7 +178,7 @@ fn is_3_when_every_other_week_and_starting_beginning_of_month() {
 fn is_2_when_every_other_week_and_starting_fifth_day_of_month() {
     let date_first = Local::now().date_naive().with_day(5).unwrap();
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::EveryOtherWeek),
+        frequency: RecurFrequency::EveryOtherWeek,
         date_first,
         ..Faker.fake()
     };
@@ -190,7 +190,7 @@ fn is_2_when_every_other_week_and_starting_fifth_day_of_month() {
 fn is_1_when_every_4_week_and_starting_fifth_day_of_month() {
     let date_first = Local::now().date_naive().with_day(5).unwrap();
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::Every4Weeks),
+        frequency: RecurFrequency::Every4Weeks,
         date_first,
         ..Faker.fake()
     };
@@ -207,7 +207,7 @@ fn is_2_when_every_4_week_and_starting_first_day_of_month() {
         date_first
     };
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::Every4Weeks),
+        frequency: RecurFrequency::Every4Weeks,
         date_first,
         ..Faker.fake()
     };
@@ -219,7 +219,7 @@ fn is_2_when_every_4_week_and_starting_first_day_of_month() {
 fn is_num_days_current_month_when_daily() {
     let date_first = Local::now().date_naive().with_day(1).unwrap();
     let st = DatamizeScheduledTransaction {
-        frequency: Some(RecurFrequency::Daily),
+        frequency: RecurFrequency::Daily,
         date_first,
         ..Faker.fake()
     };

@@ -2,7 +2,7 @@ use chrono::{Datelike, Days, Local, Months};
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use uuid::Uuid;
-use ynab::{RecurFrequency, SubTransaction};
+use ynab::{RecurFrequency, ScheduledSubTransaction};
 
 use crate::{Budgeter, BudgeterConfig, BudgeterExt, Configured, DatamizeScheduledTransaction};
 
@@ -57,7 +57,7 @@ fn salary_is_linked_scheduled_transactions_when_not_repeating() {
     let budgeter: Budgeter<Configured> = config.clone().into();
     let transaction = DatamizeScheduledTransaction {
         amount: (1..100000).fake(),
-        frequency: Some(RecurFrequency::Never),
+        frequency: RecurFrequency::Never,
         date_first: Local::now()
             .date_naive()
             .checked_add_days(Days::new(1))
@@ -90,7 +90,7 @@ fn salary_month_is_twice_linked_scheduled_transactions() {
     let date_first = Local::now().date_naive().with_day(5).unwrap();
     let transaction = DatamizeScheduledTransaction {
         amount: (1..100000).fake(),
-        frequency: Some(RecurFrequency::EveryOtherWeek),
+        frequency: RecurFrequency::EveryOtherWeek,
         payee_id: Some(budgeter.payee_ids()[0]),
         payee_name: Some(Faker.fake()),
         date_first,
@@ -116,14 +116,14 @@ fn salary_takes_all_linked_scheduled_transactions() {
     let budgeter: Budgeter<Configured> = config.clone().into();
     let first_trans = DatamizeScheduledTransaction {
         amount: (1..100000).fake(),
-        frequency: None,
+        frequency: RecurFrequency::Never,
         payee_id: Some(budgeter.payee_ids()[0]),
         payee_name: Some(Faker.fake()),
         ..Faker.fake()
     };
     let sec_trans = DatamizeScheduledTransaction {
         amount: (1..100000).fake(),
-        frequency: None,
+        frequency: RecurFrequency::Never,
         payee_id: Some(budgeter.payee_ids()[1]),
         payee_name: Some(Faker.fake()),
         ..Faker.fake()
@@ -150,7 +150,7 @@ fn salary_takes_all_scheduled_transactions_of_same_payee() {
     let budgeter: Budgeter<Configured> = config.clone().into();
     let first_trans = DatamizeScheduledTransaction {
         amount: (1..100000).fake(),
-        frequency: Some(RecurFrequency::Monthly),
+        frequency: RecurFrequency::Monthly,
         payee_id: Some(payee_id),
         payee_name: Some(payee_name.clone()),
         date_first: Local::now().date_naive().with_day(15).unwrap(),
@@ -158,7 +158,7 @@ fn salary_takes_all_scheduled_transactions_of_same_payee() {
     };
     let sec_trans = DatamizeScheduledTransaction {
         amount: (1..100000).fake(),
-        frequency: Some(RecurFrequency::Monthly),
+        frequency: RecurFrequency::Monthly,
         payee_id: Some(payee_id),
         payee_name: Some(payee_name),
         date_first: Local::now().date_naive().with_day(28).unwrap(),
@@ -184,7 +184,7 @@ fn salary_takes_all_linked_scheduled_transactions_even_when_repeated() {
     let date_first = Local::now().date_naive().with_day(5).unwrap();
     let first_trans = DatamizeScheduledTransaction {
         amount: (1..100000).fake(),
-        frequency: Some(RecurFrequency::EveryOtherWeek),
+        frequency: RecurFrequency::EveryOtherWeek,
         payee_id: Some(budgeter.payee_ids()[0]),
         payee_name: Some(Faker.fake()),
         date_first,
@@ -193,7 +193,7 @@ fn salary_takes_all_linked_scheduled_transactions_even_when_repeated() {
     };
     let sec_trans = DatamizeScheduledTransaction {
         amount: (1..100000).fake(),
-        frequency: None,
+        frequency: RecurFrequency::Never,
         payee_id: Some(budgeter.payee_ids()[1]),
         payee_name: Some(Faker.fake()),
         ..Faker.fake()
@@ -223,7 +223,7 @@ fn salary_repeats_5_times_when_frequency_is_every_week_on_first_day_of_month() {
     };
     let transaction = DatamizeScheduledTransaction {
         amount: (1..100000).fake(),
-        frequency: Some(RecurFrequency::Weekly),
+        frequency: RecurFrequency::Weekly,
         payee_id: Some(budgeter.payee_ids()[0]),
         payee_name: Some(Faker.fake()),
         date_first,
@@ -252,16 +252,16 @@ fn salary_takes_inflow_from_sub_transaction() {
     let inflow_amount = amount + 50000;
 
     let subtransactions = vec![
-        SubTransaction {
+        ScheduledSubTransaction {
             category_id: Some(inflow_cat_id),
             amount: inflow_amount,
             ..Faker.fake()
         },
-        SubTransaction { ..Faker.fake() },
+        ScheduledSubTransaction { ..Faker.fake() },
     ];
     let transaction = DatamizeScheduledTransaction {
         amount,
-        frequency: None,
+        frequency: RecurFrequency::Never,
         payee_id: Some(budgeter.payee_ids()[0]),
         payee_name: Some(Faker.fake()),
         subtransactions,
@@ -287,10 +287,10 @@ fn salary_does_not_take_inflow_from_sub_transaction_even_if_defined() {
     let budgeter: Budgeter<Configured> = config.clone().into();
     let inflow_cat_id = Faker.fake();
 
-    let subtransactions = fake::vec![SubTransaction; 2..3];
+    let subtransactions = fake::vec![ScheduledSubTransaction; 2..3];
     let transaction = DatamizeScheduledTransaction {
         amount: (1..100000).fake(),
-        frequency: None,
+        frequency: RecurFrequency::Never,
         payee_id: Some(budgeter.payee_ids()[0]),
         payee_name: Some(Faker.fake()),
         subtransactions,

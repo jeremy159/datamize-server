@@ -21,7 +21,7 @@ pub fn setup_budgeters_with_salary_with_name(first_name: &str) -> Vec<Budgeter<C
     let budgeter: Budgeter<Configured> = config.clone().into();
     let transaction = DatamizeScheduledTransaction {
         amount: (1..100000).fake(),
-        frequency: Some(RecurFrequency::Never),
+        frequency: RecurFrequency::Never,
         date_first: Local::now()
             .date_naive()
             .checked_add_days(Days::new(1))

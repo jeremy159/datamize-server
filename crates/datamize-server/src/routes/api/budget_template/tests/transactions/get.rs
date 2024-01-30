@@ -10,7 +10,7 @@ use rand::seq::IteratorRandom;
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 use ynab::{
-    Category, ScheduledTransactionDetail, ScheduledTransactionsDetailDelta, SubTransaction,
+    Category, ScheduledSubTransaction, ScheduledTransactionDetail, ScheduledTransactionsDetailDelta,
 };
 
 use crate::routes::api::budget_template::tests::transactions::testutils::{
@@ -56,7 +56,7 @@ async fn check_get(
 async fn returns_200_when_nothing_in_db(pool: SqlitePool) {
     let ynab_scheduled_transactions = ScheduledTransactionsDetailDelta {
         scheduled_transactions: vec![ScheduledTransactionDetail {
-            subtransactions: fake::vec![SubTransaction; 1],
+            subtransactions: fake::vec![ScheduledSubTransaction; 1],
             ..Faker.fake()
         }],
         ..Faker.fake()

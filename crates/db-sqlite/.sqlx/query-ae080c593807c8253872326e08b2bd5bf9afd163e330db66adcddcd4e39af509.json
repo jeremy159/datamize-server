@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT \n                id as \"id: Uuid\",\n                date_first as \"date_first: NaiveDate\",\n                date_next as \"date_next: NaiveDate\",\n                frequency as \"frequency?: RecurFrequency\",\n                amount,\n                memo,\n                flag_color,\n                account_id as \"account_id: Uuid\",\n                payee_id as \"payee_id?: Uuid\",\n                category_id as \"category_id?: Uuid\",\n                transfer_account_id as \"transfer_account_id?: Uuid\",\n                deleted,\n                account_name,\n                payee_name,\n                category_name,\n                subtransactions\n            FROM scheduled_transactions\n            ",
+  "query": "\n            SELECT \n                id as \"id: Uuid\",\n                date_first as \"date_first: NaiveDate\",\n                date_next as \"date_next: NaiveDate\",\n                frequency as \"frequency: RecurFrequency\",\n                amount,\n                memo,\n                flag_color,\n                account_id as \"account_id: Uuid\",\n                payee_id as \"payee_id?: Uuid\",\n                category_id as \"category_id?: Uuid\",\n                transfer_account_id as \"transfer_account_id?: Uuid\",\n                deleted,\n                account_name,\n                payee_name,\n                category_name,\n                subtransactions\n            FROM scheduled_transactions\n            ",
   "describe": {
     "columns": [
       {
@@ -19,7 +19,7 @@
         "type_info": "Date"
       },
       {
-        "name": "frequency?: RecurFrequency",
+        "name": "frequency: RecurFrequency",
         "ordinal": 3,
         "type_info": "Text"
       },
@@ -91,7 +91,7 @@
       false,
       false,
       false,
-      true,
+      false,
       false,
       true,
       true,
@@ -106,5 +106,5 @@
       false
     ]
   },
-  "hash": "1e6a3d74a86481a5879399762e1f2178cf020951c33fc79a38062ecabe6fb7ed"
+  "hash": "ae080c593807c8253872326e08b2bd5bf9afd163e330db66adcddcd4e39af509"
 }

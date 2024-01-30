@@ -2,7 +2,7 @@ use chrono::{DateTime, Datelike, Days, Local};
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use uuid::Uuid;
-use ynab::{RecurFrequency, SubTransaction};
+use ynab::{RecurFrequency, ScheduledSubTransaction};
 
 use crate::{BudgetDetails, DatamizeScheduledTransaction};
 
@@ -57,7 +57,7 @@ fn empty_when_transaction_deleted() {
             .date_naive()
             .checked_add_days(Days::new(1))
             .unwrap(),
-        frequency: Some(RecurFrequency::Every3Months),
+        frequency: RecurFrequency::Every3Months,
         subtransactions: vec![],
         category_id: Some(Faker.fake()),
         deleted: true,
@@ -81,7 +81,7 @@ fn empty_when_transaction_does_not_have_cat_id() {
             .date_naive()
             .checked_add_days(Days::new(1))
             .unwrap(),
-        frequency: Some(RecurFrequency::Every3Months),
+        frequency: RecurFrequency::Every3Months,
         subtransactions: vec![],
         deleted: false,
         category_id: None,
@@ -101,13 +101,13 @@ fn empty_when_transaction_does_not_have_cat_id() {
 #[test]
 fn sub_trans_replace_trans() {
     let category_id1 = Faker.fake();
-    let sub_trans1 = SubTransaction {
+    let sub_trans1 = ScheduledSubTransaction {
         deleted: false,
         category_id: Some(category_id1),
         ..Faker.fake()
     };
     let category_id2 = Faker.fake();
-    let sub_trans2 = SubTransaction {
+    let sub_trans2 = ScheduledSubTransaction {
         deleted: false,
         category_id: Some(category_id2),
         ..Faker.fake()
@@ -117,7 +117,7 @@ fn sub_trans_replace_trans() {
             .date_naive()
             .checked_add_days(Days::new(1))
             .unwrap(),
-        frequency: Some(RecurFrequency::Every3Months),
+        frequency: RecurFrequency::Every3Months,
         subtransactions: vec![sub_trans1.clone(), sub_trans2.clone()],
         deleted: false,
         category_id: Some(Faker.fake()),
@@ -169,7 +169,7 @@ fn all_trans_that_repeats_in_current_month() {
     let trans = DatamizeScheduledTransaction {
         date_first,
         date_next: date_first,
-        frequency: Some(RecurFrequency::Weekly),
+        frequency: RecurFrequency::Weekly,
         subtransactions: vec![],
         deleted: false,
         category_id: Some(Faker.fake()),
