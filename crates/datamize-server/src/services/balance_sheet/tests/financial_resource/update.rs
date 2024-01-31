@@ -50,7 +50,7 @@ async fn check_update(
     }
 
     let response = context
-        .fin_res_service
+        .service()
         .update_fin_res(
             expected_resp
                 .clone()

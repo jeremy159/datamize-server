@@ -34,7 +34,7 @@ async fn check_create(
         context.insert_year(year).await;
     }
 
-    let response = context.fin_res_service.create_fin_res(new_res).await;
+    let response = context.service().create_fin_res(new_res).await;
 
     if let Some(expected_resp) = expected_resp {
         let res_body = response.unwrap();

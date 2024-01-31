@@ -10,7 +10,7 @@ use sqlx::SqlitePool;
 
 use crate::{
     error::AppError,
-    services::balance_sheet::{DynFinResService, FinResService},
+    services::balance_sheet::{DynFinResService, FinResService, FinResServiceExt},
 };
 
 pub(crate) enum ErrorType {
@@ -23,7 +23,7 @@ pub(crate) struct TestContext {
     year_repo: Arc<SqliteYearRepo>,
     month_repo: Arc<SqliteMonthRepo>,
     fin_res_repo: Arc<SqliteFinResRepo>,
-    pub fin_res_service: DynFinResService,
+    fin_res_service: DynFinResService,
 }
 
 impl TestContext {
@@ -40,6 +40,10 @@ impl TestContext {
             fin_res_repo,
             fin_res_service,
         }
+    }
+
+    pub(crate) fn service(&self) -> &dyn FinResServiceExt {
+        self.fin_res_service.as_ref()
     }
 
     pub(crate) async fn insert_year(&self, year: i32) -> Uuid {

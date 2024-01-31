@@ -38,7 +38,7 @@ async fn check_delete(
     }
 
     let response = context
-        .fin_res_service
+        .service()
         .delete_fin_res(
             expected_resp
                 .clone()
