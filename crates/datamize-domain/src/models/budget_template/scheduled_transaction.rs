@@ -7,6 +7,14 @@ use ynab::{
     ScheduledSubTransaction,
 };
 
+const MONTHLY_FREQUENCIES: [ynab::RecurFrequency; 5] = [
+    RecurFrequency::TwiceAMonth,
+    RecurFrequency::Monthly,
+    RecurFrequency::EveryOtherMonth,
+    RecurFrequency::Every3Months,
+    RecurFrequency::Every4Months,
+];
+
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct DatamizeScheduledTransaction {
@@ -171,7 +179,8 @@ impl DatamizeScheduledTransaction {
 
                     let mut rrule = rrule.until(last_day_curr_month);
 
-                    if self.date_first.day() == 31 {
+                    if self.date_first.day() == 31 && MONTHLY_FREQUENCIES.contains(&self.frequency)
+                    {
                         rrule = rrule.by_month_day(vec![-1]);
                     }
 

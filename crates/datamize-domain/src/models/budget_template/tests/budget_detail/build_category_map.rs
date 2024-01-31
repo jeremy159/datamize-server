@@ -113,10 +113,7 @@ fn sub_trans_replace_trans() {
         ..Faker.fake()
     };
     let trans = DatamizeScheduledTransaction {
-        date_first: Local::now()
-            .date_naive()
-            .checked_add_days(Days::new(1))
-            .unwrap(),
+        date_first: Local::now().date_naive(),
         frequency: RecurFrequency::Every3Months,
         subtransactions: vec![sub_trans1.clone(), sub_trans2.clone()],
         deleted: false,

@@ -7,7 +7,7 @@ use datamize_domain::{
     Uuid,
 };
 use sqlx::SqlitePool;
-use ynab::{BaseTransactionDetail, ClearedType, TransactionDetail};
+use ynab::{BaseTransactionDetail, ClearedType, DebtTransactionType, TransactionDetail};
 
 #[derive(Debug, Clone)]
 pub struct SqliteYnabTransactionRepo {
@@ -45,6 +45,9 @@ impl YnabTransactionRepo for SqliteYnabTransactionRepo {
                 account_name,
                 payee_name,
                 category_name,
+                import_payee_name,
+                import_payee_name_original,
+                debt_transaction_type as "debt_transaction_type?: DebtTransactionType",
                 subtransactions
             FROM transactions
             "#
@@ -74,6 +77,9 @@ impl YnabTransactionRepo for SqliteYnabTransactionRepo {
                     account_name: r.account_name,
                     payee_name: r.payee_name,
                     category_name: r.category_name,
+                    import_payee_name: r.import_payee_name,
+                    import_payee_name_original: r.import_payee_name_original,
+                    debt_transaction_type: r.debt_transaction_type,
                 },
                 subtransactions: serde_json::from_str(&r.subtransactions).unwrap(),
             })
@@ -87,8 +93,8 @@ impl YnabTransactionRepo for SqliteYnabTransactionRepo {
 
             sqlx::query!(
                     r#"
-                    INSERT INTO transactions (id, date, amount, memo, cleared, approved, flag_color, account_id, payee_id, category_id, transfer_account_id, transfer_transaction_id, matched_transaction_id, import_id, deleted, account_name, payee_name, category_name, subtransactions)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
+                    INSERT INTO transactions (id, date, amount, memo, cleared, approved, flag_color, account_id, payee_id, category_id, transfer_account_id, transfer_transaction_id, matched_transaction_id, import_id, deleted, account_name, payee_name, category_name, import_payee_name, import_payee_name_original, debt_transaction_type, subtransactions)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22)
                     ON CONFLICT (id) DO UPDATE SET
                     date = EXCLUDED.date,
                     amount = EXCLUDED.amount,
@@ -107,6 +113,9 @@ impl YnabTransactionRepo for SqliteYnabTransactionRepo {
                     account_name = EXCLUDED.account_name,
                     payee_name = EXCLUDED.payee_name,
                     category_name = EXCLUDED.category_name,
+                    import_payee_name = EXCLUDED.import_payee_name,
+                    import_payee_name_original = EXCLUDED.import_payee_name_original,
+                    debt_transaction_type = EXCLUDED.debt_transaction_type,
                     subtransactions = EXCLUDED.subtransactions;
                     "#,
                     t.base.id,
@@ -127,6 +136,9 @@ impl YnabTransactionRepo for SqliteYnabTransactionRepo {
                     t.base.account_name,
                     t.base.payee_name,
                     t.base.category_name,
+                    t.base.import_payee_name,
+                    t.base.import_payee_name_original,
+                    t.base.debt_transaction_type,
                     subtransactions
                 ).execute(&self.db_conn_pool).await?;
         }
@@ -157,6 +169,9 @@ impl YnabTransactionRepo for SqliteYnabTransactionRepo {
                 account_name,
                 payee_name,
                 category_name,
+                import_payee_name,
+                import_payee_name_original,
+                debt_transaction_type as "debt_transaction_type?: DebtTransactionType",
                 subtransactions
             FROM transactions
             WHERE payee_id = $1
@@ -188,6 +203,9 @@ impl YnabTransactionRepo for SqliteYnabTransactionRepo {
                     account_name: r.account_name,
                     payee_name: r.payee_name,
                     category_name: r.category_name,
+                    import_payee_name: r.import_payee_name,
+                    import_payee_name_original: r.import_payee_name_original,
+                    debt_transaction_type: r.debt_transaction_type,
                 },
                 subtransactions: serde_json::from_str(&r.subtransactions).unwrap(),
             })
@@ -220,6 +238,9 @@ impl YnabTransactionRepo for SqliteYnabTransactionRepo {
                 account_name,
                 payee_name,
                 category_name,
+                import_payee_name,
+                import_payee_name_original,
+                debt_transaction_type as "debt_transaction_type?: DebtTransactionType",
                 subtransactions
             FROM transactions
             WHERE category_id = $1
@@ -251,6 +272,9 @@ impl YnabTransactionRepo for SqliteYnabTransactionRepo {
                     account_name: r.account_name,
                     payee_name: r.payee_name,
                     category_name: r.category_name,
+                    import_payee_name: r.import_payee_name,
+                    import_payee_name_original: r.import_payee_name_original,
+                    debt_transaction_type: r.debt_transaction_type,
                 },
                 subtransactions: serde_json::from_str(&r.subtransactions).unwrap(),
             })
