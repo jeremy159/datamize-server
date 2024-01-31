@@ -82,17 +82,15 @@ impl FinResServiceExt for FinResService {
             return Err(AppError::ResourceAlreadyExist);
         }
 
-        if !resource.balance_per_month.is_empty() {
-            for month in resource.balance_per_month.keys() {
-                if let Err(DbError::NotFound) = self
-                    .month_repo
-                    .get_month_data_by_number(*month, resource.year)
-                    .await
-                {
-                    // If month doesn't exist, create it
-                    let month = Month::new(*month, resource.year);
-                    self.month_repo.add(&month, resource.year).await?;
-                }
+        for month in resource.balance_per_month.keys() {
+            if let Err(DbError::NotFound) = self
+                .month_repo
+                .get_month_data_by_number(*month, resource.year)
+                .await
+            {
+                // If month doesn't exist, create it
+                let month = Month::new(*month, resource.year);
+                self.month_repo.add(&month, resource.year).await?;
             }
         }
 
@@ -144,17 +142,15 @@ impl FinResServiceExt for FinResService {
 
         self.fin_res_repo.get(fin_res_id).await?;
 
-        if !resource.balance_per_month.is_empty() {
-            for month in resource.balance_per_month.keys() {
-                if let Err(DbError::NotFound) = self
-                    .month_repo
-                    .get_month_data_by_number(*month, resource.year)
-                    .await
-                {
-                    // If month doesn't exist, create it
-                    let month = Month::new(*month, resource.year);
-                    self.month_repo.add(&month, resource.year).await?;
-                }
+        for month in resource.balance_per_month.keys() {
+            if let Err(DbError::NotFound) = self
+                .month_repo
+                .get_month_data_by_number(*month, resource.year)
+                .await
+            {
+                // If month doesn't exist, create it
+                let month = Month::new(*month, resource.year);
+                self.month_repo.add(&month, resource.year).await?;
             }
         }
 

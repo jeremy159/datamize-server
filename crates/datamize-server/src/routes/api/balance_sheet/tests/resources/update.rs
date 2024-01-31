@@ -136,6 +136,7 @@ async fn returns_success_with_the_update(pool: SqlitePool) {
     let body_cloned = body.clone();
     let expected_resp = FinancialResourceYearly {
         year: body_cloned.year,
+        balance_per_month: body_cloned.balance_per_month,
         base: BaseFinancialResource {
             name: body_cloned.name,
             category: body_cloned.category,
@@ -145,7 +146,6 @@ async fn returns_success_with_the_update(pool: SqlitePool) {
             external_account_ids: body_cloned.external_account_ids,
             ..Faker.fake()
         },
-        ..Faker.fake()
     };
 
     check_update(pool, true, Some(body), StatusCode::OK, Some(expected_resp)).await;
