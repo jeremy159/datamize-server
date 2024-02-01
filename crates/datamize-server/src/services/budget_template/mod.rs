@@ -3,6 +3,8 @@ mod expense_categorization;
 mod template_detail;
 mod template_summary;
 mod template_transaction;
+#[cfg(test)]
+mod tests;
 
 pub use budgeter::*;
 pub use expense_categorization::*;
