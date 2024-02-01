@@ -1,5 +1,7 @@
 mod account;
 mod payee;
+#[cfg(test)]
+mod tests;
 mod transaction;
 
 pub use account::*;

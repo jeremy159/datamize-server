@@ -130,3 +130,11 @@ impl YnabAccountRepo for SqliteYnabAccountRepo {
         Ok(())
     }
 }
+
+pub async fn sabotage_accounts_table(pool: &SqlitePool) -> DbResult<()> {
+    sqlx::query!("ALTER TABLE accounts DROP COLUMN balance;",)
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}

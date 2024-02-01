@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "ALTER TABLE accounts DROP COLUMN balance;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "2e7588bdefc7ec4fa983595cf8f148666d23163bd742bdd4a0a117bb30e09cb6"
+}

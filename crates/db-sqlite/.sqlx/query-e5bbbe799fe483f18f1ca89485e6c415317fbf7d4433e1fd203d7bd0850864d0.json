@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "ALTER TABLE payees DROP COLUMN name;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "e5bbbe799fe483f18f1ca89485e6c415317fbf7d4433e1fd203d7bd0850864d0"
+}

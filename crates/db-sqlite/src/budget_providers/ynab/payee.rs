@@ -63,3 +63,11 @@ impl YnabPayeeRepo for SqliteYnabPayeeRepo {
         Ok(())
     }
 }
+
+pub async fn sabotage_payees_table(pool: &SqlitePool) -> DbResult<()> {
+    sqlx::query!("ALTER TABLE payees DROP COLUMN name;",)
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}
