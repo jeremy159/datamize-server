@@ -5,9 +5,10 @@ use datamize_domain::{
     MonthTarget,
 };
 
-use crate::error::DatamizeResult;
-
-use super::{DynCategoryService, DynScheduledTransactionService};
+use crate::{
+    error::DatamizeResult,
+    services::budget_providers::{DynCategoryService, DynScheduledTransactionService},
+};
 
 #[async_trait]
 pub trait TemplateSummaryServiceExt: Send + Sync {

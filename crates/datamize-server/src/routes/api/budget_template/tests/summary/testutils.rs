@@ -27,8 +27,9 @@ use ynab::{
 
 use crate::{
     routes::api::budget_template::get_summary_routes,
-    services::budget_template::{
-        CategoryService, ScheduledTransactionService, TemplateSummaryService,
+    services::{
+        budget_providers::{CategoryService, ScheduledTransactionService},
+        budget_template::TemplateSummaryService,
     },
 };
 

@@ -15,7 +15,9 @@ use ynab::{
 
 use crate::{
     routes::api::budget_template::get_transaction_routes,
-    services::budget_template::{ScheduledTransactionService, TemplateTransactionService},
+    services::{
+        budget_providers::ScheduledTransactionService, budget_template::TemplateTransactionService,
+    },
 };
 
 pub(crate) struct TestContext {

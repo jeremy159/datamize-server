@@ -8,9 +8,7 @@ use datamize_domain::{
 use futures::{stream::FuturesUnordered, StreamExt};
 use ynab::CategoryRequests;
 
-use crate::error::DatamizeResult;
-
-use super::DynScheduledTransactionService;
+use crate::{error::DatamizeResult, services::budget_providers::DynScheduledTransactionService};
 
 #[async_trait]
 pub trait TemplateTransactionServiceExt: Send + Sync {

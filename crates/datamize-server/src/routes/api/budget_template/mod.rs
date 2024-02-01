@@ -28,11 +28,14 @@ use summary::*;
 use transactions::*;
 
 use crate::{
-    services::budget_template::{
-        BudgeterService, CategoryService, DynBudgeterService, DynExpenseCategorizationService,
-        DynTemplateDetailService, DynTemplateSummaryService, DynTemplateTransactionService,
-        ExpenseCategorizationService, ScheduledTransactionService, TemplateDetailService,
-        TemplateSummaryService, TemplateTransactionService,
+    services::{
+        budget_providers::{CategoryService, ScheduledTransactionService},
+        budget_template::{
+            BudgeterService, DynBudgeterService, DynExpenseCategorizationService,
+            DynTemplateDetailService, DynTemplateSummaryService, DynTemplateTransactionService,
+            ExpenseCategorizationService, TemplateDetailService, TemplateSummaryService,
+            TemplateTransactionService,
+        },
     },
     startup::AppState,
 };
