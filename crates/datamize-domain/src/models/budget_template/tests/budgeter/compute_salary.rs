@@ -1,4 +1,4 @@
-use chrono::{Datelike, Days, Local, Months};
+use chrono::{Datelike, Days, Local};
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use uuid::Uuid;
@@ -216,10 +216,10 @@ fn salary_repeats_5_times_when_frequency_is_every_week_on_first_day_of_month() {
     };
     let budgeter: Budgeter<Configured> = config.clone().into();
     let date_first = Local::now().date_naive().with_day(1).unwrap();
-    let date_first = if date_first.month0() == 1 {
-        date_first.checked_sub_months(Months::new(1)).unwrap()
+    let repeated = if date_first.month0() == 1 && !date_first.leap_year() {
+        4
     } else {
-        date_first
+        5
     };
     let transaction = DatamizeScheduledTransaction {
         amount: (1..100000).fake(),
@@ -235,7 +235,7 @@ fn salary_repeats_5_times_when_frequency_is_every_week_on_first_day_of_month() {
         &vec![transaction.clone()],
         None,
         Expected {
-            salary_month: transaction.amount * 5,
+            salary_month: transaction.amount * repeated,
         },
     );
 }

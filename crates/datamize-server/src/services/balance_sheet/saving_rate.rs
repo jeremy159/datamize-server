@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use futures::{stream::FuturesUnordered, StreamExt};
 use ynab::TransactionDetail;
@@ -137,7 +137,10 @@ impl SavingRateService {
         })
     }
 
-    async fn get_transactions_for(&self, saving_rate: &SavingRate) -> Vec<TransactionDetail> {
+    pub(crate) async fn get_transactions_for(
+        &self,
+        saving_rate: &SavingRate,
+    ) -> Vec<TransactionDetail> {
         let transactions = {
             let mut t1 = saving_rate
                 .savings
@@ -168,10 +171,19 @@ impl SavingRateService {
             t1
         };
 
-        transactions
+        let transactions = transactions
             .into_iter()
             .flatten()
             .flatten()
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>();
+
+        let mut transactions = <HashSet<TransactionDetail> as IntoIterator>::into_iter(
+            HashSet::from_iter(transactions),
+        )
+        .collect::<Vec<_>>();
+
+        transactions.sort_by_key(|t| t.base.amount);
+
+        transactions
     }
 }

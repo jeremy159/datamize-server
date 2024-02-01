@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[cfg_attr(feature = "sqlx-postgres", derive(sqlx::FromRow))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 /// See https://api.youneedabudget.com/v1#/Transactions/getTransactionById
 pub struct TransactionSummary {
     pub id: Uuid,
@@ -31,7 +31,7 @@ pub struct TransactionSummary {
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[cfg_attr(feature = "sqlx-postgres", derive(sqlx::FromRow))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct BaseTransactionDetail {
     pub id: Uuid,
     #[cfg_attr(any(feature = "testutils", test), dummy(default))]
@@ -62,7 +62,7 @@ pub struct BaseTransactionDetail {
 #[cfg_attr(feature = "sqlx-postgres", derive(sqlx::Type))]
 #[cfg_attr(feature = "sqlx-postgres", sqlx(type_name = "cleared"))]
 #[cfg_attr(feature = "sqlx-postgres", sqlx(rename_all = "camelCase"))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub enum ClearedType {
     Cleared,
@@ -100,7 +100,7 @@ impl FromStr for ClearedType {
 #[cfg_attr(feature = "sqlx-postgres", derive(sqlx::Type))]
 #[cfg_attr(feature = "sqlx-postgres", sqlx(type_name = "debt_transaction"))]
 #[cfg_attr(feature = "sqlx-postgres", sqlx(rename_all = "camelCase"))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub enum DebtTransactionType {
     Payment,
@@ -151,7 +151,7 @@ impl FromStr for DebtTransactionType {
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[cfg_attr(feature = "sqlx-postgres", derive(sqlx::FromRow))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 /// See https://api.youneedabudget.com/v1#/Budgets/getBudgetById
 pub struct HybridTransaction {
     #[serde(flatten)]
@@ -166,7 +166,7 @@ pub struct HybridTransaction {
 #[cfg_attr(feature = "sqlx-postgres", derive(sqlx::Type))]
 #[cfg_attr(feature = "sqlx-postgres", sqlx(type_name = "hybrid_transaction"))]
 #[cfg_attr(feature = "sqlx-postgres", sqlx(rename_all = "camelCase"))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub enum HybridTransactionType {
     Transaction,
@@ -212,7 +212,7 @@ pub struct HybridTransationsDelta {
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[cfg_attr(feature = "sqlx-postgres", derive(sqlx::FromRow))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 /// See https://api.youneedabudget.com/v1#/Transactions/getTransactionById
 pub struct TransactionDetail {
     #[serde(flatten)]
@@ -235,7 +235,7 @@ pub struct TransationsDetailDelta {
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 /// See https://api.youneedabudget.com/v1#/Transactions/createTransaction
 pub struct SaveTransaction {
     pub account_id: Uuid,
@@ -255,7 +255,7 @@ pub struct SaveTransaction {
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 /// See https://api.youneedabudget.com/v1#/Transactions/updateTransactions
 pub struct UpdateTransaction {
     pub id: Uuid,
@@ -276,7 +276,7 @@ pub struct UpdateTransaction {
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 pub struct SubTransaction {
     pub id: Uuid,
     pub transaction_id: Uuid,

@@ -143,10 +143,10 @@ fn is_4_when_every_week_and_starting_on_fifth_day() {
 #[test]
 fn is_5_when_every_week_and_starting_first_day_of_month() {
     let date_first = Local::now().date_naive().with_day(1).unwrap();
-    let date_first = if date_first.month0() == 1 {
-        date_first.checked_sub_months(Months::new(1)).unwrap()
+    let repeated = if date_first.month0() == 1 && !date_first.leap_year() {
+        4
     } else {
-        date_first
+        5
     };
     let st = DatamizeScheduledTransaction {
         frequency: RecurFrequency::Weekly,
@@ -154,16 +154,16 @@ fn is_5_when_every_week_and_starting_first_day_of_month() {
         ..Faker.fake()
     };
 
-    check_method(&st, &Local::now(), 5);
+    check_method(&st, &Local::now(), repeated);
 }
 
 #[test]
 fn is_3_when_every_other_week_and_starting_beginning_of_month() {
     let date_first = Local::now().date_naive().with_day(1).unwrap();
-    let date_first = if date_first.month0() == 1 {
-        date_first.checked_sub_months(Months::new(1)).unwrap()
+    let repeated = if date_first.month0() == 1 && !date_first.leap_year() {
+        2
     } else {
-        date_first
+        3
     };
     let st = DatamizeScheduledTransaction {
         frequency: RecurFrequency::EveryOtherWeek,
@@ -171,7 +171,7 @@ fn is_3_when_every_other_week_and_starting_beginning_of_month() {
         ..Faker.fake()
     };
 
-    check_method(&st, &Local::now(), 3);
+    check_method(&st, &Local::now(), repeated);
 }
 
 #[test]
@@ -201,10 +201,10 @@ fn is_1_when_every_4_week_and_starting_fifth_day_of_month() {
 #[test]
 fn is_2_when_every_4_week_and_starting_first_day_of_month() {
     let date_first = Local::now().date_naive().with_day(1).unwrap();
-    let date_first = if date_first.month0() == 1 {
-        date_first.checked_sub_months(Months::new(1)).unwrap()
+    let repeated = if date_first.month0() == 1 && !date_first.leap_year() {
+        1
     } else {
-        date_first
+        2
     };
     let st = DatamizeScheduledTransaction {
         frequency: RecurFrequency::Every4Weeks,
@@ -212,7 +212,7 @@ fn is_2_when_every_4_week_and_starting_first_day_of_month() {
         ..Faker.fake()
     };
 
-    check_method(&st, &Local::now(), 2);
+    check_method(&st, &Local::now(), repeated);
 }
 
 #[test]

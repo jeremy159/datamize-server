@@ -1,4 +1,4 @@
-use chrono::{Datelike, Days, Local, Months};
+use chrono::{Datelike, Days, Local};
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use rand::seq::SliceRandom;
@@ -147,10 +147,10 @@ fn compute_projected_amount_when_goal_target_is_plan_spending_and_cadence_monthl
 #[test]
 fn compute_projected_amount_when_goal_target_is_plan_spending_and_cadence_weekly() {
     let date_first = Local::now().date_naive().with_day(1).unwrap();
-    let date_first = if date_first.month0() == 1 {
-        date_first.checked_sub_months(Months::new(1)).unwrap()
+    let repeated = if date_first.month0() == 1 && !date_first.leap_year() {
+        4
     } else {
-        date_first
+        5
     };
     let mut category = Category {
         goal_type: Some(GoalType::PlanYourSpending),
@@ -166,7 +166,7 @@ fn compute_projected_amount_when_goal_target_is_plan_spending_and_cadence_weekly
         category.clone(),
         vec![],
         ExpectedProjected {
-            projected_amount: goal_target * 5,
+            projected_amount: goal_target * repeated,
         },
         Some("Is goal target times 5 when goal repeats weekly starting first day of month"),
     );
