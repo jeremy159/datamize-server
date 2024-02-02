@@ -37,12 +37,13 @@ impl TemplateTransactionService {
         })
     }
 
-    fn get_subtransactions_category_ids(
+    pub(crate) fn get_subtransactions_category_ids(
         scheduled_transactions: &[DatamizeScheduledTransaction],
     ) -> Vec<Uuid> {
         scheduled_transactions
             .iter()
             .flat_map(|st| &st.subtransactions)
+            .filter(|sub_st| !sub_st.deleted)
             .filter_map(|sub_st| sub_st.category_id)
             .collect()
     }
