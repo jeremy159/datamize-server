@@ -8,16 +8,7 @@ use db_sqlite::balance_sheet::{SqliteFinResRepo, SqliteMonthRepo, SqliteYearRepo
 use rand::seq::SliceRandom;
 use sqlx::SqlitePool;
 
-use crate::{
-    error::AppError,
-    services::balance_sheet::{DynMonthService, MonthService, MonthServiceExt},
-};
-
-pub(crate) enum ErrorType {
-    Internal,
-    NotFound,
-    AlreadyExist,
-}
+use crate::services::balance_sheet::{DynMonthService, MonthService, MonthServiceExt};
 
 pub(crate) struct TestContext {
     year_repo: Arc<SqliteYearRepo>,
@@ -72,19 +63,6 @@ impl TestContext {
 
     pub(crate) async fn get_net_totals(&self, month_id: Uuid) -> DbResult<Vec<NetTotal>> {
         self.month_repo.get_net_totals(month_id).await
-    }
-}
-
-pub(crate) fn assert_err(err: AppError, expected_err: Option<ErrorType>) {
-    match expected_err {
-        Some(ErrorType::Internal) => assert!(matches!(err, AppError::InternalServerError(_))),
-        Some(ErrorType::NotFound) => {
-            assert!(matches!(err, AppError::ResourceNotFound))
-        }
-        Some(ErrorType::AlreadyExist) => assert!(matches!(err, AppError::ResourceAlreadyExist)),
-        None => {
-            // noop
-        }
     }
 }
 

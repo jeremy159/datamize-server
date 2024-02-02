@@ -7,16 +7,7 @@ use datamize_domain::{
 use db_sqlite::budget_template::SqliteBudgeterConfigRepo;
 use sqlx::SqlitePool;
 
-use crate::{
-    error::AppError,
-    services::budget_template::{BudgeterService, BudgeterServiceExt, DynBudgeterService},
-};
-
-pub(crate) enum ErrorType {
-    Internal,
-    NotFound,
-    AlreadyExist,
-}
+use crate::services::budget_template::{BudgeterService, BudgeterServiceExt, DynBudgeterService};
 
 pub(crate) struct TestContext {
     budgeter_config_repo: Arc<SqliteBudgeterConfigRepo>,
@@ -54,18 +45,5 @@ impl TestContext {
         budgeter_name: &str,
     ) -> DbResult<BudgeterConfig> {
         self.budgeter_config_repo.get_by_name(budgeter_name).await
-    }
-}
-
-pub(crate) fn assert_err(err: AppError, expected_err: Option<ErrorType>) {
-    match expected_err {
-        Some(ErrorType::Internal) => assert!(matches!(err, AppError::InternalServerError(_))),
-        Some(ErrorType::NotFound) => {
-            assert!(matches!(err, AppError::ResourceNotFound))
-        }
-        Some(ErrorType::AlreadyExist) => assert!(matches!(err, AppError::ResourceAlreadyExist)),
-        None => {
-            // noop
-        }
     }
 }

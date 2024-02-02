@@ -3,8 +3,9 @@ use fake::{Fake, Faker};
 use pretty_assertions::{assert_eq, assert_ne};
 use sqlx::SqlitePool;
 
-use crate::services::balance_sheet::tests::year::testutils::{
-    assert_err, correctly_stub_year, ErrorType, TestContext,
+use crate::services::{
+    balance_sheet::tests::year::testutils::{correctly_stub_year, TestContext},
+    testutils::{assert_err, ErrorType},
 };
 fn are_equal(a: &Year, b: &Year) {
     assert_eq!(a.year, b.year);

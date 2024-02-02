@@ -5,8 +5,9 @@ use fake::{Fake, Faker};
 use pretty_assertions::{assert_eq, assert_ne};
 use sqlx::SqlitePool;
 
-use crate::services::balance_sheet::tests::financial_resource::testutils::{
-    assert_err, correctly_stub_resource, ErrorType, TestContext,
+use crate::services::{
+    balance_sheet::tests::financial_resource::testutils::{correctly_stub_resource, TestContext},
+    testutils::{assert_err, ErrorType},
 };
 
 async fn check_delete(

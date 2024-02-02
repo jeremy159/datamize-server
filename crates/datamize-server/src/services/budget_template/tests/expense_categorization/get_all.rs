@@ -3,8 +3,9 @@ use db_sqlite::budget_template::sabotage_expenses_categorization_table;
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 
-use crate::services::budget_template::tests::expense_categorization::testutils::{
-    assert_err, ErrorType, TestContext,
+use crate::services::{
+    budget_template::tests::expense_categorization::testutils::TestContext,
+    testutils::{assert_err, ErrorType},
 };
 
 async fn check_get_all(

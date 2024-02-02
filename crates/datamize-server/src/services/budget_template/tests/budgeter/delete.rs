@@ -3,8 +3,9 @@ use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 
-use crate::services::budget_template::tests::budgeter::testutils::{
-    assert_err, ErrorType, TestContext,
+use crate::services::{
+    budget_template::tests::budgeter::testutils::TestContext,
+    testutils::{assert_err, ErrorType},
 };
 
 async fn check_delete(

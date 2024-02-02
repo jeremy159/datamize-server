@@ -127,7 +127,7 @@ impl YnabAccountRepo for SqliteYnabAccountRepo {
                 ).execute(&self.db_conn_pool).await?;
         }
 
-        Ok(())
+        Ok(()) // FIXME: Sometime returns Ok(()) even if there was an error in the loop. Need to better handle this case
     }
 }
 

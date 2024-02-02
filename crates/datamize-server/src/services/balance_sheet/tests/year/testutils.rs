@@ -10,16 +10,7 @@ use db_sqlite::balance_sheet::{
 };
 use sqlx::SqlitePool;
 
-use crate::{
-    error::AppError,
-    services::balance_sheet::{DynYearService, YearService, YearServiceExt},
-};
-
-pub(crate) enum ErrorType {
-    Internal,
-    NotFound,
-    AlreadyExist,
-}
+use crate::services::balance_sheet::{DynYearService, YearService, YearServiceExt};
 
 pub(crate) struct TestContext {
     year_repo: Arc<SqliteYearRepo>,
@@ -95,19 +86,6 @@ impl TestContext {
 
     pub(crate) async fn get_resources(&self, year: i32) -> DbResult<Vec<FinancialResourceYearly>> {
         self.fin_res_repo.get_from_year(year).await
-    }
-}
-
-pub(crate) fn assert_err(err: AppError, expected_err: Option<ErrorType>) {
-    match expected_err {
-        Some(ErrorType::Internal) => assert!(matches!(err, AppError::InternalServerError(_))),
-        Some(ErrorType::NotFound) => {
-            assert!(matches!(err, AppError::ResourceNotFound))
-        }
-        Some(ErrorType::AlreadyExist) => assert!(matches!(err, AppError::ResourceAlreadyExist)),
-        None => {
-            // noop
-        }
     }
 }
 

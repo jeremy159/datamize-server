@@ -12,17 +12,10 @@ use db_sqlite::{
 use sqlx::SqlitePool;
 use ynab::{Account, MockAccountRequestsImpl};
 
-use crate::{
-    error::AppError,
-    services::{
-        balance_sheet::{DynRefreshFinResService, RefreshFinResService, RefreshFinResServiceExt},
-        budget_providers::ExternalAccountService,
-    },
+use crate::services::{
+    balance_sheet::{DynRefreshFinResService, RefreshFinResService, RefreshFinResServiceExt},
+    budget_providers::ExternalAccountService,
 };
-
-pub(crate) enum ErrorType {
-    NotFound,
-}
 
 pub(crate) struct TestContext {
     year_repo: Arc<SqliteYearRepo>,
@@ -99,17 +92,6 @@ impl TestContext {
     pub(crate) async fn set_resources(&self, fin_res: &[FinancialResourceYearly]) {
         for res in fin_res {
             self.fin_res_repo.update(res).await.unwrap();
-        }
-    }
-}
-
-pub(crate) fn assert_err(err: AppError, expected_err: Option<ErrorType>) {
-    match expected_err {
-        Some(ErrorType::NotFound) => {
-            assert!(matches!(err, AppError::ResourceNotFound))
-        }
-        None => {
-            // noop
         }
     }
 }

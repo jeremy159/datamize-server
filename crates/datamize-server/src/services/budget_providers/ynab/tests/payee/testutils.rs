@@ -7,14 +7,9 @@ use fake::{Fake, Faker};
 use sqlx::SqlitePool;
 use ynab::{MockPayeeRequestsImpl, Payee, PayeesDelta};
 
-use crate::{
-    error::AppError,
-    services::budget_providers::{DynYnabPayeeService, YnabPayeeService, YnabPayeeServiceExt},
+use crate::services::budget_providers::{
+    DynYnabPayeeService, YnabPayeeService, YnabPayeeServiceExt,
 };
-
-pub(crate) enum ErrorType {
-    Internal,
-}
 
 pub(crate) struct TestContext {
     ynab_payee_repo: Arc<SqliteYnabPayeeRepo>,
@@ -57,14 +52,5 @@ impl TestContext {
 
     pub(crate) async fn get_delta(&self) -> i64 {
         self.ynab_payee_meta_repo.get_delta().await.unwrap()
-    }
-}
-
-pub(crate) fn assert_err(err: AppError, expected_err: Option<ErrorType>) {
-    match expected_err {
-        Some(ErrorType::Internal) => assert!(matches!(err, AppError::InternalServerError(_))),
-        None => {
-            // noop
-        }
     }
 }

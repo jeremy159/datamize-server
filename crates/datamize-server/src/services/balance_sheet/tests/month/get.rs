@@ -4,8 +4,11 @@ use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 
-use crate::services::balance_sheet::tests::month::testutils::{
-    assert_err, correctly_stub_month, transform_expected_month, ErrorType, TestContext,
+use crate::services::{
+    balance_sheet::tests::month::testutils::{
+        correctly_stub_month, transform_expected_month, TestContext,
+    },
+    testutils::{assert_err, ErrorType},
 };
 
 async fn check_get(

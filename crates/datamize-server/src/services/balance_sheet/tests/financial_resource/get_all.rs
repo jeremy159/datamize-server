@@ -5,8 +5,11 @@ use fake::{faker::chrono::en::Date, Fake};
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 
-use crate::services::balance_sheet::tests::financial_resource::testutils::{
-    assert_err, correctly_stub_resources, transform_expected_resources, ErrorType, TestContext,
+use crate::services::{
+    balance_sheet::tests::financial_resource::testutils::{
+        correctly_stub_resources, transform_expected_resources, TestContext,
+    },
+    testutils::{assert_err, ErrorType},
 };
 
 async fn check_get_all(

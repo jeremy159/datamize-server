@@ -7,8 +7,9 @@ use pretty_assertions::{assert_eq, assert_ne};
 use sqlx::SqlitePool;
 use ynab::Account;
 
-use crate::services::balance_sheet::tests::refresh_resource::testutils::{
-    assert_err, correctly_stub_resources, ErrorType, TestContext,
+use crate::services::{
+    balance_sheet::tests::refresh_resource::testutils::{correctly_stub_resources, TestContext},
+    testutils::{assert_err, ErrorType},
 };
 
 async fn check_refresh(

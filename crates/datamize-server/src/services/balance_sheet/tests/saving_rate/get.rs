@@ -5,9 +5,9 @@ use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 use ynab::TransactionDetail;
 
-use crate::services::balance_sheet::{
-    tests::saving_rate::testutils::{assert_err, ErrorType, TestContext},
-    SavingRateServiceExt,
+use crate::services::{
+    balance_sheet::{tests::saving_rate::testutils::TestContext, SavingRateServiceExt},
+    testutils::{assert_err, ErrorType},
 };
 
 async fn check_get(

@@ -7,22 +7,13 @@ use datamize_domain::{
 use db_sqlite::budget_template::SqliteExpenseCategorizationRepo;
 use sqlx::SqlitePool;
 
-use crate::{
-    error::AppError,
-    services::budget_template::{
-        DynExpenseCategorizationService, ExpenseCategorizationService,
-        ExpenseCategorizationServiceExt,
-    },
+use crate::services::budget_template::{
+    DynExpenseCategorizationService, ExpenseCategorizationService, ExpenseCategorizationServiceExt,
 };
 
 pub(crate) struct TestContext {
     expense_categorization_repo: Arc<SqliteExpenseCategorizationRepo>,
     expense_categorization_service: DynExpenseCategorizationService,
-}
-
-pub(crate) enum ErrorType {
-    Internal,
-    NotFound,
 }
 
 impl TestContext {
@@ -67,17 +58,5 @@ impl TestContext {
         id: Uuid,
     ) -> DbResult<ExpenseCategorization> {
         self.expense_categorization_repo.get(id).await
-    }
-}
-
-pub(crate) fn assert_err(err: AppError, expected_err: Option<ErrorType>) {
-    match expected_err {
-        Some(ErrorType::Internal) => assert!(matches!(err, AppError::InternalServerError(_))),
-        Some(ErrorType::NotFound) => {
-            assert!(matches!(err, AppError::ResourceNotFound))
-        }
-        None => {
-            // noop
-        }
     }
 }

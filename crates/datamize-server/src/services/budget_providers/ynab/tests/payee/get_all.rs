@@ -4,8 +4,9 @@ use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 use ynab::{Payee, PayeesDelta};
 
-use crate::services::budget_providers::ynab::tests::payee::testutils::{
-    assert_err, ErrorType, TestContext,
+use crate::services::{
+    budget_providers::ynab::tests::payee::testutils::TestContext,
+    testutils::{assert_err, ErrorType},
 };
 
 struct YnabData(PayeesDelta);

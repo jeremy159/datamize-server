@@ -4,7 +4,10 @@ use fake::{faker::chrono::en::Date, Fake, Faker};
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 
-use crate::services::balance_sheet::tests::month::testutils::{assert_err, ErrorType, TestContext};
+use crate::services::{
+    balance_sheet::tests::month::testutils::TestContext,
+    testutils::{assert_err, ErrorType},
+};
 
 fn are_equal(a: &Month, b: &Month) {
     assert_eq!(a.month, b.month);

@@ -3,8 +3,9 @@ use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 
-use crate::services::budget_template::tests::expense_categorization::testutils::{
-    assert_err, ErrorType, TestContext,
+use crate::services::{
+    budget_template::tests::expense_categorization::testutils::TestContext,
+    testutils::{assert_err, ErrorType},
 };
 
 fn are_equal(a: &ExpenseCategorization, b: &ExpenseCategorization) {
