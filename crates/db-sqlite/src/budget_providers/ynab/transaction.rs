@@ -281,3 +281,11 @@ impl YnabTransactionRepo for SqliteYnabTransactionRepo {
             .collect())
     }
 }
+
+pub async fn sabotage_transactions_table(pool: &SqlitePool) -> DbResult<()> {
+    sqlx::query!("ALTER TABLE transactions DROP COLUMN date;",)
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}

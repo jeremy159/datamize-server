@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "ALTER TABLE transactions DROP COLUMN date;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "2650a4fd46452142d6031e3da17b56e1cc30be3cd785ee897616d754b6cd3e45"
+}

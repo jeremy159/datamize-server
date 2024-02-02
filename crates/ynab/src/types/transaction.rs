@@ -229,7 +229,7 @@ impl AsRef<BaseTransactionDetail> for TransactionDetail {
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TransationsDetailDelta {
+pub struct TransactionsDetailDelta {
     pub transactions: Vec<TransactionDetail>,
     pub server_knowledge: i64,
 }

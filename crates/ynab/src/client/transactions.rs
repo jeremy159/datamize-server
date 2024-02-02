@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     client::Response, error::YnabResult, Client, SaveTransaction, TransactionDetail,
-    TransactionType, TransactionsParentPath, TransactionsRequestQuery, TransationsDetailDelta,
+    TransactionType, TransactionsDetailDelta, TransactionsParentPath, TransactionsRequestQuery,
     UpdateTransaction,
 };
 
@@ -14,7 +14,7 @@ pub trait TransactionRequests {
     async fn get_transactions_delta(
         &self,
         last_knowledge_of_server: Option<i64>,
-    ) -> YnabResult<TransationsDetailDelta>;
+    ) -> YnabResult<TransactionsDetailDelta>;
 
     async fn get_transactions_since(&self, since_date: &str) -> YnabResult<Vec<TransactionDetail>>;
 
@@ -22,7 +22,7 @@ pub trait TransactionRequests {
         &self,
         since_date: &str,
         last_knowledge_of_server: Option<i64>,
-    ) -> YnabResult<TransationsDetailDelta>;
+    ) -> YnabResult<TransactionsDetailDelta>;
 
     async fn get_transactions_of(
         &self,
@@ -33,7 +33,7 @@ pub trait TransactionRequests {
         &self,
         transaction_type: TransactionType,
         last_knowledge_of_server: Option<i64>,
-    ) -> YnabResult<TransationsDetailDelta>;
+    ) -> YnabResult<TransactionsDetailDelta>;
 
     async fn get_transactions_since_date_of(
         &self,
@@ -46,7 +46,7 @@ pub trait TransactionRequests {
         since_date: &str,
         transaction_type: TransactionType,
         last_knowledge_of_server: Option<i64>,
-    ) -> YnabResult<TransationsDetailDelta>;
+    ) -> YnabResult<TransactionsDetailDelta>;
 
     async fn get_transactions_by_account_id(
         &self,
@@ -57,7 +57,7 @@ pub trait TransactionRequests {
         &self,
         account_id: &str,
         last_knowledge_of_server: Option<i64>,
-    ) -> YnabResult<TransationsDetailDelta>;
+    ) -> YnabResult<TransactionsDetailDelta>;
 
     async fn get_transactions_by_account_id_since(
         &self,
@@ -70,7 +70,7 @@ pub trait TransactionRequests {
         account_id: &str,
         since_date: &str,
         last_knowledge_of_server: Option<i64>,
-    ) -> YnabResult<TransationsDetailDelta>;
+    ) -> YnabResult<TransactionsDetailDelta>;
 
     async fn get_transactions_by_account_id_of(
         &self,
@@ -83,7 +83,7 @@ pub trait TransactionRequests {
         account_id: &str,
         transaction_type: TransactionType,
         last_knowledge_of_server: Option<i64>,
-    ) -> YnabResult<TransationsDetailDelta>;
+    ) -> YnabResult<TransactionsDetailDelta>;
 
     async fn get_transactions_by_account_id_since_date_of(
         &self,
@@ -98,7 +98,7 @@ pub trait TransactionRequests {
         since_date: &str,
         transaction_type: TransactionType,
         last_knowledge_of_server: Option<i64>,
-    ) -> YnabResult<TransationsDetailDelta>;
+    ) -> YnabResult<TransactionsDetailDelta>;
 
     async fn create_transaction(&self, data: SaveTransaction) -> YnabResult<TransactionDetail>;
 
@@ -135,7 +135,7 @@ impl TransactionRequests for Client {
     async fn get_transactions_delta(
         &self,
         last_knowledge_of_server: Option<i64>,
-    ) -> YnabResult<TransationsDetailDelta> {
+    ) -> YnabResult<TransactionsDetailDelta> {
         let query =
             TransactionsRequestQuery::default().with_last_knowledge(last_knowledge_of_server);
         self.get_transactions_request(None, Some(query)).await
@@ -153,7 +153,7 @@ impl TransactionRequests for Client {
         &self,
         since_date: &str,
         last_knowledge_of_server: Option<i64>,
-    ) -> YnabResult<TransationsDetailDelta> {
+    ) -> YnabResult<TransactionsDetailDelta> {
         let query = TransactionsRequestQuery::default()
             .with_last_knowledge(last_knowledge_of_server)
             .with_date(since_date);
@@ -175,7 +175,7 @@ impl TransactionRequests for Client {
         &self,
         transaction_type: TransactionType,
         last_knowledge_of_server: Option<i64>,
-    ) -> YnabResult<TransationsDetailDelta> {
+    ) -> YnabResult<TransactionsDetailDelta> {
         let query = TransactionsRequestQuery::default()
             .with_last_knowledge(last_knowledge_of_server)
             .with_transaction_type(transaction_type);
@@ -201,7 +201,7 @@ impl TransactionRequests for Client {
         since_date: &str,
         transaction_type: TransactionType,
         last_knowledge_of_server: Option<i64>,
-    ) -> YnabResult<TransationsDetailDelta> {
+    ) -> YnabResult<TransactionsDetailDelta> {
         let query = TransactionsRequestQuery::default()
             .with_last_knowledge(last_knowledge_of_server)
             .with_date(since_date)
@@ -223,7 +223,7 @@ impl TransactionRequests for Client {
         &self,
         account_id: &str,
         last_knowledge_of_server: Option<i64>,
-    ) -> YnabResult<TransationsDetailDelta> {
+    ) -> YnabResult<TransactionsDetailDelta> {
         let query =
             TransactionsRequestQuery::default().with_last_knowledge(last_knowledge_of_server);
         self.get_transactions_request(
@@ -253,7 +253,7 @@ impl TransactionRequests for Client {
         account_id: &str,
         since_date: &str,
         last_knowledge_of_server: Option<i64>,
-    ) -> YnabResult<TransationsDetailDelta> {
+    ) -> YnabResult<TransactionsDetailDelta> {
         let query = TransactionsRequestQuery::default()
             .with_last_knowledge(last_knowledge_of_server)
             .with_date(since_date);
@@ -284,7 +284,7 @@ impl TransactionRequests for Client {
         account_id: &str,
         transaction_type: TransactionType,
         last_knowledge_of_server: Option<i64>,
-    ) -> YnabResult<TransationsDetailDelta> {
+    ) -> YnabResult<TransactionsDetailDelta> {
         let query = TransactionsRequestQuery::default()
             .with_last_knowledge(last_knowledge_of_server)
             .with_transaction_type(transaction_type);
@@ -319,7 +319,7 @@ impl TransactionRequests for Client {
         since_date: &str,
         transaction_type: TransactionType,
         last_knowledge_of_server: Option<i64>,
-    ) -> YnabResult<TransationsDetailDelta> {
+    ) -> YnabResult<TransactionsDetailDelta> {
         let query = TransactionsRequestQuery::default()
             .with_last_knowledge(last_knowledge_of_server)
             .with_date(since_date)
@@ -474,7 +474,7 @@ impl Client {
         &self,
         parent_path: Option<TransactionsParentPath<&str>>,
         query: Option<TransactionsRequestQuery>,
-    ) -> YnabResult<TransationsDetailDelta> {
+    ) -> YnabResult<TransactionsDetailDelta> {
         let path = match parent_path {
             Some(tp) => match tp {
                 TransactionsParentPath::Accounts(id) => format!(
@@ -504,7 +504,7 @@ impl Client {
 
         let body = request_builder.send().await?.text().await?;
 
-        let resp: Response<TransationsDetailDelta> = Client::convert_resp(body)?;
+        let resp: Response<TransactionsDetailDelta> = Client::convert_resp(body)?;
         Ok(resp.data)
     }
 }
@@ -523,13 +523,13 @@ mockall::mock! {
         async fn get_transactions_delta(
             &self,
             last_knowledge_of_server: Option<i64>,
-        ) -> YnabResult<TransationsDetailDelta>;
+        ) -> YnabResult<TransactionsDetailDelta>;
         async fn get_transactions_since(&self, since_date: &str) -> YnabResult<Vec<TransactionDetail>>;
         async fn get_transactions_since_delta(
             &self,
             since_date: &str,
             last_knowledge_of_server: Option<i64>,
-        ) -> YnabResult<TransationsDetailDelta>;
+        ) -> YnabResult<TransactionsDetailDelta>;
         async fn get_transactions_of(
             &self,
             transaction_type: TransactionType,
@@ -538,7 +538,7 @@ mockall::mock! {
             &self,
             transaction_type: TransactionType,
             last_knowledge_of_server: Option<i64>,
-        ) -> YnabResult<TransationsDetailDelta>;
+        ) -> YnabResult<TransactionsDetailDelta>;
         async fn get_transactions_since_date_of(
             &self,
             since_date: &str,
@@ -549,7 +549,7 @@ mockall::mock! {
             since_date: &str,
             transaction_type: TransactionType,
             last_knowledge_of_server: Option<i64>,
-        ) -> YnabResult<TransationsDetailDelta>;
+        ) -> YnabResult<TransactionsDetailDelta>;
         async fn get_transactions_by_account_id(
             &self,
             account_id: &str,
@@ -558,7 +558,7 @@ mockall::mock! {
             &self,
             account_id: &str,
             last_knowledge_of_server: Option<i64>,
-        ) -> YnabResult<TransationsDetailDelta>;
+        ) -> YnabResult<TransactionsDetailDelta>;
         async fn get_transactions_by_account_id_since(
             &self,
             account_id: &str,
@@ -569,7 +569,7 @@ mockall::mock! {
             account_id: &str,
             since_date: &str,
             last_knowledge_of_server: Option<i64>,
-        ) -> YnabResult<TransationsDetailDelta>;
+        ) -> YnabResult<TransactionsDetailDelta>;
         async fn get_transactions_by_account_id_of(
             &self,
             account_id: &str,
@@ -580,7 +580,7 @@ mockall::mock! {
             account_id: &str,
             transaction_type: TransactionType,
             last_knowledge_of_server: Option<i64>,
-        ) -> YnabResult<TransationsDetailDelta>;
+        ) -> YnabResult<TransactionsDetailDelta>;
         async fn get_transactions_by_account_id_since_date_of(
             &self,
             account_id: &str,
@@ -593,7 +593,7 @@ mockall::mock! {
             since_date: &str,
             transaction_type: TransactionType,
             last_knowledge_of_server: Option<i64>,
-        ) -> YnabResult<TransationsDetailDelta>;
+        ) -> YnabResult<TransactionsDetailDelta>;
         async fn create_transaction(&self, data: SaveTransaction) -> YnabResult<TransactionDetail>;
         async fn create_transactions(
             &self,
