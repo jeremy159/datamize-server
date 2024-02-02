@@ -87,7 +87,7 @@ pub(crate) fn count_sub_transaction_ids(
         .iter()
         .filter(|st| !st.deleted)
         .flat_map(|st| &st.subtransactions)
-        // .filter(|sub| !sub.deleted) // TODO: Maybe we should filter them in the code?
+        .filter(|sub| !sub.deleted)
         .filter_map(|sub| sub.category_id)
         .count()
 }
