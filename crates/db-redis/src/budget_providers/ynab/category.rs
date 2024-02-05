@@ -36,9 +36,9 @@ impl YnabCategoryMetaRepo for RedisYnabCategoryMetaRepo {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn del_delta(&self) -> DbResult<i64> {
+    async fn del_delta(&self) -> DbResult<()> {
         self.redis_conn_pool
-            .getdel("categories_delta")
+            .del("categories_delta")
             .await
             .map_err(Into::into)
     }

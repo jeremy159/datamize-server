@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "ALTER TABLE categories DROP COLUMN name;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "83bf2cb28ebb33451bf98cd3d32d4017c1e5857c4ad4dafee088ab7418f150c9"
+}

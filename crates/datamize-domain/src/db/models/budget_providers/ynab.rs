@@ -67,7 +67,7 @@ pub type DynYnabTransactionRepo = Arc<dyn YnabTransactionRepo>;
 pub trait YnabCategoryMetaRepo: Send + Sync {
     async fn get_delta(&self) -> DbResult<i64>;
     async fn set_delta(&self, server_knowledge: i64) -> DbResult<()>;
-    async fn del_delta(&self) -> DbResult<i64>;
+    async fn del_delta(&self) -> DbResult<()>;
     async fn get_last_saved(&self) -> DbResult<String>;
     async fn set_last_saved(&self, last_saved: String) -> DbResult<()>;
 }

@@ -157,3 +157,11 @@ impl YnabCategoryRepo for SqliteYnabCategoryRepo {
         Ok(())
     }
 }
+
+pub async fn sabotage_categories_table(pool: &SqlitePool) -> DbResult<()> {
+    sqlx::query!("ALTER TABLE categories DROP COLUMN name;",)
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}
