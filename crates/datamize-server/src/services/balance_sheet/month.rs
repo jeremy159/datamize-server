@@ -8,7 +8,6 @@ use datamize_domain::{
 
 use crate::error::{AppError, DatamizeResult};
 
-#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait MonthServiceExt: Send + Sync {
     async fn get_all_months(&self) -> DatamizeResult<Vec<Month>>;

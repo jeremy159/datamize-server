@@ -8,7 +8,6 @@ use datamize_domain::{
 
 use crate::error::{AppError, DatamizeResult};
 
-#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait BudgeterServiceExt: Send + Sync {
     async fn get_all_budgeters(&self) -> DatamizeResult<Vec<BudgeterConfig>>;

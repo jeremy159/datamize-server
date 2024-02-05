@@ -9,7 +9,6 @@ use datamize_domain::{
 
 use crate::error::{AppError, DatamizeResult};
 
-#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait FinResServiceExt: Send + Sync {
     async fn get_all_fin_res(&self) -> DatamizeResult<Vec<FinancialResourceYearly>>;

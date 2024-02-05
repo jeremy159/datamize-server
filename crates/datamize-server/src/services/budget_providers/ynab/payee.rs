@@ -9,7 +9,6 @@ use ynab::{Payee, PayeeRequests};
 
 use crate::error::DatamizeResult;
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait YnabPayeeServiceExt: Send + Sync {
     async fn get_all_ynab_payees(&self) -> DatamizeResult<Vec<Payee>>;

@@ -14,7 +14,6 @@ use orion::kex::SecretKey;
 
 use crate::{config, error::DatamizeResult};
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait ExternalAccountServiceExt: Send + Sync {
     async fn get_all_external_accounts(&self) -> DatamizeResult<Vec<ExternalAccount>>;

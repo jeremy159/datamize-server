@@ -10,7 +10,6 @@ use ynab::TransactionDetail;
 
 use crate::db::error::DbResult;
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait YnabCategoryRepo: Send + Sync {
     async fn get_all(&self) -> DbResult<Vec<Category>>;
@@ -20,7 +19,6 @@ pub trait YnabCategoryRepo: Send + Sync {
 
 pub type DynYnabCategoryRepo = Arc<dyn YnabCategoryRepo>;
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait YnabScheduledTransactionRepo: Send + Sync {
     async fn get_all(&self) -> DbResult<Vec<ScheduledTransactionDetail>>;
@@ -32,7 +30,6 @@ pub trait YnabScheduledTransactionRepo: Send + Sync {
 
 pub type DynYnabScheduledTransactionRepo = Arc<dyn YnabScheduledTransactionRepo>;
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait YnabAccountRepo: Send + Sync {
     async fn get_all(&self) -> DbResult<Vec<Account>>;
@@ -41,7 +38,6 @@ pub trait YnabAccountRepo: Send + Sync {
 
 pub type DynYnabAccountRepo = Arc<dyn YnabAccountRepo>;
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait YnabPayeeRepo: Send + Sync {
     async fn get_all(&self) -> DbResult<Vec<Payee>>;
@@ -50,7 +46,6 @@ pub trait YnabPayeeRepo: Send + Sync {
 
 pub type DynYnabPayeeRepo = Arc<dyn YnabPayeeRepo>;
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait YnabTransactionRepo: Send + Sync {
     async fn get_all(&self) -> DbResult<Vec<TransactionDetail>>;
@@ -62,7 +57,6 @@ pub trait YnabTransactionRepo: Send + Sync {
 
 pub type DynYnabTransactionRepo = Arc<dyn YnabTransactionRepo>;
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait YnabCategoryMetaRepo: Send + Sync {
     async fn get_delta(&self) -> DbResult<i64>;
@@ -74,7 +68,6 @@ pub trait YnabCategoryMetaRepo: Send + Sync {
 
 pub type DynYnabCategoryMetaRepo = Arc<dyn YnabCategoryMetaRepo>;
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait YnabScheduledTransactionMetaRepo: Send + Sync {
     async fn get_delta(&self) -> DbResult<i64>;
@@ -86,7 +79,6 @@ pub trait YnabScheduledTransactionMetaRepo: Send + Sync {
 
 pub type DynYnabScheduledTransactionMetaRepo = Arc<dyn YnabScheduledTransactionMetaRepo>;
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait YnabAccountMetaRepo: Send + Sync {
     async fn get_delta(&self) -> DbResult<i64>;
@@ -95,7 +87,6 @@ pub trait YnabAccountMetaRepo: Send + Sync {
 
 pub type DynYnabAccountMetaRepo = Arc<dyn YnabAccountMetaRepo>;
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait YnabPayeeMetaRepo: Send + Sync {
     async fn get_delta(&self) -> DbResult<i64>;
@@ -104,7 +95,6 @@ pub trait YnabPayeeMetaRepo: Send + Sync {
 
 pub type DynYnabPayeeMetaRepo = Arc<dyn YnabPayeeMetaRepo>;
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait YnabTransactionMetaRepo: Send + Sync {
     async fn get_delta(&self) -> DbResult<i64>;

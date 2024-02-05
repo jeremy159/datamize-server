@@ -12,7 +12,6 @@ use crate::{
     },
 };
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait YearRepo: Send + Sync {
     async fn get_years(&self) -> DbResult<Vec<Year>>;
@@ -34,7 +33,6 @@ pub struct YearData {
     pub refreshed_at: DateTime<Utc>,
 }
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait MonthRepo: Send + Sync {
     async fn get_year_data_by_number(&self, year: i32) -> DbResult<YearData>;
@@ -56,7 +54,6 @@ pub struct MonthData {
     pub month: i16,
 }
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait FinResRepo: Send + Sync {
     async fn get_from_all_years(&self) -> DbResult<Vec<FinancialResourceYearly>>;
@@ -75,7 +72,6 @@ pub trait FinResRepo: Send + Sync {
 
 pub type DynFinResRepo = Arc<dyn FinResRepo>;
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait SavingRateRepo: Send + Sync {
     async fn get_from_year(&self, year: i32) -> DbResult<Vec<SavingRate>>;

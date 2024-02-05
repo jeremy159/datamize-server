@@ -5,7 +5,6 @@ use uuid::Uuid;
 
 use crate::{db::error::DbResult, models::WebScrapingAccount};
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait ExternalAccountRepo: Send + Sync {
     async fn get_all(&self) -> DbResult<Vec<WebScrapingAccount>>;
@@ -18,7 +17,6 @@ pub trait ExternalAccountRepo: Send + Sync {
 
 pub type DynExternalAccountRepo = Arc<dyn ExternalAccountRepo>;
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait EncryptionKeyRepo: Send + Sync {
     async fn get(&self) -> DbResult<Vec<u8>>;

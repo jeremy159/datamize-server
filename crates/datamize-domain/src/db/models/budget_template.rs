@@ -8,7 +8,6 @@ use crate::{
     models::{BudgeterConfig, ExpenseCategorization},
 };
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait BudgeterConfigRepo: Send + Sync {
     async fn get_all(&self) -> DbResult<Vec<BudgeterConfig>>;
@@ -20,7 +19,6 @@ pub trait BudgeterConfigRepo: Send + Sync {
 
 pub type DynBudgeterConfigRepo = Arc<dyn BudgeterConfigRepo>;
 
-#[cfg_attr(any(feature = "testutils", test), mockall::automock)]
 #[async_trait]
 pub trait ExpenseCategorizationRepo: Send + Sync {
     async fn get_all(&self) -> DbResult<Vec<ExpenseCategorization>>;

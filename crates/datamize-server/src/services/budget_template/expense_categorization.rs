@@ -3,7 +3,6 @@ use std::sync::Arc;
 
 use crate::error::{AppError, DatamizeResult};
 
-#[cfg_attr(test, mockall::automock)]
 #[async_trait]
 pub trait ExpenseCategorizationServiceExt: Send + Sync {
     async fn get_all_expenses_categorization(&self) -> DatamizeResult<Vec<ExpenseCategorization>>;
