@@ -42,9 +42,9 @@ impl YnabScheduledTransactionMetaRepo for RedisYnabScheduledTransactionMetaRepo 
     }
 
     #[tracing::instrument(skip(self))]
-    async fn del_delta(&self) -> DbResult<i64> {
+    async fn del_delta(&self) -> DbResult<()> {
         self.redis_conn_pool
-            .getdel("scheduled_transactions_delta")
+            .del("scheduled_transactions_delta")
             .await
             .map_err(Into::into)
     }

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "ALTER TABLE scheduled_transactions DROP COLUMN date_next;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "13458a13d017338cdd152f7d14c6f765bc358917cf0d0b4877fd6d013a23a373"
+}

@@ -137,3 +137,11 @@ impl YnabScheduledTransactionRepo for SqliteYnabScheduledTransactionRepo {
         Ok(())
     }
 }
+
+pub async fn sabotage_scheduled_transactions_table(pool: &SqlitePool) -> DbResult<()> {
+    sqlx::query!("ALTER TABLE scheduled_transactions DROP COLUMN date_next;",)
+        .execute(pool)
+        .await?;
+
+    Ok(())
+}
