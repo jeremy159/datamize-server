@@ -24,166 +24,6 @@ impl PostgresMonthRepo {
             fin_res_repo: PostgresFinResRepo { db_conn_pool },
         })
     }
-
-    #[tracing::instrument(skip(self, net_totals))]
-    pub async fn insert_net_totals(&self, month_id: Uuid, net_totals: &NetTotals) -> DbResult<()> {
-        let mut transaction = self.db_conn_pool.begin().await?;
-
-        let net_type = NetTotalType::Asset.to_string();
-        sqlx::query!(
-            r#"
-            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, last_updated, month_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            ON CONFLICT (id) DO UPDATE
-            SET type = EXCLUDED.type,
-            total = EXCLUDED.total,
-            percent_var = EXCLUDED.percent_var,
-            balance_var = EXCLUDED.balance_var,
-            last_updated = EXCLUDED.last_updated;
-            "#,
-            net_totals.assets.id,
-            net_type,
-            net_totals.assets.total,
-            net_totals.assets.percent_var,
-            net_totals.assets.balance_var,
-            net_totals.assets.last_updated,
-            month_id,
-        )
-        .execute(&mut *transaction)
-        .await?;
-
-        let net_type = NetTotalType::Portfolio.to_string();
-        sqlx::query!(
-            r#"
-            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, last_updated, month_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            ON CONFLICT (id) DO UPDATE
-            SET type = EXCLUDED.type,
-            total = EXCLUDED.total,
-            percent_var = EXCLUDED.percent_var,
-            balance_var = EXCLUDED.balance_var,
-            last_updated = EXCLUDED.last_updated;
-            "#,
-            net_totals.portfolio.id,
-            net_type,
-            net_totals.portfolio.total,
-            net_totals.portfolio.percent_var,
-            net_totals.portfolio.balance_var,
-            net_totals.portfolio.last_updated,
-            month_id,
-        )
-        .execute(&mut *transaction)
-        .await?;
-
-        transaction.commit().await?;
-
-        Ok(())
-    }
-
-    #[tracing::instrument(skip(self))]
-    pub async fn get_without_resources(
-        &self,
-        month_num: MonthNum,
-        year: i32,
-    ) -> Result<Month, DbError> {
-        let db_rows = sqlx::query!(
-            r#"
-            SELECT
-                m.id as "month_id: Uuid",
-                m.month as "month: MonthNum",
-                n.id as "net_total_id: Uuid",
-                n.type as "net_type: NetTotalType",
-                n.total,
-                n.percent_var as "percent_var: f32",
-                n.balance_var,
-                n.last_updated as "last_updated?: DateTime<Utc>"
-            FROM balance_sheet_months AS m
-            JOIN balance_sheet_net_totals_months AS n ON m.id = n.month_id
-            JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1
-            WHERE m.month = $2;
-            "#,
-            year,
-            month_num as i16,
-        )
-        .fetch_all(&self.db_conn_pool)
-        .await?;
-
-        if db_rows.is_empty() || db_rows.len() != 2 {
-            return Err(DbError::NotFound);
-        }
-
-        let id = db_rows[0].month_id;
-        let month = db_rows[0].month;
-        let mut net_totals = NetTotals::default();
-
-        for r in db_rows {
-            match r.net_type {
-                NetTotalType::Asset => {
-                    net_totals.assets = NetTotal {
-                        id: r.net_total_id,
-                        total: r.total,
-                        percent_var: r.percent_var,
-                        balance_var: r.balance_var,
-                        last_updated: r.last_updated,
-                    };
-                }
-                NetTotalType::Portfolio => {
-                    net_totals.portfolio = NetTotal {
-                        id: r.net_total_id,
-                        total: r.total,
-                        percent_var: r.percent_var,
-                        balance_var: r.balance_var,
-                        last_updated: r.last_updated,
-                    };
-                }
-            };
-        }
-
-        let month = Month {
-            id,
-            month,
-            year,
-            net_totals,
-            resources: vec![],
-        };
-
-        Ok(month)
-    }
-
-    #[tracing::instrument(skip(self))]
-    pub async fn get_months_of_year_without_resources(&self, year: i32) -> DbResult<Vec<Month>> {
-        let month_datas = sqlx::query_as!(
-            MonthData,
-            r#"
-            SELECT
-                m.id as "id: Uuid",
-                m.month as "month: MonthNum",
-                y.year as "year: i32"
-            FROM balance_sheet_months AS m
-            JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1
-            ORDER BY m.month;
-            "#,
-            year,
-        )
-        .fetch_all(&self.db_conn_pool)
-        .await?;
-
-        let mut months: Vec<Month> = vec![];
-
-        for md in month_datas {
-            let net_totals = self.get_net_totals(md.id).await?;
-
-            months.push(Month {
-                id: md.id,
-                month: md.month,
-                year: md.year,
-                net_totals,
-                resources: vec![],
-            });
-        }
-
-        Ok(months)
-    }
 }
 
 #[async_trait]
@@ -223,6 +63,41 @@ impl MonthRepo for PostgresMonthRepo {
         .fetch_one(&self.db_conn_pool)
         .await
         .map_err(Into::into)
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn get_months_of_year_without_resources(&self, year: i32) -> DbResult<Vec<Month>> {
+        let month_datas = sqlx::query_as!(
+            MonthData,
+            r#"
+            SELECT
+                m.id as "id: Uuid",
+                m.month as "month: MonthNum",
+                y.year as "year: i32"
+            FROM balance_sheet_months AS m
+            JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1
+            ORDER BY m.month;
+            "#,
+            year,
+        )
+        .fetch_all(&self.db_conn_pool)
+        .await?;
+
+        let mut months: Vec<Month> = vec![];
+
+        for md in month_datas {
+            let net_totals = self.get_net_totals(md.id).await?;
+
+            months.push(Month {
+                id: md.id,
+                month: md.month,
+                year: md.year,
+                net_totals,
+                resources: vec![],
+            });
+        }
+
+        Ok(months)
     }
 
     #[tracing::instrument(skip(self))]
@@ -299,6 +174,72 @@ impl MonthRepo for PostgresMonthRepo {
     }
 
     #[tracing::instrument(skip(self))]
+    async fn get_without_resources(&self, month_num: MonthNum, year: i32) -> DbResult<Month> {
+        let db_rows = sqlx::query!(
+            r#"
+            SELECT
+                m.id as "month_id: Uuid",
+                m.month as "month: MonthNum",
+                n.id as "net_total_id: Uuid",
+                n.type as "net_type: NetTotalType",
+                n.total,
+                n.percent_var as "percent_var: f32",
+                n.balance_var,
+                n.last_updated as "last_updated?: DateTime<Utc>"
+            FROM balance_sheet_months AS m
+            JOIN balance_sheet_net_totals_months AS n ON m.id = n.month_id
+            JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1
+            WHERE m.month = $2;
+            "#,
+            year,
+            month_num as i16,
+        )
+        .fetch_all(&self.db_conn_pool)
+        .await?;
+
+        if db_rows.is_empty() || db_rows.len() != 2 {
+            return Err(DbError::NotFound);
+        }
+
+        let id = db_rows[0].month_id;
+        let month = db_rows[0].month;
+        let mut net_totals = NetTotals::default();
+
+        for r in db_rows {
+            match r.net_type {
+                NetTotalType::Asset => {
+                    net_totals.assets = NetTotal {
+                        id: r.net_total_id,
+                        total: r.total,
+                        percent_var: r.percent_var,
+                        balance_var: r.balance_var,
+                        last_updated: r.last_updated,
+                    };
+                }
+                NetTotalType::Portfolio => {
+                    net_totals.portfolio = NetTotal {
+                        id: r.net_total_id,
+                        total: r.total,
+                        percent_var: r.percent_var,
+                        balance_var: r.balance_var,
+                        last_updated: r.last_updated,
+                    };
+                }
+            };
+        }
+
+        let month = Month {
+            id,
+            month,
+            year,
+            net_totals,
+            resources: vec![],
+        };
+
+        Ok(month)
+    }
+
+    #[tracing::instrument(skip(self))]
     async fn get(&self, month_num: MonthNum, year: i32) -> Result<Month, DbError> {
         let mut month = self.get_without_resources(month_num, year).await?;
         month.resources = self.fin_res_repo.get_from_month(month_num, year).await?;
@@ -356,6 +297,61 @@ impl MonthRepo for PostgresMonthRepo {
     #[tracing::instrument(skip(self))]
     async fn update_net_totals(&self, month_num: MonthNum, year: i32) -> DbResult<()> {
         update_month_net_totals(self, month_num, year).await
+    }
+
+    #[tracing::instrument(skip(self, net_totals))]
+    async fn insert_net_totals(&self, month_id: Uuid, net_totals: &NetTotals) -> DbResult<()> {
+        let mut transaction = self.db_conn_pool.begin().await?;
+
+        let net_type = NetTotalType::Asset.to_string();
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, last_updated, month_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (id) DO UPDATE
+            SET type = EXCLUDED.type,
+            total = EXCLUDED.total,
+            percent_var = EXCLUDED.percent_var,
+            balance_var = EXCLUDED.balance_var,
+            last_updated = EXCLUDED.last_updated;
+            "#,
+            net_totals.assets.id,
+            net_type,
+            net_totals.assets.total,
+            net_totals.assets.percent_var,
+            net_totals.assets.balance_var,
+            net_totals.assets.last_updated,
+            month_id,
+        )
+        .execute(&mut *transaction)
+        .await?;
+
+        let net_type = NetTotalType::Portfolio.to_string();
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, last_updated, month_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (id) DO UPDATE
+            SET type = EXCLUDED.type,
+            total = EXCLUDED.total,
+            percent_var = EXCLUDED.percent_var,
+            balance_var = EXCLUDED.balance_var,
+            last_updated = EXCLUDED.last_updated;
+            "#,
+            net_totals.portfolio.id,
+            net_type,
+            net_totals.portfolio.total,
+            net_totals.portfolio.percent_var,
+            net_totals.portfolio.balance_var,
+            net_totals.portfolio.last_updated,
+            month_id,
+        )
+        .execute(&mut *transaction)
+        .await?;
+
+        transaction.commit().await?;
+
+        Ok(())
     }
 
     #[tracing::instrument(skip(self))]

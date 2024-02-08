@@ -17,9 +17,11 @@ pub trait YearRepo: Send + Sync {
     async fn get_years(&self) -> DbResult<Vec<Year>>;
     async fn get_year_data_by_number(&self, year: i32) -> DbResult<YearData>;
     async fn add(&self, year: &Year) -> DbResult<()>;
+    async fn get_without_resources(&self, year: i32) -> DbResult<Year>;
     async fn get(&self, year: i32) -> DbResult<Year>;
     async fn get_net_totals(&self, year_id: Uuid) -> DbResult<NetTotals>;
     async fn update_net_totals(&self, year: i32) -> DbResult<()>;
+    async fn insert_net_totals(&self, year_id: Uuid, net_totals: &NetTotals) -> DbResult<()>;
     async fn update_refreshed_at(&self, year: &YearData) -> DbResult<()>;
     async fn delete(&self, year: i32) -> DbResult<()>;
 }
@@ -37,12 +39,15 @@ pub struct YearData {
 pub trait MonthRepo: Send + Sync {
     async fn get_year_data_by_number(&self, year: i32) -> DbResult<YearData>;
     async fn get_month_data_by_number(&self, month: MonthNum, year: i32) -> DbResult<MonthData>;
+    async fn get_months_of_year_without_resources(&self, year: i32) -> DbResult<Vec<Month>>;
     async fn get_months_of_year(&self, year: i32) -> DbResult<Vec<Month>>;
     async fn get_months(&self) -> DbResult<Vec<Month>>;
     async fn add(&self, month: &Month, year: i32) -> DbResult<()>;
+    async fn get_without_resources(&self, month_num: MonthNum, year: i32) -> DbResult<Month>;
     async fn get(&self, month_num: MonthNum, year: i32) -> DbResult<Month>;
     async fn get_net_totals(&self, month_id: Uuid) -> DbResult<NetTotals>;
     async fn update_net_totals(&self, month_num: MonthNum, year: i32) -> DbResult<()>;
+    async fn insert_net_totals(&self, month_id: Uuid, net_totals: &NetTotals) -> DbResult<()>;
     async fn delete(&self, month_num: MonthNum, year: i32) -> DbResult<()>;
 }
 

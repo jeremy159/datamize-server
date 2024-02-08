@@ -25,81 +25,6 @@ impl SqliteYearRepo {
             },
         })
     }
-
-    #[tracing::instrument(skip(self, net_totals))]
-    pub async fn insert_net_totals(&self, year_id: Uuid, net_totals: &NetTotals) -> DbResult<()> {
-        let mut transaction = self.db_conn_pool.begin().await?;
-
-        let net_type = NetTotalType::Asset.to_string();
-        sqlx::query!(
-            r#"
-            INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, last_updated, year_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            ON CONFLICT (id) DO UPDATE
-            SET type = EXCLUDED.type,
-            total = EXCLUDED.total,
-            percent_var = EXCLUDED.percent_var,
-            balance_var = EXCLUDED.balance_var,
-            last_updated = EXCLUDED.last_updated;
-            "#,
-            net_totals.assets.id,
-            net_type,
-            net_totals.assets.total,
-            net_totals.assets.percent_var,
-            net_totals.assets.balance_var,
-            net_totals.assets.last_updated,
-            year_id,
-        )
-        .execute(&mut *transaction)
-        .await?;
-
-        let net_type = NetTotalType::Portfolio.to_string();
-        sqlx::query!(
-            r#"
-            INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, last_updated, year_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            ON CONFLICT (id) DO UPDATE
-            SET type = EXCLUDED.type,
-            total = EXCLUDED.total,
-            percent_var = EXCLUDED.percent_var,
-            balance_var = EXCLUDED.balance_var,
-            last_updated = EXCLUDED.last_updated;
-            "#,
-            net_totals.portfolio.id,
-            net_type,
-            net_totals.portfolio.total,
-            net_totals.portfolio.percent_var,
-            net_totals.portfolio.balance_var,
-            net_totals.portfolio.last_updated,
-            year_id,
-        )
-        .execute(&mut *transaction)
-        .await?;
-
-        transaction.commit().await?;
-
-        Ok(())
-    }
-
-    #[tracing::instrument(skip(self))]
-    pub async fn get_without_resources(&self, year: i32) -> DbResult<Year> {
-        let year_data = self.get_year_data_by_number(year).await?;
-
-        let (net_totals, months) = try_join!(
-            self.get_net_totals(year_data.id),
-            self.month_repo.get_months_of_year_without_resources(year),
-        )?;
-
-        let year = Year {
-            id: year_data.id,
-            year: year_data.year,
-            refreshed_at: year_data.refreshed_at,
-            net_totals,
-            months,
-        };
-
-        Ok(year)
-    }
 }
 
 #[async_trait]
@@ -174,6 +99,26 @@ impl YearRepo for SqliteYearRepo {
     }
 
     #[tracing::instrument(skip(self))]
+    async fn get_without_resources(&self, year: i32) -> DbResult<Year> {
+        let year_data = self.get_year_data_by_number(year).await?;
+
+        let (net_totals, months) = try_join!(
+            self.get_net_totals(year_data.id),
+            self.month_repo.get_months_of_year_without_resources(year),
+        )?;
+
+        let year = Year {
+            id: year_data.id,
+            year: year_data.year,
+            refreshed_at: year_data.refreshed_at,
+            net_totals,
+            months,
+        };
+
+        Ok(year)
+    }
+
+    #[tracing::instrument(skip(self))]
     async fn get(&self, year: i32) -> DbResult<Year> {
         let year_data = self.get_year_data_by_number(year).await?;
 
@@ -243,6 +188,61 @@ impl YearRepo for SqliteYearRepo {
     #[tracing::instrument(skip(self))]
     async fn update_net_totals(&self, year: i32) -> DbResult<()> {
         update_year_net_totals(self, year).await
+    }
+
+    #[tracing::instrument(skip(self, net_totals))]
+    async fn insert_net_totals(&self, year_id: Uuid, net_totals: &NetTotals) -> DbResult<()> {
+        let mut transaction = self.db_conn_pool.begin().await?;
+
+        let net_type = NetTotalType::Asset.to_string();
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, last_updated, year_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (id) DO UPDATE
+            SET type = EXCLUDED.type,
+            total = EXCLUDED.total,
+            percent_var = EXCLUDED.percent_var,
+            balance_var = EXCLUDED.balance_var,
+            last_updated = EXCLUDED.last_updated;
+            "#,
+            net_totals.assets.id,
+            net_type,
+            net_totals.assets.total,
+            net_totals.assets.percent_var,
+            net_totals.assets.balance_var,
+            net_totals.assets.last_updated,
+            year_id,
+        )
+        .execute(&mut *transaction)
+        .await?;
+
+        let net_type = NetTotalType::Portfolio.to_string();
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, last_updated, year_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (id) DO UPDATE
+            SET type = EXCLUDED.type,
+            total = EXCLUDED.total,
+            percent_var = EXCLUDED.percent_var,
+            balance_var = EXCLUDED.balance_var,
+            last_updated = EXCLUDED.last_updated;
+            "#,
+            net_totals.portfolio.id,
+            net_type,
+            net_totals.portfolio.total,
+            net_totals.portfolio.percent_var,
+            net_totals.portfolio.balance_var,
+            net_totals.portfolio.last_updated,
+            year_id,
+        )
+        .execute(&mut *transaction)
+        .await?;
+
+        transaction.commit().await?;
+
+        Ok(())
     }
 
     #[tracing::instrument(skip_all)]
