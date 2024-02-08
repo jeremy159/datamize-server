@@ -1,4 +1,4 @@
-use datamize_domain::{FinancialResourceMonthly, Month};
+use datamize_domain::{net_totals_equal_without_id, FinancialResourceMonthly, Month, NetTotals};
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
@@ -45,8 +45,11 @@ async fn check_delete(
         assert_eq!(saved, Err(datamize_domain::db::DbError::NotFound));
 
         // Make sure the deletion removed net totals of the month from db
-        let saved_net_totals = context.get_net_totals(expected_resp.id).await;
-        assert_eq!(saved_net_totals, Ok(vec![]));
+        let saved_net_totals = context.get_net_totals(expected_resp.id).await.unwrap();
+        assert!(net_totals_equal_without_id(
+            &saved_net_totals,
+            &NetTotals::default()
+        ));
     } else {
         assert_err(response.unwrap_err(), expected_err);
     }

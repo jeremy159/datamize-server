@@ -1,4 +1,4 @@
-use datamize_domain::{NetTotal, NetTotalType, SaveYear, Year};
+use datamize_domain::{NetTotal, NetTotals, SaveYear, Year};
 use fake::{Fake, Faker};
 use pretty_assertions::{assert_eq, assert_ne};
 use sqlx::SqlitePool;
@@ -9,12 +9,12 @@ use crate::services::{
 };
 fn are_equal(a: &Year, b: &Year) {
     assert_eq!(a.year, b.year);
-    assert_eq!(a.net_assets.total, b.net_assets.total);
-    assert_eq!(a.net_assets.balance_var, b.net_assets.balance_var);
-    assert_eq!(a.net_assets.percent_var, b.net_assets.percent_var);
-    assert_eq!(a.net_portfolio.total, b.net_assets.total);
-    assert_eq!(a.net_portfolio.balance_var, b.net_portfolio.balance_var);
-    assert_eq!(a.net_portfolio.percent_var, b.net_portfolio.percent_var);
+    assert_eq!(a.net_assets().total, b.net_assets().total);
+    assert_eq!(a.net_assets().balance_var, b.net_assets().balance_var);
+    assert_eq!(a.net_assets().percent_var, b.net_assets().percent_var);
+    assert_eq!(a.net_portfolio().total, b.net_assets().total);
+    assert_eq!(a.net_portfolio().balance_var, b.net_portfolio().balance_var);
+    assert_eq!(a.net_portfolio().percent_var, b.net_portfolio().percent_var);
     assert_eq!(a.months, b.months);
 }
 
@@ -44,18 +44,7 @@ async fn persists_new_year(pool: SqlitePool) {
     let body: SaveYear = Faker.fake();
     let year = Year {
         year: body.year,
-        net_assets: NetTotal {
-            total: 0,
-            balance_var: 0,
-            percent_var: 0.0,
-            ..Faker.fake()
-        },
-        net_portfolio: NetTotal {
-            total: 0,
-            balance_var: 0,
-            percent_var: 0.0,
-            ..Faker.fake()
-        },
+        net_totals: NetTotals::default(),
         months: vec![],
         ..Faker.fake()
     };
@@ -89,25 +78,27 @@ async fn update_net_totals_if_prev_year_exists(pool: SqlitePool) {
 
     let year = Year {
         year: body.year,
-        net_assets: NetTotal {
-            total: 0,
-            balance_var: -prev_year.net_assets.total,
-            percent_var: if prev_year.net_assets.total == 0 {
-                0.0
-            } else {
-                -1.0
+        net_totals: NetTotals {
+            assets: NetTotal {
+                total: 0,
+                balance_var: -prev_year.net_assets().total,
+                percent_var: if prev_year.net_assets().total == 0 {
+                    0.0
+                } else {
+                    -1.0
+                },
+                ..Faker.fake()
             },
-            ..Faker.fake()
-        },
-        net_portfolio: NetTotal {
-            total: 0,
-            balance_var: -prev_year.net_portfolio.total,
-            percent_var: if prev_year.net_portfolio.total == 0 {
-                0.0
-            } else {
-                -1.0
+            portfolio: NetTotal {
+                total: 0,
+                balance_var: -prev_year.net_portfolio().total,
+                percent_var: if prev_year.net_portfolio().total == 0 {
+                    0.0
+                } else {
+                    -1.0
+                },
+                ..Faker.fake()
             },
-            ..Faker.fake()
         },
         months: vec![],
         ..Faker.fake()
@@ -137,25 +128,27 @@ async fn update_net_totals_of_prev_and_next_years_if_exists(pool: SqlitePool) {
 
     let year = Year {
         year: body.year,
-        net_assets: NetTotal {
-            total: 0,
-            balance_var: -prev_year.net_assets.total,
-            percent_var: if prev_year.net_assets.total == 0 {
-                0.0
-            } else {
-                -1.0
+        net_totals: NetTotals {
+            assets: NetTotal {
+                total: 0,
+                balance_var: -prev_year.net_assets().total,
+                percent_var: if prev_year.net_assets().total == 0 {
+                    0.0
+                } else {
+                    -1.0
+                },
+                ..Faker.fake()
             },
-            ..Faker.fake()
-        },
-        net_portfolio: NetTotal {
-            total: 0,
-            balance_var: -prev_year.net_portfolio.total,
-            percent_var: if prev_year.net_portfolio.total == 0 {
-                0.0
-            } else {
-                -1.0
+            portfolio: NetTotal {
+                total: 0,
+                balance_var: -prev_year.net_portfolio().total,
+                percent_var: if prev_year.net_portfolio().total == 0 {
+                    0.0
+                } else {
+                    -1.0
+                },
+                ..Faker.fake()
             },
-            ..Faker.fake()
         },
         months: vec![],
         ..Faker.fake()
@@ -168,16 +161,21 @@ async fn update_net_totals_of_prev_and_next_years_if_exists(pool: SqlitePool) {
     check_create(pool, body, Some(year), None).await;
 
     let saved_next_net_totals = context.get_net_totals(next_year_id).await.unwrap();
-    for next_nt in saved_next_net_totals {
-        match next_nt.net_type {
-            NetTotalType::Asset => {
-                assert_ne!(next_nt.balance_var, next_year.net_assets.balance_var);
-                assert_ne!(next_nt.percent_var, next_year.net_assets.percent_var);
-            }
-            NetTotalType::Portfolio => {
-                assert_ne!(next_nt.balance_var, next_year.net_portfolio.balance_var);
-                assert_ne!(next_nt.percent_var, next_year.net_portfolio.percent_var);
-            }
-        };
-    }
+    assert_ne!(
+        saved_next_net_totals.assets.balance_var,
+        next_year.net_assets().balance_var
+    );
+    assert_ne!(
+        saved_next_net_totals.assets.percent_var,
+        next_year.net_assets().percent_var
+    );
+
+    assert_ne!(
+        saved_next_net_totals.portfolio.balance_var,
+        next_year.net_portfolio().balance_var
+    );
+    assert_ne!(
+        saved_next_net_totals.portfolio.percent_var,
+        next_year.net_portfolio().percent_var
+    );
 }

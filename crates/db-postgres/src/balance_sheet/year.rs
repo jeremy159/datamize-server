@@ -1,10 +1,10 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use async_recursion::async_recursion;
-use datamize_domain::db::{DbResult, MonthRepo, YearData, YearRepo};
-use datamize_domain::{async_trait, NetTotal, NetTotalType, Uuid, Year};
+use chrono::{DateTime, Utc};
+use datamize_domain::db::{DbResult, MonthRepo, NetTotalType, YearData, YearRepo};
+use datamize_domain::{async_trait, NetTotal, NetTotals, Uuid, Year};
 use futures::try_join;
-use futures::{stream::FuturesUnordered, StreamExt};
 use sqlx::PgPool;
 
 use super::{PostgresFinResRepo, PostgresMonthRepo};
@@ -27,30 +27,78 @@ impl PostgresYearRepo {
     }
 
     #[tracing::instrument(skip(self, net_totals))]
-    async fn insert_net_totals(&self, year_id: Uuid, net_totals: [&NetTotal; 2]) -> DbResult<()> {
-        for nt in net_totals {
-            sqlx::query!(
-                r#"
-                INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, year_id)
-                VALUES ($1, $2, $3, $4, $5, $6)
-                ON CONFLICT (id) DO UPDATE
-                SET type = EXCLUDED.type,
-                total = EXCLUDED.total,
-                percent_var = EXCLUDED.percent_var,
-                balance_var = EXCLUDED.balance_var;
-                "#,
-                nt.id,
-                nt.net_type.to_string(),
-                nt.total,
-                nt.percent_var,
-                nt.balance_var,
-                year_id,
-            )
-            .execute(&self.db_conn_pool)
-            .await?;
-        }
+    pub async fn insert_net_totals(&self, year_id: Uuid, net_totals: &NetTotals) -> DbResult<()> {
+        let mut transaction = self.db_conn_pool.begin().await?;
+
+        let net_type = NetTotalType::Asset.to_string();
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, last_updated, year_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (id) DO UPDATE
+            SET type = EXCLUDED.type,
+            total = EXCLUDED.total,
+            percent_var = EXCLUDED.percent_var,
+            balance_var = EXCLUDED.balance_var,
+            last_updated = EXCLUDED.last_updated;
+            "#,
+            net_totals.assets.id,
+            net_type,
+            net_totals.assets.total,
+            net_totals.assets.percent_var,
+            net_totals.assets.balance_var,
+            net_totals.assets.last_updated,
+            year_id,
+        )
+        .execute(&mut *transaction)
+        .await?;
+
+        let net_type = NetTotalType::Portfolio.to_string();
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, last_updated, year_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (id) DO UPDATE
+            SET type = EXCLUDED.type,
+            total = EXCLUDED.total,
+            percent_var = EXCLUDED.percent_var,
+            balance_var = EXCLUDED.balance_var,
+            last_updated = EXCLUDED.last_updated;
+            "#,
+            net_totals.portfolio.id,
+            net_type,
+            net_totals.portfolio.total,
+            net_totals.portfolio.percent_var,
+            net_totals.portfolio.balance_var,
+            net_totals.portfolio.last_updated,
+            year_id,
+        )
+        .execute(&mut *transaction)
+        .await?;
+
+        transaction.commit().await?;
 
         Ok(())
+    }
+
+    #[tracing::instrument(skip(self))]
+    pub async fn get_without_resources(&self, year: i32) -> DbResult<Year> {
+        let year_data = self.get_year_data_by_number(year).await?;
+
+        let (net_totals, months) = try_join!(
+            self.get_net_totals(year_data.id),
+            self.month_repo.get_months_of_year_without_resources(year),
+        )?;
+
+        let year = Year {
+            id: year_data.id,
+            year: year_data.year,
+            refreshed_at: year_data.refreshed_at,
+            net_totals,
+            months,
+        };
+
+        Ok(year)
     }
 }
 
@@ -58,90 +106,33 @@ impl PostgresYearRepo {
 impl YearRepo for PostgresYearRepo {
     #[tracing::instrument(skip(self))]
     async fn get_years(&self) -> DbResult<Vec<Year>> {
-        let mut years = HashMap::<Uuid, Year>::new();
-
-        let db_rows = sqlx::query!(
+        let year_datas = sqlx::query_as!(
+            YearData,
             r#"
-        SELECT
-            y.id as year_id,
-            y.year,
-            y.refreshed_at,
-            n.id as net_total_id,
-            n.type,
-            n.total,
-            n.percent_var,
-            n.balance_var,
-            n.year_id as net_total_year_id
-        FROM balance_sheet_years AS y
-        JOIN balance_sheet_net_totals_years AS n ON year_id = n.year_id;
-        "#
+            SELECT
+                id as "id: Uuid",
+                year as "year: i32",
+                refreshed_at as "refreshed_at: DateTime<Utc>"
+            FROM balance_sheet_years
+            ORDER BY year;
+            "#
         )
         .fetch_all(&self.db_conn_pool)
         .await?;
 
-        for r in db_rows
-            .into_iter()
-            .filter(|v| v.year_id == v.net_total_year_id)
-        {
-            let is_net_assets_total = r.r#type == NetTotalType::Asset.to_string();
-            let net_assets = match is_net_assets_total {
-                true => NetTotal {
-                    id: r.net_total_id,
-                    net_type: r.r#type.parse().unwrap(),
-                    total: r.total,
-                    percent_var: r.percent_var,
-                    balance_var: r.balance_var,
-                },
-                false => NetTotal::new_asset(),
-            };
+        let mut years: Vec<Year> = vec![];
 
-            let net_portfolio = match r.r#type == NetTotalType::Portfolio.to_string() {
-                true => NetTotal {
-                    id: r.net_total_id,
-                    net_type: r.r#type.parse().unwrap(),
-                    total: r.total,
-                    percent_var: r.percent_var,
-                    balance_var: r.balance_var,
-                },
-                false => NetTotal::new_portfolio(),
-            };
+        for yd in year_datas {
+            let net_totals = self.get_net_totals(yd.id).await?;
+            let months = self.month_repo.get_months_of_year(yd.year).await?;
 
-            years
-                .entry(r.year_id)
-                .and_modify(|y| {
-                    if is_net_assets_total {
-                        y.net_assets = net_assets.clone();
-                    } else {
-                        y.net_portfolio = net_portfolio.clone();
-                    }
-                })
-                .or_insert_with(|| Year {
-                    id: r.year_id,
-                    year: r.year,
-                    refreshed_at: r.refreshed_at,
-                    net_assets,
-                    net_portfolio,
-                    months: vec![],
-                });
-        }
-
-        let mut years = years.into_values().collect::<Vec<_>>();
-
-        years.sort_by(|a, b| a.year.cmp(&b.year));
-
-        let months_stream = years
-            .iter()
-            .map(|y| self.month_repo.get_months_of_year(y.year))
-            .collect::<FuturesUnordered<_>>()
-            .collect::<Vec<_>>()
-            .await;
-
-        for months in months_stream {
-            let months = months?;
-            let idx = years.iter().position(|y| y.year == months[0].year);
-            if let Some(idx) = idx {
-                years[idx].months = months;
-            }
+            years.push(Year {
+                id: yd.id,
+                year: yd.year,
+                refreshed_at: yd.refreshed_at,
+                net_totals,
+                months,
+            });
         }
 
         Ok(years)
@@ -152,7 +143,7 @@ impl YearRepo for PostgresYearRepo {
         sqlx::query_as!(
             YearData,
             r#"
-            SELECT id, year, refreshed_at
+            SELECT id as "id: Uuid", year as "year: i32", refreshed_at as "refreshed_at: DateTime<Utc>"
             FROM balance_sheet_years
             WHERE year = $1;
             "#,
@@ -177,8 +168,7 @@ impl YearRepo for PostgresYearRepo {
         .execute(&self.db_conn_pool)
         .await?;
 
-        self.insert_net_totals(year.id, [&year.net_assets, &year.net_portfolio])
-            .await?;
+        self.insert_net_totals(year.id, &year.net_totals).await?;
 
         Ok(())
     }
@@ -192,28 +182,11 @@ impl YearRepo for PostgresYearRepo {
             self.month_repo.get_months_of_year(year),
         )?;
 
-        let net_assets = match net_totals
-            .clone()
-            .into_iter()
-            .find(|nt| nt.net_type == NetTotalType::Asset)
-        {
-            Some(na) => na,
-            None => NetTotal::new_asset(),
-        };
-        let net_portfolio = match net_totals
-            .into_iter()
-            .find(|nt| nt.net_type == NetTotalType::Portfolio)
-        {
-            Some(np) => np,
-            None => NetTotal::new_portfolio(),
-        };
-
         let year = Year {
             id: year_data.id,
             year: year_data.year,
             refreshed_at: year_data.refreshed_at,
-            net_assets,
-            net_portfolio,
+            net_totals,
             months,
         };
 
@@ -221,24 +194,50 @@ impl YearRepo for PostgresYearRepo {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn get_net_totals(&self, year_id: Uuid) -> DbResult<Vec<NetTotal>> {
-        sqlx::query_as!(
-            NetTotal,
+    async fn get_net_totals(&self, year_id: Uuid) -> DbResult<NetTotals> {
+        let rows = sqlx::query!(
             r#"
             SELECT
-                id,
+                id AS "id: Uuid",
                 type AS "net_type: NetTotalType",
                 total,
-                percent_var,
-                balance_var
+                percent_var as "percent_var: f32",
+                balance_var,
+                last_updated as "last_updated?: DateTime<Utc>"
             FROM balance_sheet_net_totals_years
             WHERE year_id = $1;
             "#,
             year_id,
         )
         .fetch_all(&self.db_conn_pool)
-        .await
-        .map_err(Into::into)
+        .await?;
+
+        let mut net_totals = NetTotals::default();
+
+        for r in rows {
+            match r.net_type {
+                NetTotalType::Asset => {
+                    net_totals.assets = NetTotal {
+                        id: r.id,
+                        total: r.total,
+                        percent_var: r.percent_var,
+                        balance_var: r.balance_var,
+                        last_updated: r.last_updated,
+                    };
+                }
+                NetTotalType::Portfolio => {
+                    net_totals.portfolio = NetTotal {
+                        id: r.id,
+                        total: r.total,
+                        percent_var: r.percent_var,
+                        balance_var: r.balance_var,
+                        last_updated: r.last_updated,
+                    };
+                }
+            };
+        }
+
+        Ok(net_totals)
     }
 
     #[tracing::instrument(skip(self))]
@@ -284,71 +283,22 @@ impl YearRepo for PostgresYearRepo {
 #[tracing::instrument(skip(year_repo))]
 #[async_recursion]
 async fn update_year_net_totals(year_repo: &PostgresYearRepo, year: i32) -> DbResult<()> {
-    let year_data = year_repo.get_year_data_by_number(year).await?;
-
-    let (net_totals, months) = try_join!(
-        year_repo.get_net_totals(year_data.id),
-        year_repo.month_repo.get_months_of_year(year),
-    )?;
-
-    let net_assets = match net_totals
-        .clone()
-        .into_iter()
-        .find(|nt| nt.net_type == NetTotalType::Asset)
-    {
-        Some(na) => na,
-        None => NetTotal::new_asset(),
-    };
-    let net_portfolio = match net_totals
-        .into_iter()
-        .find(|nt| nt.net_type == NetTotalType::Portfolio)
-    {
-        Some(np) => np,
-        None => NetTotal::new_portfolio(),
-    };
-
-    let mut year = Year {
-        id: year_data.id,
-        year: year_data.year,
-        refreshed_at: year_data.refreshed_at,
-        net_assets,
-        net_portfolio,
-        months,
-    };
-
-    if let Some(last_month) = year.get_last_month() {
-        if year.needs_net_totals_update(&last_month.net_assets, &last_month.net_portfolio) {
-            year.update_net_assets_with_last_month(&last_month.net_assets);
-            year.update_net_portfolio_with_last_month(&last_month.net_portfolio);
-        }
-    }
+    let mut year = year_repo.get_without_resources(year).await?;
+    year.update_net_totals();
 
     // Also update with previous year since we might just have updated the total balance of current year.
-    if let Ok(prev_year) = year_repo.get_year_data_by_number(year.year - 1).await {
-        if let Ok(prev_net_totals) = year_repo.get_net_totals(prev_year.id).await {
-            if let Some(prev_net_assets) = prev_net_totals
-                .iter()
-                .find(|pnt| pnt.net_type == NetTotalType::Asset)
-            {
-                year.update_net_assets_with_previous(prev_net_assets);
-            }
-            if let Some(prev_net_portfolio) = prev_net_totals
-                .iter()
-                .find(|pnt| pnt.net_type == NetTotalType::Portfolio)
-            {
-                year.update_net_portfolio_with_previous(prev_net_portfolio);
-            }
-        }
+    if let Ok(prev_year) = year_repo.get_without_resources(year.year - 1).await {
+        year.compute_variation(&prev_year);
     }
+
+    year_repo
+        .insert_net_totals(year.id, &year.net_totals)
+        .await?;
 
     // Should also try to update next year if it exists
     if let Ok(next_year) = year_repo.get_year_data_by_number(year.year + 1).await {
         update_year_net_totals(year_repo, next_year.year).await?;
     }
-
-    year_repo
-        .insert_net_totals(year.id, [&year.net_assets, &year.net_portfolio])
-        .await?;
 
     Ok(())
 }

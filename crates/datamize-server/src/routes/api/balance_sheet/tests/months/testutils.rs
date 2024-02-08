@@ -3,7 +3,7 @@ use std::{cmp::Ordering, collections::HashSet, sync::Arc};
 use axum::Router;
 use datamize_domain::{
     db::{DbResult, FinResRepo, MonthRepo, YearRepo},
-    FinancialResourceMonthly, Month, MonthNum, NetTotal, Uuid, Year,
+    FinancialResourceMonthly, Month, MonthNum, NetTotals, Uuid, Year,
 };
 use db_sqlite::balance_sheet::{SqliteFinResRepo, SqliteMonthRepo, SqliteYearRepo};
 use rand::seq::SliceRandom;
@@ -67,7 +67,7 @@ impl TestContext {
         self.month_repo.get(month, year).await
     }
 
-    pub(crate) async fn get_net_totals(&self, month_id: Uuid) -> DbResult<Vec<NetTotal>> {
+    pub(crate) async fn get_net_totals(&self, month_id: Uuid) -> DbResult<NetTotals> {
         self.month_repo.get_net_totals(month_id).await
     }
 }

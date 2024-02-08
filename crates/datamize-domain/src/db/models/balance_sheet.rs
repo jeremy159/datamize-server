@@ -7,9 +7,9 @@ use uuid::Uuid;
 use crate::{
     db::error::DbResult,
     models::{
-        FinancialResourceMonthly, FinancialResourceYearly, Month, MonthNum, NetTotal, SavingRate,
-        Year,
+        FinancialResourceMonthly, FinancialResourceYearly, Month, MonthNum, SavingRate, Year,
     },
+    NetTotals,
 };
 
 #[async_trait]
@@ -18,7 +18,7 @@ pub trait YearRepo: Send + Sync {
     async fn get_year_data_by_number(&self, year: i32) -> DbResult<YearData>;
     async fn add(&self, year: &Year) -> DbResult<()>;
     async fn get(&self, year: i32) -> DbResult<Year>;
-    async fn get_net_totals(&self, year_id: Uuid) -> DbResult<Vec<NetTotal>>;
+    async fn get_net_totals(&self, year_id: Uuid) -> DbResult<NetTotals>;
     async fn update_net_totals(&self, year: i32) -> DbResult<()>;
     async fn update_refreshed_at(&self, year: &YearData) -> DbResult<()>;
     async fn delete(&self, year: i32) -> DbResult<()>;
@@ -41,7 +41,7 @@ pub trait MonthRepo: Send + Sync {
     async fn get_months(&self) -> DbResult<Vec<Month>>;
     async fn add(&self, month: &Month, year: i32) -> DbResult<()>;
     async fn get(&self, month_num: MonthNum, year: i32) -> DbResult<Month>;
-    async fn get_net_totals(&self, month_id: Uuid) -> DbResult<Vec<NetTotal>>;
+    async fn get_net_totals(&self, month_id: Uuid) -> DbResult<NetTotals>;
     async fn update_net_totals(&self, month_num: MonthNum, year: i32) -> DbResult<()>;
     async fn delete(&self, month_num: MonthNum, year: i32) -> DbResult<()>;
 }
@@ -51,7 +51,8 @@ pub type DynMonthRepo = Arc<dyn MonthRepo>;
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct MonthData {
     pub id: Uuid,
-    pub month: i16,
+    pub month: MonthNum,
+    pub year: i32,
 }
 
 #[async_trait]
@@ -82,3 +83,35 @@ pub trait SavingRateRepo: Send + Sync {
 }
 
 pub type DynSavingRateRepo = Arc<dyn SavingRateRepo>;
+
+#[derive(Debug, PartialEq, Clone, sqlx::Type)]
+#[sqlx(type_name = "net_type")]
+#[sqlx(rename_all = "camelCase")]
+/// Type useful to know which kind of net total is stored in the database. Should not be used elsewhere.
+pub enum NetTotalType {
+    /// Net Assets is the total of owned assets minus the total of liabilities.
+    Asset,
+    /// Net Portfolio is the total of owned assets that are tangible cash. For example, bank or investments accounts
+    /// are tangible cash assets but not the value of your house or car.
+    Portfolio,
+}
+
+impl std::str::FromStr for NetTotalType {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "asset" => Ok(Self::Asset),
+            "portfolio" => Ok(Self::Portfolio),
+            _ => Err(format!("Failed to parse {:?} to NetTotalType", s)),
+        }
+    }
+}
+
+impl std::fmt::Display for NetTotalType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            NetTotalType::Asset => write!(f, "asset"),
+            NetTotalType::Portfolio => write!(f, "portfolio"),
+        }
+    }
+}

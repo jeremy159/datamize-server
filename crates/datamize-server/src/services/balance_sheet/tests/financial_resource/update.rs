@@ -90,7 +90,7 @@ async fn check_update(
                 let saved_month = saved_month.unwrap();
                 if !saved_month.resources.is_empty() {
                     // Since net_assets are computed from all resources' type
-                    assert_ne!(saved_month.net_assets.total, 0);
+                    assert_ne!(saved_month.net_assets().total, 0);
                 }
             }
         }
@@ -100,7 +100,7 @@ async fn check_update(
         assert!(saved_year.is_ok());
         let saved_year = saved_year.unwrap();
         if let Some(last_month) = saved_year.get_last_month() {
-            assert_eq!(saved_year.net_assets.total, last_month.net_assets.total);
+            assert_eq!(saved_year.net_assets().total, last_month.net_assets().total);
         }
     } else {
         assert_err(response.unwrap_err(), expected_err);

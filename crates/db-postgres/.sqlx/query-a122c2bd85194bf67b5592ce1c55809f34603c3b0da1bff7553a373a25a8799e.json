@@ -1,0 +1,32 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                id as \"id: Uuid\",\n                year as \"year: i32\",\n                refreshed_at as \"refreshed_at: DateTime<Utc>\"\n            FROM balance_sheet_years\n            ORDER BY year;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: Uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "year: i32",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "refreshed_at: DateTime<Utc>",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a122c2bd85194bf67b5592ce1c55809f34603c3b0da1bff7553a373a25a8799e"
+}

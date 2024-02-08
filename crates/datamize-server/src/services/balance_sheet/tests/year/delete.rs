@@ -1,4 +1,4 @@
-use datamize_domain::Year;
+use datamize_domain::{net_totals_equal_without_id, NetTotals, Year};
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
@@ -37,8 +37,11 @@ async fn check_delete(
         assert_eq!(saved, Err(datamize_domain::db::DbError::NotFound));
 
         // Make sure the deletion removed net totals of the year from db
-        let saved_net_totals = context.get_net_totals(expected_resp.id).await;
-        assert_eq!(saved_net_totals, Ok(vec![]));
+        let saved_net_totals = context.get_net_totals(expected_resp.id).await.unwrap();
+        assert!(net_totals_equal_without_id(
+            &saved_net_totals,
+            &NetTotals::default()
+        ));
 
         // Make sure the deletion removed months of the year from db
         let saved_months = context.get_months(expected_resp.year).await;

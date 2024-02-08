@@ -120,7 +120,7 @@ async fn check_create(
 
                 let saved_month = saved_month.unwrap();
                 // Since net_assets are computed from all resources' type
-                assert_ne!(saved_month.net_assets.total, 0);
+                assert_ne!(saved_month.net_assets().total, 0);
             }
         }
 
@@ -128,7 +128,7 @@ async fn check_create(
         let saved_year = context.get_year(expected.year).await;
         assert!(saved_year.is_ok());
         let saved_year = saved_year.unwrap();
-        assert_ne!(saved_year.net_assets.total, 0);
+        assert_ne!(saved_year.net_assets().total, 0);
     }
 }
 

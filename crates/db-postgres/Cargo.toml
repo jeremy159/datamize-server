@@ -19,6 +19,7 @@ ynab.workspace = true
 # Non-Local Deps
 sqlx = { workspace = true, features = ["postgres"] }
 tracing.workspace = true
+chrono.workspace = true
 serde_json.workspace = true
 futures.workspace = true
 

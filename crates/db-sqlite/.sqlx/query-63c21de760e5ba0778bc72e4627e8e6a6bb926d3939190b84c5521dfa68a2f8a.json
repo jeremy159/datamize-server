@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\n            SELECT\n                id AS \"id: Uuid\",\n                type AS \"net_type: NetTotalType\",\n                total,\n                percent_var as \"percent_var: f32\",\n                balance_var\n            FROM balance_sheet_net_totals_months\n            WHERE month_id = $1;\n            ",
+  "query": "\n            SELECT\n                id AS \"id: Uuid\",\n                type AS \"net_type: NetTotalType\",\n                total,\n                percent_var as \"percent_var: f32\",\n                balance_var,\n                last_updated as \"last_updated?: DateTime<Utc>\"\n            FROM balance_sheet_net_totals_months\n            WHERE month_id = $1;\n            ",
   "describe": {
     "columns": [
       {
@@ -27,6 +27,11 @@
         "name": "balance_var",
         "ordinal": 4,
         "type_info": "Int64"
+      },
+      {
+        "name": "last_updated?: DateTime<Utc>",
+        "ordinal": 5,
+        "type_info": "Datetime"
       }
     ],
     "parameters": {
@@ -37,8 +42,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "cafd20362986cc4b79184f825fa19e81984eb44dbbec2d461a0309f3ec9a2ad3"
+  "hash": "63c21de760e5ba0778bc72e4627e8e6a6bb926d3939190b84c5521dfa68a2f8a"
 }

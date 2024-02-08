@@ -3,8 +3,8 @@ use std::{collections::HashSet, sync::Arc};
 use axum::Router;
 use datamize_domain::{
     db::{DbResult, FinResRepo, MonthRepo, SavingRateRepo, YearRepo},
-    FinancialResourceMonthly, FinancialResourceYearly, Month, MonthNum, NetTotal, SavingRate, Uuid,
-    Year,
+    FinancialResourceMonthly, FinancialResourceYearly, Month, MonthNum, NetTotals, SavingRate,
+    Uuid, Year,
 };
 use db_sqlite::balance_sheet::{
     SqliteFinResRepo, SqliteMonthRepo, SqliteSavingRateRepo, SqliteYearRepo,
@@ -74,7 +74,7 @@ impl TestContext {
         self.year_repo.get(year).await
     }
 
-    pub(crate) async fn get_net_totals(&self, year_id: Uuid) -> DbResult<Vec<NetTotal>> {
+    pub(crate) async fn get_net_totals(&self, year_id: Uuid) -> DbResult<NetTotals> {
         self.year_repo.get_net_totals(year_id).await
     }
 

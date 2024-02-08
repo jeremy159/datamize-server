@@ -65,7 +65,7 @@ async fn check_refresh(
 
             let saved_month = saved_month.unwrap();
             // Since net_assets are computed from all resources' type
-            assert_ne!(saved_month.net_assets.total, 0);
+            assert_ne!(saved_month.net_assets().total, 0);
         }
     } else {
         assert_err(response.unwrap_err(), expected_err);

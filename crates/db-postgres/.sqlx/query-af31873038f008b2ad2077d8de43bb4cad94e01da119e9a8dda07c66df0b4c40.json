@@ -1,0 +1,65 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                m.id as \"month_id: Uuid\",\n                m.month as \"month: MonthNum\",\n                n.id as \"net_total_id: Uuid\",\n                n.type as \"net_type: NetTotalType\",\n                n.total,\n                n.percent_var as \"percent_var: f32\",\n                n.balance_var,\n                n.last_updated as \"last_updated?: DateTime<Utc>\"\n            FROM balance_sheet_months AS m\n            JOIN balance_sheet_net_totals_months AS n ON m.id = n.month_id\n            JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1\n            WHERE m.month = $2;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "month_id: Uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "month: MonthNum",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 2,
+        "name": "net_total_id: Uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "net_type: NetTotalType",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "total",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "percent_var: f32",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 6,
+        "name": "balance_var",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "last_updated?: DateTime<Utc>",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int2"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "af31873038f008b2ad2077d8de43bb4cad94e01da119e9a8dda07c66df0b4c40"
+}

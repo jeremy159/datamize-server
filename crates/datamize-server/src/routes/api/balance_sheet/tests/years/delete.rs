@@ -2,7 +2,7 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use datamize_domain::Year;
+use datamize_domain::{net_totals_equal_without_id, NetTotals, Year};
 use fake::{Fake, Faker};
 use http_body_util::BodyExt;
 use pretty_assertions::assert_eq;
@@ -49,8 +49,11 @@ async fn check_delete(pool: SqlitePool, expected_status: StatusCode, expected_re
         assert_eq!(saved, Err(datamize_domain::db::DbError::NotFound));
 
         // Make sure the deletion removed net totals of the year from db
-        let saved_net_totals = context.get_net_totals(expected.id).await;
-        assert_eq!(saved_net_totals, Ok(vec![]));
+        let saved_net_totals = context.get_net_totals(expected.id).await.unwrap();
+        assert!(net_totals_equal_without_id(
+            &saved_net_totals,
+            &NetTotals::default()
+        ));
 
         // Make sure the deletion removed months of the year from db
         let saved_months = context.get_months(expected.year).await;

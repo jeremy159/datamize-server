@@ -3,7 +3,7 @@ use axum::{
     http::{Request, StatusCode},
 };
 use chrono::{Datelike, NaiveDate};
-use datamize_domain::{FinancialResourceMonthly, Month, MonthNum, NetTotal};
+use datamize_domain::{FinancialResourceMonthly, Month, MonthNum, NetTotal, NetTotals};
 use fake::{faker::chrono::en::Date, Fake, Faker};
 use http_body_util::BodyExt;
 use pretty_assertions::assert_eq;
@@ -21,12 +21,12 @@ struct CreateBody {
 fn are_equal(a: &Month, b: &Month) {
     assert_eq!(a.month, b.month);
     assert_eq!(a.year, b.year);
-    assert_eq!(a.net_assets.total, b.net_assets.total);
-    assert_eq!(a.net_assets.balance_var, b.net_assets.balance_var);
-    assert_eq!(a.net_assets.percent_var, b.net_assets.percent_var);
-    assert_eq!(a.net_portfolio.total, b.net_assets.total);
-    assert_eq!(a.net_portfolio.balance_var, b.net_portfolio.balance_var);
-    assert_eq!(a.net_portfolio.percent_var, b.net_portfolio.percent_var);
+    assert_eq!(a.net_assets().total, b.net_assets().total);
+    assert_eq!(a.net_assets().balance_var, b.net_assets().balance_var);
+    assert_eq!(a.net_assets().percent_var, b.net_assets().percent_var);
+    assert_eq!(a.net_portfolio().total, b.net_assets().total);
+    assert_eq!(a.net_portfolio().balance_var, b.net_portfolio().balance_var);
+    assert_eq!(a.net_portfolio().percent_var, b.net_portfolio().percent_var);
     assert_eq!(a.resources, b.resources);
 }
 
@@ -84,18 +84,7 @@ async fn persists_new_month(pool: SqlitePool) {
     let month: Month = Month {
         month: body.month,
         year,
-        net_assets: NetTotal {
-            total: 0,
-            balance_var: 0,
-            percent_var: 0.0,
-            ..Faker.fake()
-        },
-        net_portfolio: NetTotal {
-            total: 0,
-            balance_var: 0,
-            percent_var: 0.0,
-            ..Faker.fake()
-        },
+        net_totals: NetTotals::default(),
         resources: vec![],
         ..Faker.fake()
     };
@@ -191,25 +180,27 @@ async fn update_net_totals_if_prev_month_exists(pool: SqlitePool) {
     let month = Month {
         month: body.month,
         year,
-        net_assets: NetTotal {
-            total: 0,
-            balance_var: -prev_month.net_assets.total,
-            percent_var: if prev_month.net_assets.total == 0 {
-                0.0
-            } else {
-                -1.0
+        net_totals: NetTotals {
+            assets: NetTotal {
+                total: 0,
+                balance_var: -prev_month.net_assets().total,
+                percent_var: if prev_month.net_assets().total == 0 {
+                    0.0
+                } else {
+                    -1.0
+                },
+                ..Faker.fake()
             },
-            ..Faker.fake()
-        },
-        net_portfolio: NetTotal {
-            total: 0,
-            balance_var: -prev_month.net_portfolio.total,
-            percent_var: if prev_month.net_portfolio.total == 0 {
-                0.0
-            } else {
-                -1.0
+            portfolio: NetTotal {
+                total: 0,
+                balance_var: -prev_month.net_portfolio().total,
+                percent_var: if prev_month.net_portfolio().total == 0 {
+                    0.0
+                } else {
+                    -1.0
+                },
+                ..Faker.fake()
             },
-            ..Faker.fake()
         },
         resources: vec![],
         ..Faker.fake()
@@ -259,25 +250,27 @@ async fn update_net_totals_if_prev_month_exists_in_prev_year(pool: SqlitePool) {
     let month = Month {
         month: body.month,
         year,
-        net_assets: NetTotal {
-            total: 0,
-            balance_var: -prev_month.net_assets.total,
-            percent_var: if prev_month.net_assets.total == 0 {
-                0.0
-            } else {
-                -1.0
+        net_totals: NetTotals {
+            assets: NetTotal {
+                total: 0,
+                balance_var: -prev_month.net_assets().total,
+                percent_var: if prev_month.net_assets().total == 0 {
+                    0.0
+                } else {
+                    -1.0
+                },
+                ..Faker.fake()
             },
-            ..Faker.fake()
-        },
-        net_portfolio: NetTotal {
-            total: 0,
-            balance_var: -prev_month.net_portfolio.total,
-            percent_var: if prev_month.net_portfolio.total == 0 {
-                0.0
-            } else {
-                -1.0
+            portfolio: NetTotal {
+                total: 0,
+                balance_var: -prev_month.net_portfolio().total,
+                percent_var: if prev_month.net_portfolio().total == 0 {
+                    0.0
+                } else {
+                    -1.0
+                },
+                ..Faker.fake()
             },
-            ..Faker.fake()
         },
         resources: vec![],
         ..Faker.fake()
