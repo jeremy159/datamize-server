@@ -1,5 +1,5 @@
 use crate::{
-    BaseFinancialResource, FinancialResourceMonthly, Month, ResourceCategory, ResourceType,
+    AssetType, BaseFinancialResource, FinancialResourceMonthly, FinancialResourceType, Month,
 };
 use chrono::{Datelike, NaiveDate};
 use fake::{faker::chrono::en::Date, Fake, Faker};
@@ -35,8 +35,7 @@ fn updates_total_when_at_least_1_resource() {
     let mut month = Month {
         resources: vec![FinancialResourceMonthly {
             base: BaseFinancialResource {
-                category: ResourceCategory::Asset,
-                r_type: ResourceType::Cash,
+                resource_type: FinancialResourceType::Asset(AssetType::Cash),
                 ..Faker.fake()
             },
             ..Faker.fake()
@@ -56,8 +55,7 @@ fn updates_total_when_at_least_1_resource() {
 fn equals_total_of_1_asset_resource() {
     let resource = FinancialResourceMonthly {
         base: BaseFinancialResource {
-            category: ResourceCategory::Asset,
-            r_type: ResourceType::Investment,
+            resource_type: FinancialResourceType::Asset(AssetType::Investment),
             ..Faker.fake()
         },
         ..Faker.fake()
@@ -76,7 +74,7 @@ fn equals_total_of_1_asset_resource() {
 fn equals_total_of_1_liability_resource() {
     let resource = FinancialResourceMonthly {
         base: BaseFinancialResource {
-            category: ResourceCategory::Liability,
+            resource_type: FinancialResourceType::Liability(Faker.fake()),
             ..Faker.fake()
         },
         ..Faker.fake()
@@ -96,15 +94,14 @@ fn equals_total_of_1_liability_resource() {
 fn assets_equals_total_of_asset_minus_liability() {
     let res_asset = FinancialResourceMonthly {
         base: BaseFinancialResource {
-            category: ResourceCategory::Asset,
-            r_type: ResourceType::Investment,
+            resource_type: FinancialResourceType::Asset(AssetType::Investment),
             ..Faker.fake()
         },
         ..Faker.fake()
     };
     let res_liability = FinancialResourceMonthly {
         base: BaseFinancialResource {
-            category: ResourceCategory::Liability,
+            resource_type: FinancialResourceType::Liability(Faker.fake()),
             ..res_asset.base.clone()
         },
         ..res_asset.clone()
@@ -123,31 +120,28 @@ fn assets_equals_total_of_asset_minus_liability() {
 fn portfolio_equals_total_of_all_asset_except_long_term() {
     let res1_asset = FinancialResourceMonthly {
         base: BaseFinancialResource {
-            category: ResourceCategory::Asset,
-            r_type: ResourceType::Cash,
+            resource_type: FinancialResourceType::Asset(AssetType::Cash),
             ..Faker.fake()
         },
         ..Faker.fake()
     };
     let res2_asset = FinancialResourceMonthly {
         base: BaseFinancialResource {
-            category: ResourceCategory::Asset,
-            r_type: ResourceType::Investment,
+            resource_type: FinancialResourceType::Asset(AssetType::Investment),
             ..Faker.fake()
         },
         ..Faker.fake()
     };
     let res3_asset = FinancialResourceMonthly {
         base: BaseFinancialResource {
-            category: ResourceCategory::Asset,
-            r_type: ResourceType::LongTerm,
+            resource_type: FinancialResourceType::Asset(AssetType::LongTerm),
             ..Faker.fake()
         },
         ..Faker.fake()
     };
     let res_liability = FinancialResourceMonthly {
         base: BaseFinancialResource {
-            category: ResourceCategory::Liability,
+            resource_type: FinancialResourceType::Liability(Faker.fake()),
             ..Faker.fake()
         },
         ..Faker.fake()

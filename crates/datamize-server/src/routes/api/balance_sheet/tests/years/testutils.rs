@@ -60,13 +60,22 @@ impl TestContext {
     pub(crate) async fn set_months(&self, months: &[Month]) {
         for month in months {
             self.month_repo.add(month, month.year).await.unwrap();
-            self.set_resources(&month.resources).await;
+            self.set_resources(&month.resources, month.month, month.year)
+                .await;
         }
     }
 
-    pub(crate) async fn set_resources(&self, fin_res: &[FinancialResourceMonthly]) {
+    pub(crate) async fn set_resources(
+        &self,
+        fin_res: &[FinancialResourceMonthly],
+        month: MonthNum,
+        year: i32,
+    ) {
         for res in fin_res {
-            self.fin_res_repo.update_monthly(res).await.unwrap();
+            self.fin_res_repo
+                .update_monthly(res, month, year)
+                .await
+                .unwrap();
         }
     }
 
@@ -102,19 +111,7 @@ pub(crate) fn correctly_stub_years(years: Option<Vec<Year>>) -> Option<Vec<Year>
                 months: y
                     .months
                     .into_iter()
-                    .map(|m| Month {
-                        year: y.year,
-                        resources: m
-                            .resources
-                            .into_iter()
-                            .map(|r| FinancialResourceMonthly {
-                                year: y.year,
-                                month: m.month,
-                                ..r
-                            })
-                            .collect(),
-                        ..m
-                    })
+                    .map(|m| Month { year: y.year, ..m })
                     // Filer any month accidently created in double by Dummy data.
                     .filter(|m| seen.insert((m.month, m.year)))
                     .collect(),
@@ -138,15 +135,6 @@ pub(crate) fn correctly_stub_year(year: Option<Year>) -> Option<Year> {
                 .into_iter()
                 .map(|m| Month {
                     year: year.year,
-                    resources: m
-                        .resources
-                        .into_iter()
-                        .map(|r| FinancialResourceMonthly {
-                            year: year.year,
-                            month: m.month,
-                            ..r
-                        })
-                        .collect(),
                     ..m
                 })
                 // Filer any month accidently created in double by Dummy data.

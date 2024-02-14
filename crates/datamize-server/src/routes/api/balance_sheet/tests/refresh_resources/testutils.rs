@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::Router;
 use datamize_domain::{
     db::{external::EncryptionKeyRepo, DbResult, FinResRepo, MonthData, MonthRepo, YearRepo},
-    FinancialResourceYearly, Month, MonthNum, Uuid, Year,
+    FinancialResourceYearly, Month, MonthNum, Uuid, Year, YearlyBalances,
 };
 use db_redis::{budget_providers::external::RedisEncryptionKeyRepo, get_test_pool};
 use db_sqlite::{
@@ -105,6 +105,19 @@ pub(crate) fn correctly_stub_resources(
 ) -> Vec<FinancialResourceYearly> {
     resources
         .into_iter()
-        .map(|r| FinancialResourceYearly { year, ..r })
+        .map(|r| {
+            let mut res = FinancialResourceYearly::new(
+                r.base.id,
+                r.base.name.clone(),
+                r.base.resource_type.clone(),
+                r.base.ynab_account_ids.clone(),
+                r.base.external_account_ids.clone(),
+            );
+            for (_, month, balance) in r.iter_balances() {
+                res.insert_balance(year, month, balance);
+            }
+
+            res
+        })
         .collect()
 }

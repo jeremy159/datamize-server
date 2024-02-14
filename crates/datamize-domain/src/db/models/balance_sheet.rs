@@ -9,12 +9,13 @@ use crate::{
     models::{
         FinancialResourceMonthly, FinancialResourceYearly, Month, MonthNum, SavingRate, Year,
     },
-    NetTotals,
+    NetTotals, UpdateResource,
 };
 
 #[async_trait]
 pub trait YearRepo: Send + Sync {
     async fn get_years(&self) -> DbResult<Vec<Year>>;
+    async fn get_years_starting_from(&self, year: i32) -> DbResult<Vec<Year>>;
     async fn get_year_data_by_number(&self, year: i32) -> DbResult<YearData>;
     async fn add(&self, year: &Year) -> DbResult<()>;
     async fn get_without_resources(&self, year: i32) -> DbResult<Year>;
@@ -42,6 +43,11 @@ pub trait MonthRepo: Send + Sync {
     async fn get_months_of_year_without_resources(&self, year: i32) -> DbResult<Vec<Month>>;
     async fn get_months_of_year(&self, year: i32) -> DbResult<Vec<Month>>;
     async fn get_months(&self) -> DbResult<Vec<Month>>;
+    async fn get_months_starting_from(
+        &self,
+        month_num: MonthNum,
+        year: i32,
+    ) -> DbResult<Vec<Month>>;
     async fn add(&self, month: &Month, year: i32) -> DbResult<()>;
     async fn get_without_resources(&self, month_num: MonthNum, year: i32) -> DbResult<Month>;
     async fn get(&self, month_num: MonthNum, year: i32) -> DbResult<Month>;
@@ -70,9 +76,15 @@ pub trait FinResRepo: Send + Sync {
         year: i32,
     ) -> DbResult<Vec<FinancialResourceMonthly>>;
     async fn get(&self, resource_id: Uuid) -> DbResult<FinancialResourceYearly>;
-    async fn get_by_name(&self, name: &str) -> DbResult<Vec<FinancialResourceYearly>>;
+    async fn get_by_name(&self, name: &str) -> DbResult<FinancialResourceYearly>;
     async fn update(&self, resource: &FinancialResourceYearly) -> DbResult<()>;
-    async fn update_monthly(&self, resource: &FinancialResourceMonthly) -> DbResult<()>;
+    async fn update_and_delete(&self, resource: &UpdateResource) -> DbResult<()>;
+    async fn update_monthly(
+        &self,
+        resource: &FinancialResourceMonthly,
+        month: MonthNum,
+        year: i32,
+    ) -> DbResult<()>;
     async fn delete(&self, resource_id: Uuid) -> DbResult<()>;
 }
 

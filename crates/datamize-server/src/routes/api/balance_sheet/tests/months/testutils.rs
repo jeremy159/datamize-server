@@ -54,12 +54,21 @@ impl TestContext {
 
     pub(crate) async fn set_month(&self, month: &Month, year: i32) {
         self.month_repo.add(month, year).await.unwrap();
-        self.set_resources(&month.resources).await;
+        self.set_resources(&month.resources, month.month, year)
+            .await;
     }
 
-    pub(crate) async fn set_resources(&self, fin_res: &[FinancialResourceMonthly]) {
+    pub(crate) async fn set_resources(
+        &self,
+        fin_res: &[FinancialResourceMonthly],
+        month: MonthNum,
+        year: i32,
+    ) {
         for res in fin_res {
-            self.fin_res_repo.update_monthly(res).await.unwrap();
+            self.fin_res_repo
+                .update_monthly(res, month, year)
+                .await
+                .unwrap();
         }
     }
 
@@ -84,19 +93,7 @@ pub(crate) fn correctly_stub_months(
             .into_iter()
             .map(|m| {
                 let year = *years.choose(&mut rand::thread_rng()).unwrap();
-                Month {
-                    year,
-                    resources: m
-                        .resources
-                        .into_iter()
-                        .map(|r| FinancialResourceMonthly {
-                            year,
-                            month: m.month,
-                            ..r
-                        })
-                        .collect(),
-                    ..m
-                }
+                Month { year, ..m }
             })
             // Filer any month accidently created in double by Dummy data.
             .filter(|m| seen.insert((m.month, m.year)))
@@ -108,22 +105,6 @@ pub(crate) fn correctly_stub_months(
         }
 
         months
-    })
-}
-
-/// Will make sure the related resources have the appropriate date associated to them
-pub(crate) fn correctly_stub_month(month: Option<Month>) -> Option<Month> {
-    month.map(|month| Month {
-        resources: month
-            .resources
-            .into_iter()
-            .map(|r| FinancialResourceMonthly {
-                month: month.month,
-                year: month.year,
-                ..r
-            })
-            .collect(),
-        ..month
     })
 }
 

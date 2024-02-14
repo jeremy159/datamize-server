@@ -1,90 +1,58 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
-use datamize_domain::{BaseFinancialResource, FinancialResourceYearly, SaveResource};
+use chrono::{Datelike, NaiveDate};
+use datamize_domain::{FinancialResourceYearly, UpdateResource, YearlyBalances};
 use fake::{Fake, Faker};
 use pretty_assertions::{assert_eq, assert_ne};
 use sqlx::SqlitePool;
 
 use crate::services::{
-    balance_sheet::tests::financial_resource::testutils::{correctly_stub_resource, TestContext},
+    balance_sheet::tests::financial_resource::testutils::TestContext,
     testutils::{assert_err, ErrorType},
 };
 
-fn are_equal(a: &FinancialResourceYearly, b: &FinancialResourceYearly) {
-    assert_eq!(a.year, b.year);
-    assert_eq!(a.balance_per_month, b.balance_per_month);
-    assert_eq!(a.base.name, b.base.name);
-    assert_eq!(a.base.category, b.base.category);
-    assert_eq!(a.base.r_type, b.base.r_type);
-    assert_eq!(a.base.editable, b.base.editable);
-    assert_eq!(a.base.ynab_account_ids, b.base.ynab_account_ids);
-    assert_eq!(a.base.external_account_ids, b.base.external_account_ids);
-}
-
 async fn check_update(
     pool: SqlitePool,
-    create_year: bool,
-    updated_res: SaveResource,
+    updated_res: UpdateResource,
+    db_data: Option<FinancialResourceYearly>,
     expected_resp: Option<FinancialResourceYearly>,
     expected_err: Option<ErrorType>,
 ) {
     let context = TestContext::setup(pool);
-    let year = updated_res.year;
+    let mut checked_years = HashSet::<i32>::new();
 
-    if create_year {
-        context.insert_year(year).await;
-
-        // Create all months
-        for m in expected_resp
-            .clone()
-            .unwrap_or_else(|| Faker.fake())
-            .balance_per_month
-            .keys()
-        {
-            context.insert_month(*m, year).await;
+    if let Some(ref db_data) = db_data {
+        // Create all months and years
+        for (year, month) in db_data.iter_months() {
+            if !checked_years.contains(&year) {
+                checked_years.insert(year);
+                context.insert_year(year).await;
+            }
+            context.insert_month(month, year).await;
         }
+        context.set_resource(db_data).await;
     }
 
-    let expected_resp = correctly_stub_resource(expected_resp, year);
-    if let Some(expected_resp) = expected_resp.clone() {
-        context.set_resources(&[expected_resp]).await;
-    }
-
-    let response = context
-        .service()
-        .update_fin_res(
-            expected_resp
-                .clone()
-                .unwrap_or_else(|| Faker.fake())
-                .base
-                .id,
-            updated_res.clone(),
-        )
-        .await;
+    let response = context.service().update_fin_res(updated_res.clone()).await;
 
     if let Some(expected_resp) = expected_resp {
         let res_body = response.unwrap();
-        are_equal(&res_body, &expected_resp);
+        assert_eq!(res_body, expected_resp);
 
-        // Make sure the requested body is not equal to the resource that was in the db. I.e. new balance per month should have updated something
-        assert_ne!(
-            Into::<FinancialResourceYearly>::into(updated_res.clone()),
-            expected_resp
-        );
+        if let Some(db_data) = db_data {
+            // Make sure the requested body is not equal to the resource that was in the db. I.e. new balance per month should have updated something
+            assert_ne!(updated_res.base.name, db_data.base.name,);
+        }
 
         // Make sure the update is persisted in db
         let saved = context.get_res(expected_resp.base.id).await.unwrap();
-        are_equal(&updated_res.clone().into(), &saved);
+        assert_eq!(updated_res.base.name, saved.base.name);
+        assert_eq!(expected_resp.balances, saved.balances);
 
-        let mut req_balance = updated_res.clone().balance_per_month;
-        let mut expected_balance = expected_resp.clone().balance_per_month;
-        expected_balance.append(&mut req_balance);
-        assert_eq!(expected_balance, saved.balance_per_month);
-
-        if !updated_res.balance_per_month.is_empty() {
+        if !expected_resp.is_empty() {
             // Creates all months that were not created
-            for m in updated_res.balance_per_month.keys() {
-                let saved_month = context.get_month(*m, expected_resp.year).await;
+            for (year, month) in expected_resp.iter_months() {
+                let saved_month = context.get_month(month, year).await;
                 assert!(saved_month.is_ok());
 
                 let saved_month = saved_month.unwrap();
@@ -96,11 +64,13 @@ async fn check_update(
         }
 
         // Updating the resource also computed net assets of the year
-        let saved_year = context.get_year(expected_resp.year).await;
-        assert!(saved_year.is_ok());
-        let saved_year = saved_year.unwrap();
-        if let Some(last_month) = saved_year.get_last_month() {
-            assert_eq!(saved_year.net_assets().total, last_month.net_assets().total);
+        let saved_years = context.get_years().await;
+        assert!(saved_years.is_ok());
+        let saved_years = saved_years.unwrap();
+        for saved_year in saved_years {
+            if let Some(last_month) = saved_year.get_last_month() {
+                assert_eq!(saved_year.net_assets().total, last_month.net_assets().total);
+            }
         }
     } else {
         assert_err(response.unwrap_err(), expected_err);
@@ -108,77 +78,115 @@ async fn check_update(
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
-async fn returns_error_not_found_when_no_year(pool: SqlitePool) {
-    check_update(pool, false, Faker.fake(), None, Some(ErrorType::NotFound)).await;
-}
-
-#[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_error_not_found_when_nothing_in_db(pool: SqlitePool) {
-    check_update(pool, true, Faker.fake(), None, Some(ErrorType::NotFound)).await;
+    check_update(pool, Faker.fake(), None, None, Some(ErrorType::NotFound)).await;
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_success_with_the_update(pool: SqlitePool) {
-    let body: SaveResource = Faker.fake();
+    let mut db_data: FinancialResourceYearly = Faker.fake();
+    db_data.clear_all_balances();
+    let current_date = Faker.fake::<NaiveDate>();
+    let month = current_date.month().try_into().unwrap();
+    let year = current_date.year();
+    db_data.insert_balance(year, month, (-1000000..1000000).fake());
+
+    let mut body = UpdateResource {
+        base: db_data.clone().base,
+        balances: BTreeMap::new(),
+    };
+    body.base.name = Faker.fake();
+    body.insert_balance_opt(year, month, Some((-1000000..1000000).fake()));
+
     let body_cloned = body.clone();
-    let expected_resp = FinancialResourceYearly {
-        year: body_cloned.year,
-        balance_per_month: body_cloned.balance_per_month,
-        base: BaseFinancialResource {
-            name: body_cloned.name,
-            category: body_cloned.category,
-            r_type: body_cloned.r_type,
-            editable: body_cloned.editable,
-            ynab_account_ids: body_cloned.ynab_account_ids,
-            external_account_ids: body_cloned.external_account_ids,
-            ..Faker.fake()
-        },
+    let mut expected_resp = FinancialResourceYearly {
+        base: body_cloned.base,
+        balances: BTreeMap::new(),
     };
 
-    check_update(pool, true, body, Some(expected_resp), None).await;
+    for (year, month, balance) in body.iter_all_balances() {
+        if let Some(balance) = balance {
+            expected_resp.insert_balance(year, month, balance);
+        }
+    }
+
+    check_update(pool, body, Some(db_data), Some(expected_resp), None).await;
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
-async fn updated_resource_updates_all_months(pool: SqlitePool) {
-    let mut balance_per_month = BTreeMap::new();
-    balance_per_month.insert(
-        TryFrom::<i16>::try_from(1).unwrap(),
-        (-1000000..1000000).fake(),
-    );
-    balance_per_month.insert(
-        TryFrom::<i16>::try_from(2).unwrap(),
-        (-1000000..1000000).fake(),
-    );
-    balance_per_month.insert(
-        TryFrom::<i16>::try_from(3).unwrap(),
-        (-1000000..1000000).fake(),
-    );
-    balance_per_month.insert(
-        TryFrom::<i16>::try_from(7).unwrap(),
-        (-1000000..1000000).fake(),
-    );
-    balance_per_month.insert(
-        TryFrom::<i16>::try_from(11).unwrap(),
-        (-1000000..1000000).fake(),
-    );
-    let body = SaveResource {
-        balance_per_month,
-        ..Faker.fake()
+async fn updated_resource_updates_all_months_and_all_years(pool: SqlitePool) {
+    let mut db_data: FinancialResourceYearly = Faker.fake();
+    db_data.clear_all_balances();
+    let mut body = UpdateResource {
+        base: db_data.clone().base,
+        balances: BTreeMap::new(),
     };
+    body.base.name = Faker.fake();
+    let years: [i32; 2] = [(1000..3000).fake(), (1000..3000).fake()];
+    let months: [i16; 5] = [1, 2, 3, 8, 11];
+    for month in months {
+        let idx = (month % 2) as usize;
+        let year = years[idx];
+        let month = month.try_into().unwrap();
+        db_data.insert_balance(year, month, (-1000000..1000000).fake());
+        body.insert_balance_opt(year, month, Some((-1000000..1000000).fake()));
+    }
+
     let body_cloned = body.clone();
-    let res = FinancialResourceYearly {
-        year: body_cloned.year,
-        balance_per_month: body_cloned.balance_per_month,
-        base: BaseFinancialResource {
-            name: body_cloned.name,
-            category: body_cloned.category,
-            r_type: body_cloned.r_type,
-            editable: body_cloned.editable,
-            ynab_account_ids: body_cloned.ynab_account_ids,
-            external_account_ids: body_cloned.external_account_ids,
-            ..Faker.fake()
-        },
+    let mut expected_resp = FinancialResourceYearly {
+        base: body_cloned.base,
+        balances: BTreeMap::new(),
     };
 
-    check_update(pool, true, body, Some(res), None).await;
+    for (year, month, balance) in body.iter_all_balances() {
+        if let Some(balance) = balance {
+            expected_resp.insert_balance(year, month, balance);
+        }
+    }
+
+    check_update(pool, body, Some(db_data), Some(expected_resp), None).await;
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn updated_resource_creates_or_deletes_balance_of_provided_month(pool: SqlitePool) {
+    let mut db_data: FinancialResourceYearly = Faker.fake();
+    db_data.clear_all_balances();
+    let mut body = UpdateResource {
+        base: db_data.clone().base,
+        balances: BTreeMap::new(),
+    };
+    body.base.name = Faker.fake();
+    let years: [i32; 2] = [(1000..3000).fake(), (1000..3000).fake()];
+    let months: [i16; 5] = [1, 2, 3, 8, 11];
+    for month in months {
+        let idx = (month % 2) as usize;
+        let year = years[idx];
+        let month = month.try_into().unwrap();
+        db_data.insert_balance(year, month, (-1000000..1000000).fake());
+        body.insert_balance(year, month, (-1000000..1000000).fake());
+    }
+    // Attempt on a non-existing month
+    body.insert_balance_opt(years[1], 4_i16.try_into().unwrap(), None);
+    // Delete balance of march
+    body.insert_balance_opt(years[1], 3_i16.try_into().unwrap(), None);
+    // Create balance for may (new month)
+    body.insert_balance(
+        years[1],
+        5_i16.try_into().unwrap(),
+        (-1000000..1000000).fake(),
+    );
+
+    let body_cloned = body.clone();
+    let mut expected_resp = FinancialResourceYearly {
+        base: body_cloned.base,
+        balances: BTreeMap::new(),
+    };
+
+    for (year, month, balance) in body.iter_all_balances() {
+        if let Some(balance) = balance {
+            expected_resp.insert_balance(year, month, balance);
+        }
+    }
+
+    check_update(pool, body, Some(db_data), Some(expected_resp), None).await;
 }

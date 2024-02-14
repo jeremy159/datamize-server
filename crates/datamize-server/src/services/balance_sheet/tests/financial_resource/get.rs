@@ -1,38 +1,38 @@
-use datamize_domain::FinancialResourceYearly;
+use std::collections::HashSet;
+
+use chrono::{Datelike, NaiveDate};
+use datamize_domain::{FinancialResourceYearly, YearlyBalances};
 use db_sqlite::balance_sheet::sabotage_resources_table;
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 
 use crate::services::{
-    balance_sheet::tests::financial_resource::testutils::{correctly_stub_resource, TestContext},
+    balance_sheet::tests::financial_resource::testutils::TestContext,
     testutils::{assert_err, ErrorType},
 };
 
 async fn check_get(
     pool: SqlitePool,
-    create_year: bool,
     expected_resp: Option<FinancialResourceYearly>,
     expected_err: Option<ErrorType>,
 ) {
     let context = TestContext::setup(pool);
+    let mut checked_years = HashSet::<i32>::new();
 
-    let year = expected_resp.clone().unwrap_or_else(|| Faker.fake()).year;
-    if create_year {
-        context.insert_year(year).await;
-
-        // Create all months
-        for m in expected_resp
-            .clone()
-            .unwrap_or_else(|| Faker.fake())
-            .balance_per_month
-            .keys()
-        {
-            context.insert_month(*m, year).await;
+    // Create all months and years
+    for (year, month) in expected_resp
+        .clone()
+        .unwrap_or_else(|| Faker.fake())
+        .iter_months()
+    {
+        if !checked_years.contains(&year) {
+            checked_years.insert(year);
+            context.insert_year(year).await;
         }
+        context.insert_month(month, year).await;
     }
 
-    let expected_resp = correctly_stub_resource(expected_resp, year);
     if let Some(expected_resp) = expected_resp.clone() {
         context.set_resources(&[expected_resp]).await;
     }
@@ -57,22 +57,24 @@ async fn check_get(
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_error_not_found_for_non_existing_resource(pool: SqlitePool) {
-    check_get(pool, false, None, Some(ErrorType::NotFound)).await;
-}
-
-#[sqlx::test(migrations = "../db-sqlite/migrations")]
-async fn returns_error_not_found_when_nothing_in_db(pool: SqlitePool) {
-    check_get(pool, true, None, Some(ErrorType::NotFound)).await;
+    check_get(pool, None, Some(ErrorType::NotFound)).await;
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_success_with_what_is_in_db(pool: SqlitePool) {
-    check_get(pool, true, Some(Faker.fake()), None).await;
+    let mut res: FinancialResourceYearly = Faker.fake();
+    res.clear_all_balances();
+    let current_date = Faker.fake::<NaiveDate>();
+    let month = current_date.month().try_into().unwrap();
+    let year = current_date.year();
+    res.insert_balance(year, month, (-1000000..1000000).fake());
+
+    check_get(pool, Some(res), None).await;
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_error_internal_when_db_corrupted(pool: SqlitePool) {
     sabotage_resources_table(&pool).await.unwrap();
 
-    check_get(pool, true, None, Some(ErrorType::Internal)).await;
+    check_get(pool, None, Some(ErrorType::Internal)).await;
 }

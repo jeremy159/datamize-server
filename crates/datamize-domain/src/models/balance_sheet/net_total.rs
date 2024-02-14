@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{FinancialResourceMonthly, ResourceCategory, ResourceType};
+use crate::{AssetType, FinancialResourceMonthly, FinancialResourceType};
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Default)]
@@ -25,15 +25,15 @@ impl NetTotals {
         let mut at_least_one_in_portfolio = false;
 
         for resource in resources {
-            match resource.base.category {
-                ResourceCategory::Asset => {
+            match resource.base.resource_type {
+                FinancialResourceType::Asset(ref t) => {
                     total_assets += resource.balance;
-                    if resource.base.r_type != ResourceType::LongTerm {
+                    if t != &AssetType::LongTerm {
                         at_least_one_in_portfolio = true;
                         total_portfolio += resource.balance;
                     }
                 }
-                ResourceCategory::Liability => total_assets -= resource.balance,
+                FinancialResourceType::Liability(_) => total_assets -= resource.balance,
             }
         }
 

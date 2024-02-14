@@ -1,14 +1,15 @@
 use chrono::{Datelike, NaiveDate};
-use datamize_domain::{FinancialResourceYearly, MonthNum};
+use datamize_domain::{
+    testutils::{correctly_stub_resources, transform_expected_resources},
+    FinancialResourceYearly, YearlyBalances,
+};
 use db_sqlite::balance_sheet::sabotage_resources_table;
 use fake::{faker::chrono::en::Date, Fake};
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 
 use crate::services::{
-    balance_sheet::tests::financial_resource::testutils::{
-        correctly_stub_resources, transform_expected_resources, TestContext,
-    },
+    balance_sheet::tests::financial_resource::testutils::TestContext,
     testutils::{assert_err, ErrorType},
 };
 
@@ -34,19 +35,14 @@ async fn check_get_all(
 
     if let Some(expected_resp) = &expected_resp {
         for r in expected_resp {
-            for m in r
-                .balance_per_month
-                .keys()
-                .cloned()
-                .collect::<Vec<MonthNum>>()
-            {
-                context.insert_month(m, r.year).await;
+            for (year, month, _) in r.iter_balances() {
+                context.insert_month(month, year).await;
             }
         }
         context.set_resources(expected_resp).await;
     }
 
-    let response = context.service().get_all_fin_res().await;
+    let response = context.into_service().get_all_fin_res().await;
     let expected_resp = transform_expected_resources(expected_resp);
 
     if let Some(expected_resp) = expected_resp {

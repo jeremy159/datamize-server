@@ -1,12 +1,10 @@
-use datamize_domain::{net_totals_equal_without_id, FinancialResourceMonthly, Month, NetTotals};
+use datamize_domain::{net_totals_equal_without_id, Month, NetTotals};
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 
 use crate::services::{
-    balance_sheet::tests::month::testutils::{
-        correctly_stub_month, transform_expected_month, TestContext,
-    },
+    balance_sheet::tests::month::testutils::{transform_expected_month, TestContext},
     testutils::{assert_err, ErrorType},
 };
 
@@ -22,8 +20,6 @@ async fn check_delete(
     if create_year {
         context.insert_year(year).await;
     }
-
-    let expected_resp = correctly_stub_month(expected_resp);
 
     if let Some(expected_resp) = expected_resp.clone() {
         context.set_month(&expected_resp, year).await;
@@ -73,25 +69,13 @@ async fn returns_success_with_the_deletion(pool: SqlitePool) {
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn does_not_delete_same_month_of_different_year(pool: SqlitePool) {
     let month: Month = Faker.fake();
-    let same_month_other_year = Month {
+    let mut same_month_other_year = Month {
         year: month.year + 1,
         month: month.month,
         ..Faker.fake()
     };
     let context = TestContext::setup(pool.clone());
     context.insert_year(same_month_other_year.year).await;
-    let mut same_month_other_year = Month {
-        resources: same_month_other_year
-            .resources
-            .into_iter()
-            .map(|r| FinancialResourceMonthly {
-                year: same_month_other_year.year,
-                month: same_month_other_year.month,
-                ..r
-            })
-            .collect(),
-        ..same_month_other_year
-    };
     same_month_other_year
         .resources
         .sort_by(|a, b| a.base.name.cmp(&b.base.name));

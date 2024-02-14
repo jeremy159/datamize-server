@@ -1,10 +1,12 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::Arc;
 
-use async_recursion::async_recursion;
 use chrono::{DateTime, Utc};
 use datamize_domain::db::{DbResult, MonthRepo, NetTotalType, YearData, YearRepo};
 use datamize_domain::{async_trait, NetTotal, NetTotals, Uuid, Year};
 use futures::try_join;
+use itertools::Itertools;
 use sqlx::PgPool;
 
 use super::{PostgresFinResRepo, PostgresMonthRepo};
@@ -50,6 +52,45 @@ impl YearRepo for PostgresYearRepo {
         for yd in year_datas {
             let net_totals = self.get_net_totals(yd.id).await?;
             let months = self.month_repo.get_months_of_year(yd.year).await?;
+
+            years.push(Year {
+                id: yd.id,
+                year: yd.year,
+                refreshed_at: yd.refreshed_at,
+                net_totals,
+                months,
+            });
+        }
+
+        Ok(years)
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn get_years_starting_from(&self, year: i32) -> DbResult<Vec<Year>> {
+        let year_datas = sqlx::query_as!(
+            YearData,
+            r#"
+            SELECT
+                id as "id: Uuid",
+                year as "year: i32",
+                refreshed_at as "refreshed_at: DateTime<Utc>"
+            FROM balance_sheet_years
+            WHERE year >= $1
+            ORDER BY year;
+            "#,
+            year,
+        )
+        .fetch_all(&self.db_conn_pool)
+        .await?;
+
+        let mut years: Vec<Year> = vec![];
+
+        for yd in year_datas {
+            let net_totals = self.get_net_totals(yd.id).await?;
+            let months = self
+                .month_repo
+                .get_months_of_year_without_resources(year)
+                .await?;
 
             years.push(Year {
                 id: yd.id,
@@ -187,7 +228,31 @@ impl YearRepo for PostgresYearRepo {
 
     #[tracing::instrument(skip(self))]
     async fn update_net_totals(&self, year: i32) -> DbResult<()> {
-        update_year_net_totals(self, year).await
+        let mut years = self.get_years_starting_from(year).await?;
+        if let Some(first_year) = years.first_mut() {
+            first_year.update_net_totals();
+
+            if let Ok(prev_year) = self.get_without_resources(year - 1).await {
+                first_year.compute_variation(&prev_year);
+            }
+        }
+
+        for (prev_year, curr_year) in years
+            .iter_mut()
+            .map(RefCell::new)
+            .map(Rc::new)
+            .tuple_windows()
+        {
+            let mut curr_year = curr_year.borrow_mut();
+            curr_year.update_net_totals();
+            curr_year.compute_variation(&prev_year.borrow());
+        }
+
+        for year in years {
+            self.insert_net_totals(year.id, &year.net_totals).await?;
+        }
+
+        Ok(())
     }
 
     #[tracing::instrument(skip(self, net_totals))]
@@ -278,27 +343,4 @@ impl YearRepo for PostgresYearRepo {
 
         Ok(())
     }
-}
-
-#[tracing::instrument(skip(year_repo))]
-#[async_recursion]
-async fn update_year_net_totals(year_repo: &PostgresYearRepo, year: i32) -> DbResult<()> {
-    let mut year = year_repo.get_without_resources(year).await?;
-    year.update_net_totals();
-
-    // Also update with previous year since we might just have updated the total balance of current year.
-    if let Ok(prev_year) = year_repo.get_without_resources(year.year - 1).await {
-        year.compute_variation(&prev_year);
-    }
-
-    year_repo
-        .insert_net_totals(year.id, &year.net_totals)
-        .await?;
-
-    // Should also try to update next year if it exists
-    if let Ok(next_year) = year_repo.get_year_data_by_number(year.year + 1).await {
-        update_year_net_totals(year_repo, next_year.year).await?;
-    }
-
-    Ok(())
 }

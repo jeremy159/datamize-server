@@ -3,7 +3,10 @@ use axum::{
     http::{Request, StatusCode},
 };
 use chrono::{Datelike, NaiveDate};
-use datamize_domain::{FinancialResourceYearly, MonthNum};
+use datamize_domain::{
+    testutils::{correctly_stub_resources, transform_expected_resources},
+    FinancialResourceYearly, YearlyBalances,
+};
 use db_sqlite::balance_sheet::sabotage_resources_table;
 use fake::{faker::chrono::en::Date, Fake};
 use http_body_util::BodyExt;
@@ -11,9 +14,7 @@ use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 
-use crate::routes::api::balance_sheet::tests::resources::testutils::{
-    correctly_stub_resources, transform_expected_resources, TestContext,
-};
+use crate::routes::api::balance_sheet::tests::resources::testutils::TestContext;
 
 async fn check_get_all_from_year(
     pool: SqlitePool,
@@ -33,13 +34,8 @@ async fn check_get_all_from_year(
 
     if let Some(expected_resp) = &expected_resp {
         for r in expected_resp {
-            for m in r
-                .balance_per_month
-                .keys()
-                .cloned()
-                .collect::<Vec<MonthNum>>()
-            {
-                context.insert_month(m, r.year).await;
+            for (year, month, _) in r.iter_balances() {
+                context.insert_month(month, year).await;
             }
         }
         context.set_resources(expected_resp).await;

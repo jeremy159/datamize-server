@@ -4,8 +4,11 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
+use chrono::{Datelike, NaiveDate};
 use datamize_domain::{
-    BaseFinancialResource, FinancialResourceYearly, MonthNum, ResourceCategory, ResourceType, Uuid,
+    testutils::{financial_resource_yearly_equal_without_id, NUM_MONTHS},
+    BaseFinancialResource, FinancialResourceType, FinancialResourceYearly, MonthNum, Uuid,
+    YearlyBalances,
 };
 use fake::{Fake, Faker};
 use http_body_util::BodyExt;
@@ -19,72 +22,51 @@ use crate::routes::api::balance_sheet::tests::resources::testutils::TestContext;
 #[derive(Debug, Deserialize, Serialize, Clone)]
 struct CreateBody {
     pub name: String,
-    pub category: ResourceCategory,
-    #[serde(rename = "type")]
-    pub r_type: ResourceType,
-    pub editable: bool,
+    pub resource_type: FinancialResourceType,
     pub year: i32,
-    pub balance_per_month: BTreeMap<MonthNum, i64>,
+    pub balances: BTreeMap<i32, BTreeMap<MonthNum, Option<i64>>>,
     pub ynab_account_ids: Option<Vec<Uuid>>,
     pub external_account_ids: Option<Vec<Uuid>>,
 }
 
 impl fake::Dummy<fake::Faker> for CreateBody {
-    fn dummy_with_rng<R: fake::Rng + ?Sized>(config: &fake::Faker, rng: &mut R) -> Self {
+    fn dummy_with_rng<R: fake::Rng + ?Sized>(_: &fake::Faker, rng: &mut R) -> Self {
         let name = Fake::fake_with_rng(&Faker, rng);
-        let category = Fake::fake_with_rng(&Faker, rng);
-        let r_type = Fake::fake_with_rng(&Faker, rng);
-        let editable = Fake::fake_with_rng(&Faker, rng);
+        let resource_type = Fake::fake_with_rng(&Faker, rng);
         let year = Fake::fake_with_rng(&(1000..3000), rng);
+
+        let mut balances = BTreeMap::new();
+        let len = (1..10).fake_with_rng(rng);
+        for _ in 0..len {
+            let len_values = (1..NUM_MONTHS).fake_with_rng(rng);
+            let mut month_balances = BTreeMap::new();
+            for _ in 0..len_values {
+                let month = Fake::fake_with_rng(&Faker, rng);
+                month_balances.insert(month, Some(Fake::fake_with_rng(&(-1000000..1000000), rng)));
+            }
+            balances.insert(Fake::fake_with_rng(&(1000..3000), rng), month_balances);
+        }
         let ynab_account_ids = Fake::fake_with_rng(&Faker, rng);
         let external_account_ids = Fake::fake_with_rng(&Faker, rng);
 
-        let mut balance_per_month = BTreeMap::new();
-        let len = (1..10).fake_with_rng(rng);
-        for _ in 0..len {
-            balance_per_month.insert(
-                config.fake_with_rng(rng),
-                Fake::fake_with_rng(&(-1000000..1000000), rng),
-            );
-        }
-
         Self {
             name,
-            category,
-            r_type,
-            editable,
+            resource_type,
             year,
+            balances,
             ynab_account_ids,
             external_account_ids,
-            balance_per_month,
         }
     }
-}
-
-fn are_equal(a: &FinancialResourceYearly, b: &FinancialResourceYearly) {
-    assert_eq!(a.year, b.year);
-    assert_eq!(a.balance_per_month, b.balance_per_month);
-    assert_eq!(a.base.name, b.base.name);
-    assert_eq!(a.base.category, b.base.category);
-    assert_eq!(a.base.r_type, b.base.r_type);
-    assert_eq!(a.base.editable, b.base.editable);
-    assert_eq!(a.base.ynab_account_ids, b.base.ynab_account_ids);
-    assert_eq!(a.base.external_account_ids, b.base.external_account_ids);
 }
 
 async fn check_create(
     pool: SqlitePool,
-    create_year: bool,
-    body: Option<CreateBody>,
+    body: CreateBody,
     expected_status: StatusCode,
     expected_resp: Option<FinancialResourceYearly>,
 ) {
     let context = TestContext::setup(pool);
-    let year = expected_resp.clone().unwrap_or_else(|| Faker.fake()).year;
-
-    if create_year {
-        context.insert_year(year).await;
-    }
 
     let response = context
         .app()
@@ -105,17 +87,17 @@ async fn check_create(
 
     if let Some(expected) = expected_resp {
         let body: FinancialResourceYearly = serde_json::from_slice(&body).unwrap();
-        are_equal(&body, &expected);
+        financial_resource_yearly_equal_without_id(&body, &expected);
 
-        if !expected.balance_per_month.is_empty() {
+        if !expected.is_empty() {
             // Persits the resource
             let saved = context.get_res_by_name(&expected.base.name).await.unwrap();
             assert!(!saved.is_empty());
-            assert_eq!(body, saved[0]);
+            assert_eq!(body, saved);
 
             // Creates all months that were not created
-            for m in expected.balance_per_month.keys() {
-                let saved_month = context.get_month(*m, expected.year).await;
+            for (year, month, _) in expected.iter_balances() {
+                let saved_month = context.get_month(month, year).await;
                 assert!(saved_month.is_ok());
 
                 let saved_month = saved_month.unwrap();
@@ -125,68 +107,72 @@ async fn check_create(
         }
 
         // Creating the resource also computed net assets of the year
-        let saved_year = context.get_year(expected.year).await;
-        assert!(saved_year.is_ok());
-        let saved_year = saved_year.unwrap();
-        assert_ne!(saved_year.net_assets().total, 0);
+        let saved_years = context.get_years().await;
+        assert!(saved_years.is_ok());
+        let saved_years = saved_years.unwrap();
+        for saved_year in saved_years {
+            assert_ne!(saved_year.net_assets().total, 0);
+        }
     }
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn persists_new_resource(pool: SqlitePool) {
-    let body: CreateBody = Faker.fake();
+    let mut body = CreateBody {
+        balances: BTreeMap::new(),
+        ..Faker.fake()
+    };
+    let current_date = Faker.fake::<NaiveDate>();
+    let month: MonthNum = current_date.month().try_into().unwrap();
+    let year = current_date.year();
+    body.balances
+        .entry(year)
+        .or_default()
+        .insert(month, Some((-1000000..1000000).fake()));
+
     let body_cloned = body.clone();
+
     let res = FinancialResourceYearly {
-        year: body_cloned.year,
-        balance_per_month: body_cloned.balance_per_month,
+        balances: body_cloned.balances,
         base: BaseFinancialResource {
             name: body_cloned.name,
-            category: body_cloned.category,
-            r_type: body_cloned.r_type,
-            editable: body_cloned.editable,
+            resource_type: body_cloned.resource_type,
             ynab_account_ids: body_cloned.ynab_account_ids,
             external_account_ids: body_cloned.external_account_ids,
             ..Faker.fake()
         },
     };
 
-    check_create(pool, true, Some(body), StatusCode::CREATED, Some(res)).await;
-}
-
-#[sqlx::test(migrations = "../db-sqlite/migrations")]
-async fn returns_404_when_year_does_not_exist(pool: SqlitePool) {
-    check_create(pool, false, Some(Faker.fake()), StatusCode::NOT_FOUND, None).await;
+    check_create(pool, body, StatusCode::CREATED, Some(res)).await;
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_409_when_resource_already_exists(pool: SqlitePool) {
-    let mut balance_per_month = BTreeMap::new();
-    let month = Faker.fake();
-    balance_per_month.insert(month, (-1000000..1000000).fake());
-    let body: CreateBody = CreateBody {
-        balance_per_month,
-        ..Faker.fake()
-    };
-    {
-        let context = TestContext::setup(pool.clone());
-        context.insert_year(body.year).await;
-        context.insert_month(month, body.year).await;
-        let body_cloned = body.clone();
-        let res = FinancialResourceYearly {
-            year: body_cloned.year,
-            balance_per_month: body_cloned.balance_per_month,
-            base: BaseFinancialResource {
-                name: body_cloned.name,
-                category: body_cloned.category,
-                r_type: body_cloned.r_type,
-                editable: body_cloned.editable,
-                ynab_account_ids: body_cloned.ynab_account_ids,
-                external_account_ids: body_cloned.external_account_ids,
-                ..Faker.fake()
-            },
-        };
+    let mut resource = FinancialResourceYearly::new(
+        Faker.fake(),
+        Faker.fake(),
+        Faker.fake(),
+        Faker.fake(),
+        Faker.fake(),
+    );
+    let current_date = Faker.fake::<NaiveDate>();
+    let month = current_date.month().try_into().unwrap();
+    let year = current_date.year();
+    resource.insert_balance(year, month, (-1000000..1000000).fake());
 
-        context.set_resources(&[res]).await;
-    }
-    check_create(pool, false, Some(body), StatusCode::CONFLICT, None).await;
+    let res = resource.clone();
+    let body = CreateBody {
+        name: res.base.name,
+        resource_type: res.base.resource_type,
+        year,
+        balances: res.balances,
+        ynab_account_ids: res.base.ynab_account_ids,
+        external_account_ids: res.base.external_account_ids,
+    };
+    let context = TestContext::setup(pool.clone());
+    context.insert_year(body.year).await;
+    context.insert_month(month, body.year).await;
+    context.set_resources(&[resource]).await;
+
+    check_create(pool, body, StatusCode::CONFLICT, None).await;
 }

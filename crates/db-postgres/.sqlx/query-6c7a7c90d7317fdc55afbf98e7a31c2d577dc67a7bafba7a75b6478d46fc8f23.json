@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                r.id AS \"id: Uuid\",\n                r.name,\n                r.resource_type,\n                r.ynab_account_ids,\n                r.external_account_ids,\n                rm.balance,\n                m.month AS \"month: MonthNum\",\n                y.year AS \"year: i32\"\n            FROM balance_sheet_resources AS r\n            JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id\n            JOIN balance_sheet_months AS m ON rm.month_id = m.id\n            JOIN balance_sheet_years AS y ON y.id = m.year_id\n            WHERE y.year = $1;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: Uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "resource_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "ynab_account_ids",
+        "type_info": "UuidArray"
+      },
+      {
+        "ordinal": 4,
+        "name": "external_account_ids",
+        "type_info": "UuidArray"
+      },
+      {
+        "ordinal": 5,
+        "name": "balance",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "month: MonthNum",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 7,
+        "name": "year: i32",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "6c7a7c90d7317fdc55afbf98e7a31c2d577dc67a7bafba7a75b6478d46fc8f23"
+}

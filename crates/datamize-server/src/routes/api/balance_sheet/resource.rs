@@ -3,7 +3,7 @@ use axum::{
     Json,
 };
 use axum_extra::extract::WithRejection;
-use datamize_domain::{FinancialResourceYearly, SaveResource, Uuid};
+use datamize_domain::{FinancialResourceYearly, UpdateResource, Uuid};
 
 use crate::{
     error::{HttpJsonDatamizeResult, JsonError},
@@ -23,13 +23,11 @@ pub async fn balance_sheet_resource(
 /// Will also update the months' and year's net totals.
 #[tracing::instrument(skip_all)]
 pub async fn update_balance_sheet_resource(
-    Path(resource_id): Path<Uuid>,
+    Path(_): Path<Uuid>,
     State(fin_res_service): State<DynFinResService>,
-    WithRejection(Json(body), _): WithRejection<Json<SaveResource>, JsonError>,
+    WithRejection(Json(body), _): WithRejection<Json<UpdateResource>, JsonError>,
 ) -> HttpJsonDatamizeResult<FinancialResourceYearly> {
-    Ok(Json(
-        fin_res_service.update_fin_res(resource_id, body).await?,
-    ))
+    Ok(Json(fin_res_service.update_fin_res(body).await?))
 }
 
 /// Deletes the resource and returns the entity

@@ -1,42 +1,39 @@
+use std::collections::HashSet;
+
 use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use datamize_domain::FinancialResourceYearly;
+use datamize_domain::{FinancialResourceYearly, YearlyBalances};
 use fake::{Fake, Faker};
 use http_body_util::BodyExt;
 use pretty_assertions::{assert_eq, assert_ne};
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 
-use crate::routes::api::balance_sheet::tests::resources::testutils::{
-    correctly_stub_resource, TestContext,
-};
+use crate::routes::api::balance_sheet::tests::resources::testutils::TestContext;
 
 async fn check_delete(
     pool: SqlitePool,
-    create_year: bool,
     expected_status: StatusCode,
     expected_resp: Option<FinancialResourceYearly>,
 ) {
     let context = TestContext::setup(pool);
+    let mut checked_years = HashSet::<i32>::new();
 
-    let year = expected_resp.clone().unwrap_or_else(|| Faker.fake()).year;
-    if create_year {
-        context.insert_year(year).await;
-
-        // Create all months
-        for m in expected_resp
-            .clone()
-            .unwrap_or_else(|| Faker.fake())
-            .balance_per_month
-            .keys()
-        {
-            context.insert_month(*m, year).await;
+    // Create all months and years
+    for (year, month) in expected_resp
+        .clone()
+        .unwrap_or_else(|| Faker.fake())
+        .iter_months()
+    {
+        if !checked_years.contains(&year) {
+            checked_years.insert(year);
+            context.insert_year(year).await;
         }
+        context.insert_month(month, year).await;
     }
 
-    let expected_resp = correctly_stub_resource(expected_resp, year);
     if let Some(expected_resp) = expected_resp.clone() {
         context.set_resources(&[expected_resp]).await;
     }
@@ -73,10 +70,10 @@ async fn check_delete(
         let saved = context.get_res(expected.base.id).await;
         assert_eq!(saved, Err(datamize_domain::db::DbError::NotFound));
 
-        if !expected.balance_per_month.is_empty() {
+        if !expected.is_empty() {
             // Updates all months that had balance
-            for m in expected.balance_per_month.keys() {
-                let saved_month = context.get_month(*m, expected.year).await;
+            for (year, month, _) in expected.iter_balances() {
+                let saved_month = context.get_month(month, year).await;
                 assert!(saved_month.is_ok());
 
                 let saved_month = saved_month.unwrap();
@@ -88,26 +85,23 @@ async fn check_delete(
         }
 
         // Delete the resource also computed net assets of the year
-        let saved_year = context.get_year(expected.year).await;
-        assert!(saved_year.is_ok());
-        let saved_year = saved_year.unwrap();
-        if let Some(last_month) = saved_year.get_last_month() {
-            assert_eq!(saved_year.net_assets().total, last_month.net_assets().total);
+        let saved_years = context.get_years().await;
+        assert!(saved_years.is_ok());
+        let saved_years = saved_years.unwrap();
+        for saved_year in saved_years {
+            if let Some(last_month) = saved_year.get_last_month() {
+                assert_eq!(saved_year.net_assets().total, last_month.net_assets().total);
+            }
         }
     }
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
-async fn returns_404_when_no_year(pool: SqlitePool) {
-    check_delete(pool, false, StatusCode::NOT_FOUND, None).await;
-}
-
-#[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_404_when_nothing_in_db(pool: SqlitePool) {
-    check_delete(pool, true, StatusCode::NOT_FOUND, None).await;
+    check_delete(pool, StatusCode::NOT_FOUND, None).await;
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_success_with_the_deletion(pool: SqlitePool) {
-    check_delete(pool, true, StatusCode::OK, Some(Faker.fake())).await;
+    check_delete(pool, StatusCode::OK, Some(Faker.fake())).await;
 }

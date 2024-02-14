@@ -1,6 +1,6 @@
-use std::sync::Arc;
+use itertools::Itertools;
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
-use async_recursion::async_recursion;
 use chrono::{DateTime, Utc};
 use datamize_domain::{
     async_trait,
@@ -152,6 +152,48 @@ impl MonthRepo for PostgresMonthRepo {
         Ok(months)
     }
 
+    #[tracing::instrument(skip(self))]
+    async fn get_months_starting_from(
+        &self,
+        month_num: MonthNum,
+        year: i32,
+    ) -> DbResult<Vec<Month>> {
+        let month_datas = sqlx::query_as!(
+            MonthData,
+            r#"
+            SELECT
+                m.id as "id: Uuid",
+                m.month as "month: MonthNum",
+                y.year as "year: i32"
+            FROM balance_sheet_months AS m
+            JOIN balance_sheet_years AS y ON y.id = m.year_id
+            WHERE (y.year > $2 OR (y.year = $2 AND m.month >= $1))
+            ORDER BY y.year, m.month;
+            "#,
+            month_num as i16,
+            year,
+        )
+        .fetch_all(&self.db_conn_pool)
+        .await?;
+
+        let mut months: Vec<Month> = vec![];
+
+        for md in month_datas {
+            let net_totals = self.get_net_totals(md.id).await?;
+            let resources = self.fin_res_repo.get_from_month(md.month, md.year).await?;
+
+            months.push(Month {
+                id: md.id,
+                month: md.month,
+                year: md.year,
+                net_totals,
+                resources,
+            });
+        }
+
+        Ok(months)
+    }
+
     #[tracing::instrument(skip(self, month))]
     async fn add(&self, month: &Month, year: i32) -> DbResult<()> {
         let year_data = self.get_year_data_by_number(year).await?;
@@ -296,7 +338,38 @@ impl MonthRepo for PostgresMonthRepo {
 
     #[tracing::instrument(skip(self))]
     async fn update_net_totals(&self, month_num: MonthNum, year: i32) -> DbResult<()> {
-        update_month_net_totals(self, month_num, year).await
+        let mut months = self.get_months_starting_from(month_num, year).await?;
+        if let Some(first_month) = months.first_mut() {
+            first_month.compute_net_totals();
+            let prev_year = match month_num.pred() {
+                MonthNum::December => year - 1,
+                _ => year,
+            };
+
+            if let Ok(prev_month) = self
+                .get_without_resources(month_num.pred(), prev_year)
+                .await
+            {
+                first_month.compute_variation(&prev_month);
+            }
+        }
+
+        for (prev_month, curr_month) in months
+            .iter_mut()
+            .map(RefCell::new)
+            .map(Rc::new)
+            .tuple_windows()
+        {
+            let mut curr_month = curr_month.borrow_mut();
+            curr_month.compute_net_totals();
+            curr_month.compute_variation(&prev_month.borrow());
+        }
+
+        for month in months {
+            self.insert_net_totals(month.id, &month.net_totals).await?;
+        }
+
+        Ok(())
     }
 
     #[tracing::instrument(skip(self, net_totals))]
@@ -370,55 +443,6 @@ impl MonthRepo for PostgresMonthRepo {
 
         Ok(())
     }
-}
-
-#[tracing::instrument(skip(month_repo))]
-#[async_recursion]
-async fn update_month_net_totals(
-    month_repo: &PostgresMonthRepo,
-    month_num: MonthNum,
-    year: i32,
-) -> DbResult<()> {
-    month_repo.get_month_data_by_number(month_num, year).await?;
-
-    let mut month = month_repo.get(month_num, year).await?;
-
-    month.compute_net_totals();
-
-    let prev_year = match month_num.pred() {
-        MonthNum::December => year - 1,
-        _ => year,
-    };
-
-    if let Ok(prev_month) = month_repo
-        .get_without_resources(month_num.pred(), prev_year)
-        .await
-    {
-        month.compute_variation(&prev_month);
-    }
-
-    month_repo
-        .insert_net_totals(month.id, &month.net_totals)
-        .await?;
-
-    let next_year_num = match month_num.succ() {
-        MonthNum::January => year + 1,
-        _ => year,
-    };
-
-    // Should also try to update next month if it exists
-    if (month_repo.get_year_data_by_number(next_year_num).await).is_ok() {
-        if let Ok(next_month) = month_repo
-            .get_month_data_by_number(month_num.succ(), next_year_num)
-            .await
-        {
-            month_repo
-                .update_net_totals(next_month.month, next_year_num)
-                .await?;
-        }
-    }
-
-    Ok(())
 }
 
 // #[tracing::instrument(skip(db_conn_pool))]

@@ -1,7 +1,7 @@
-use std::collections::BTreeMap;
-
 use chrono::{Datelike, Local};
-use datamize_domain::{BaseFinancialResource, FinancialResourceYearly, ResourcesToRefresh, Uuid};
+use datamize_domain::{
+    BaseFinancialResource, FinancialResourceYearly, ResourcesToRefresh, Uuid, YearlyBalances,
+};
 use fake::{Fake, Faker};
 use pretty_assertions::{assert_eq, assert_ne};
 use sqlx::SqlitePool;
@@ -37,9 +37,9 @@ async fn check_refresh(
 
         // Create all months
         for r in &resources {
-            for m in r.balance_per_month.keys() {
-                if context.get_month_data(*m, year).await.is_err() {
-                    context.insert_month(*m, year).await;
+            for (_, month, _) in r.iter_balances() {
+                if context.get_month_data(month, year).await.is_err() {
+                    context.insert_month(month, year).await;
                 }
             }
         }
@@ -152,19 +152,17 @@ async fn empty_ids_when_no_ynab_accounts_linked_to_returned_resources(pool: Sqli
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn only_update_when_different_balance(pool: SqlitePool) {
     let ynab_account: Account = Faker.fake();
-    let mut balance_per_month = BTreeMap::new();
-    balance_per_month.insert(
-        Local::now().date_naive().month().try_into().unwrap(),
-        ynab_account.balance.abs(),
+    let mut resource = FinancialResourceYearly::new(
+        Faker.fake(),
+        Faker.fake(),
+        Faker.fake(),
+        Some(vec![ynab_account.id]),
+        Faker.fake(),
     );
-    let resource = FinancialResourceYearly {
-        balance_per_month,
-        base: BaseFinancialResource {
-            ynab_account_ids: Some(vec![ynab_account.id]),
-            ..Faker.fake()
-        },
-        ..Faker.fake()
-    };
+    let current_date = Local::now().date_naive();
+    let month = current_date.month().try_into().unwrap();
+    let year = current_date.year();
+    resource.insert_balance(year, month, ynab_account.balance.abs());
 
     check_refresh(
         pool,

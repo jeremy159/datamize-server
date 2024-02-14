@@ -1,10 +1,9 @@
-use itertools::Itertools;
-use std::sync::Arc;
+use std::{collections::HashSet, sync::Arc};
 
 use datamize_domain::{
     async_trait,
     db::{DbError, DynFinResRepo, DynMonthRepo, DynYearRepo},
-    FinancialResourceYearly, Month, SaveResource, Uuid,
+    FinancialResourceYearly, Month, SaveResource, UpdateResource, Uuid, Year, YearlyBalances,
 };
 
 use crate::error::{AppError, DatamizeResult};
@@ -23,8 +22,7 @@ pub trait FinResServiceExt: Send + Sync {
     async fn get_fin_res(&self, fin_res_id: Uuid) -> DatamizeResult<FinancialResourceYearly>;
     async fn update_fin_res(
         &self,
-        fin_res_id: Uuid,
-        new_fin_res: SaveResource,
+        new_fin_res: UpdateResource,
     ) -> DatamizeResult<FinancialResourceYearly>;
     async fn delete_fin_res(&self, fin_res_id: Uuid) -> DatamizeResult<FinancialResourceYearly>;
 }
@@ -35,20 +33,6 @@ pub struct FinResService {
     pub fin_res_repo: DynFinResRepo,
     pub month_repo: DynMonthRepo,
     pub year_repo: DynYearRepo,
-}
-
-impl FinResService {
-    pub fn new_arced(
-        fin_res_repo: DynFinResRepo,
-        month_repo: DynMonthRepo,
-        year_repo: DynYearRepo,
-    ) -> Arc<Self> {
-        Arc::new(Self {
-            year_repo,
-            month_repo,
-            fin_res_repo,
-        })
-    }
 }
 
 #[async_trait]
@@ -73,54 +57,14 @@ impl FinResServiceExt for FinResService {
     ) -> DatamizeResult<FinancialResourceYearly> {
         let resource: FinancialResourceYearly = new_fin_res.into();
 
-        let resources_of_same_name = self.fin_res_repo.get_by_name(&resource.base.name).await?;
-        if resources_of_same_name
-            .into_iter()
-            .any(|r| r.year == resource.year && r.base.name == resource.base.name)
-        {
+        let Err(DbError::NotFound) = self.fin_res_repo.get_by_name(&resource.base.name).await
+        else {
             return Err(AppError::ResourceAlreadyExist);
-        }
+        };
 
-        for month in resource.balance_per_month.keys() {
-            if let Err(DbError::NotFound) = self
-                .month_repo
-                .get_month_data_by_number(*month, resource.year)
-                .await
-            {
-                // If month doesn't exist, create it
-                let month = Month::new(*month, resource.year);
-                self.month_repo.add(&month, resource.year).await?;
-            }
-        }
-
+        self.ensure_month_year_exist(&resource).await?;
         self.fin_res_repo.update(&resource).await?;
-
-        // If balance data was received, update month and year net totals
-        if !resource.balance_per_month.is_empty() {
-            self.month_repo
-                .update_net_totals(
-                    *resource.balance_per_month.first_key_value().unwrap().0,
-                    resource.year,
-                )
-                .await?;
-
-            let mut manual_update = false;
-            for (curr, next) in resource.balance_per_month.keys().tuple_windows() {
-                // If next month is not directly the next month in the year, trigger a manual update
-                // as it won't go through the recursive update in `update_net_totals`.
-                if curr.succ() != *next {
-                    manual_update = true;
-                }
-                if manual_update {
-                    manual_update = false;
-                    self.month_repo
-                        .update_net_totals(*next, resource.year)
-                        .await?;
-                }
-            }
-        }
-
-        self.year_repo.update_net_totals(resource.year).await?;
+        self.update_net_totals(&resource).await?;
 
         Ok(resource)
     }
@@ -130,57 +74,16 @@ impl FinResServiceExt for FinResService {
         Ok(self.fin_res_repo.get(fin_res_id).await?)
     }
 
-    #[tracing::instrument(skip(self, new_fin_res))]
+    #[tracing::instrument(skip(self, updated_res))]
     async fn update_fin_res(
         &self,
-        fin_res_id: Uuid,
-        new_fin_res: SaveResource,
+        updated_res: UpdateResource,
     ) -> DatamizeResult<FinancialResourceYearly> {
-        let mut resource: FinancialResourceYearly = new_fin_res.into();
-        resource.base.id = fin_res_id;
-
-        self.fin_res_repo.get(fin_res_id).await?;
-
-        for month in resource.balance_per_month.keys() {
-            if let Err(DbError::NotFound) = self
-                .month_repo
-                .get_month_data_by_number(*month, resource.year)
-                .await
-            {
-                // If month doesn't exist, create it
-                let month = Month::new(*month, resource.year);
-                self.month_repo.add(&month, resource.year).await?;
-            }
-        }
-
-        self.fin_res_repo.update(&resource).await?;
-
-        // If balance data was received, update month and year net totals
-        if !resource.balance_per_month.is_empty() {
-            self.month_repo
-                .update_net_totals(
-                    *resource.balance_per_month.first_key_value().unwrap().0,
-                    resource.year,
-                )
-                .await?;
-
-            let mut manual_update = false;
-            for (curr, next) in resource.balance_per_month.keys().tuple_windows() {
-                // If next month is not directly the next month in the year, trigger a manual update
-                // as it won't go through the recursive update in `update_net_totals`.
-                if curr.succ() != *next {
-                    manual_update = true;
-                }
-                if manual_update {
-                    manual_update = false;
-                    self.month_repo
-                        .update_net_totals(*next, resource.year)
-                        .await?;
-                }
-            }
-        }
-
-        self.year_repo.update_net_totals(resource.year).await?;
+        self.fin_res_repo.get(updated_res.base.id).await?;
+        self.ensure_month_year_exist(&updated_res).await?;
+        self.fin_res_repo.update_and_delete(&updated_res).await?;
+        let resource = self.fin_res_repo.get(updated_res.base.id).await?;
+        self.update_net_totals(&resource).await?;
 
         Ok(resource)
     }
@@ -189,33 +92,56 @@ impl FinResServiceExt for FinResService {
     async fn delete_fin_res(&self, fin_res_id: Uuid) -> DatamizeResult<FinancialResourceYearly> {
         let resource = self.fin_res_repo.get(fin_res_id).await?;
         self.fin_res_repo.delete(fin_res_id).await?;
+        self.update_net_totals(&resource).await?;
 
-        if !resource.balance_per_month.is_empty() {
-            self.month_repo
-                .update_net_totals(
-                    *resource.balance_per_month.first_key_value().unwrap().0,
-                    resource.year,
-                )
-                .await?;
+        Ok(resource)
+    }
+}
 
-            let mut manual_update = false;
-            for (curr, next) in resource.balance_per_month.keys().tuple_windows() {
-                // If next month is not directly the next month in the year, trigger a manual update
-                // as it won't go through the recursive update in `update_net_totals`.
-                if curr.succ() != *next {
-                    manual_update = true;
+impl FinResService {
+    pub fn new_arced(
+        fin_res_repo: DynFinResRepo,
+        month_repo: DynMonthRepo,
+        year_repo: DynYearRepo,
+    ) -> Arc<Self> {
+        Arc::new(Self {
+            year_repo,
+            month_repo,
+            fin_res_repo,
+        })
+    }
+
+    async fn ensure_month_year_exist<T: YearlyBalances>(&self, resource: &T) -> DatamizeResult<()> {
+        let mut checked_years = HashSet::<i32>::new();
+
+        for (year, month, _) in resource.iter_all_balances() {
+            if !checked_years.contains(&year) {
+                checked_years.insert(year);
+                if let Err(DbError::NotFound) = self.year_repo.get_year_data_by_number(year).await {
+                    // If year doesn't exist, create it
+                    let year = Year::new(year);
+                    self.year_repo.add(&year).await?;
                 }
-                if manual_update {
-                    manual_update = false;
-                    self.month_repo
-                        .update_net_totals(*next, resource.year)
-                        .await?;
-                }
+            }
+
+            if let Err(DbError::NotFound) =
+                self.month_repo.get_month_data_by_number(month, year).await
+            {
+                // If month doesn't exist, create it
+                let month = Month::new(month, year);
+                self.month_repo.add(&month, year).await?;
             }
         }
 
-        self.year_repo.update_net_totals(resource.year).await?;
+        Ok(())
+    }
 
-        Ok(resource)
+    async fn update_net_totals(&self, resource: &FinancialResourceYearly) -> DatamizeResult<()> {
+        if let Some((year, month)) = resource.get_first_month() {
+            self.month_repo.update_net_totals(month, year).await?;
+            self.year_repo.update_net_totals(year).await?;
+        }
+
+        Ok(())
     }
 }

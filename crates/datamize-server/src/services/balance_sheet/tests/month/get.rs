@@ -5,9 +5,7 @@ use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 
 use crate::services::{
-    balance_sheet::tests::month::testutils::{
-        correctly_stub_month, transform_expected_month, TestContext,
-    },
+    balance_sheet::tests::month::testutils::{transform_expected_month, TestContext},
     testutils::{assert_err, ErrorType},
 };
 
@@ -23,8 +21,6 @@ async fn check_get(
     if create_year {
         context.insert_year(year).await;
     }
-
-    let expected_resp = correctly_stub_month(expected_resp);
 
     if let Some(expected_resp) = expected_resp.clone() {
         context.set_month(&expected_resp, year).await;

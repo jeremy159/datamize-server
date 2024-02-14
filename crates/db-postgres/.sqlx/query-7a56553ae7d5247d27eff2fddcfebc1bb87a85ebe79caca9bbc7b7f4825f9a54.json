@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT\n                    r.id AS \"id: Uuid\",\n                    r.name,\n                    r.resource_type,\n                    r.ynab_account_ids,\n                    r.external_account_ids,\n                    rm.balance\n                FROM balance_sheet_resources AS r\n                JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id\n                JOIN balance_sheet_months AS m ON rm.month_id = m.id AND m.month = $1\n                JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $2\n                ORDER BY r.name;\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: Uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "resource_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "ynab_account_ids",
+        "type_info": "UuidArray"
+      },
+      {
+        "ordinal": 4,
+        "name": "external_account_ids",
+        "type_info": "UuidArray"
+      },
+      {
+        "ordinal": 5,
+        "name": "balance",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int2",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "7a56553ae7d5247d27eff2fddcfebc1bb87a85ebe79caca9bbc7b7f4825f9a54"
+}

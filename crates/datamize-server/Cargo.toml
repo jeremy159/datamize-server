@@ -36,6 +36,7 @@ futures.workspace = true
 orion.workspace = true
 thiserror.workspace = true
 sqlx.workspace = true
+itertools.workspace = true
 
 axum = "0.7"
 axum-extra = "^0.9"
@@ -49,7 +50,6 @@ config = { version = "0.13", features = ["toml"], default-features = false }
 num-traits = "0.2"
 fantoccini = { version = "0.19", features = ["rustls-tls"] }
 nom = "7.1"
-itertools = "0.12"
 
 
 [dev-dependencies]

@@ -1,4 +1,4 @@
-use chrono::{Datelike, Days, Local, Months};
+use chrono::{Days, Local, Months};
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use ynab::RecurFrequency;
@@ -41,31 +41,6 @@ fn empty_when_no_frequency_that_repeats_within_a_month() {
     };
 
     check_method(&st, 0);
-}
-
-// #[test]
-// FIXME: if now = Jan 28th (or 29th on leap year), repeated trans will be total of 3 because next 30 days includes end of febuary also...
-fn is_2_when_twice_a_month() {
-    let date_first = Local::now().date_naive().with_day(1).unwrap();
-    let now = Local::now().date_naive();
-    let mut date_next = now.with_day(15).unwrap();
-    if date_next < now {
-        date_next = now
-            .with_day(1)
-            .unwrap()
-            .checked_add_months(Months::new(1))
-            .unwrap()
-            .checked_sub_days(Days::new(1))
-            .unwrap();
-    }
-    let st = DatamizeScheduledTransaction {
-        frequency: RecurFrequency::TwiceAMonth,
-        date_first,
-        date_next,
-        ..Faker.fake()
-    };
-
-    check_method(&st, 1); // Second one is st itself
 }
 
 #[test]

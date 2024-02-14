@@ -1,6 +1,8 @@
-use std::collections::BTreeMap;
-
-use datamize_domain::{BaseFinancialResource, FinancialResourceYearly, SaveResource};
+use chrono::{Datelike, NaiveDate};
+use datamize_domain::{
+    testutils::financial_resource_yearly_equal_without_id, FinancialResourceYearly, SaveResource,
+    YearlyBalances,
+};
 use fake::{Fake, Faker};
 use pretty_assertions::{assert_eq, assert_ne};
 use sqlx::SqlitePool;
@@ -10,49 +12,32 @@ use crate::services::{
     testutils::{assert_err, ErrorType},
 };
 
-fn are_equal(a: &FinancialResourceYearly, b: &FinancialResourceYearly) {
-    assert_eq!(a.year, b.year);
-    assert_eq!(a.balance_per_month, b.balance_per_month);
-    assert_eq!(a.base.name, b.base.name);
-    assert_eq!(a.base.category, b.base.category);
-    assert_eq!(a.base.r_type, b.base.r_type);
-    assert_eq!(a.base.editable, b.base.editable);
-    assert_eq!(a.base.ynab_account_ids, b.base.ynab_account_ids);
-    assert_eq!(a.base.external_account_ids, b.base.external_account_ids);
-}
-
 async fn check_create(
     pool: SqlitePool,
-    create_year: bool,
     new_res: SaveResource,
     expected_resp: Option<FinancialResourceYearly>,
     expected_err: Option<ErrorType>,
 ) {
     let context = TestContext::setup(pool);
-    let year = expected_resp.clone().unwrap_or_else(|| Faker.fake()).year;
-
-    if create_year {
-        context.insert_year(year).await;
-    }
 
     let response = context.service().create_fin_res(new_res).await;
 
     if let Some(expected_resp) = expected_resp {
         let res_body = response.unwrap();
-        are_equal(&res_body, &expected_resp);
+        financial_resource_yearly_equal_without_id(&res_body, &expected_resp);
 
-        if !expected_resp.balance_per_month.is_empty() {
+        if !expected_resp.is_empty() {
             // Persits the resource
             let saved = context
                 .get_res_by_name(&expected_resp.base.name)
                 .await
                 .unwrap();
             assert!(!saved.is_empty());
-            assert_eq!(res_body, saved[0]);
+            assert_eq!(res_body, saved);
 
             // Creates all months that were not created
-            for m in expected_resp.balance_per_month.keys() {
-                let saved_month = context.get_month(*m, expected_resp.year).await;
+            for (year, month, _) in expected_resp.iter_balances() {
+                let saved_month = context.get_month(month, year).await;
                 assert!(saved_month.is_ok());
 
                 let saved_month = saved_month.unwrap();
@@ -62,115 +47,82 @@ async fn check_create(
         }
 
         // Creating the resource also computed net assets of the year
-        let saved_year = context.get_year(expected_resp.year).await;
-        assert!(saved_year.is_ok());
-        let saved_year = saved_year.unwrap();
-        assert_ne!(saved_year.net_assets().total, 0);
+        let saved_years = context.get_years().await;
+        assert!(saved_years.is_ok());
+        let saved_years = saved_years.unwrap();
+        for saved_year in saved_years {
+            assert_ne!(saved_year.net_assets().total, 0);
+        }
     } else {
+        println!("{response:#?}");
         assert_err(response.unwrap_err(), expected_err);
     }
 }
 
+// Previous behavoir was to return 404 when year did not exist, but now, just like month
+// we create it automatically. This test is to ensure we have the right behavior.
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn persists_new_resource(pool: SqlitePool) {
-    let body: SaveResource = Faker.fake();
-    let body_cloned = body.clone();
-    let res = FinancialResourceYearly {
-        year: body_cloned.year,
-        balance_per_month: body_cloned.balance_per_month,
-        base: BaseFinancialResource {
-            name: body_cloned.name,
-            category: body_cloned.category,
-            r_type: body_cloned.r_type,
-            editable: body_cloned.editable,
-            ynab_account_ids: body_cloned.ynab_account_ids,
-            external_account_ids: body_cloned.external_account_ids,
-            ..Faker.fake()
-        },
-    };
+    let mut body: SaveResource = Faker.fake();
+    body.clear_all_balances();
+    let current_date = Faker.fake::<NaiveDate>();
+    let month = current_date.month().try_into().unwrap();
+    let year = current_date.year();
+    body.insert_balance(year, month, (-1000000..1000000).fake());
 
-    check_create(pool, true, body, Some(res), None).await;
-}
-
-#[sqlx::test(migrations = "../db-sqlite/migrations")]
-async fn returns_error_not_found_when_year_does_not_exist(pool: SqlitePool) {
-    check_create(pool, false, Faker.fake(), None, Some(ErrorType::NotFound)).await;
+    check_create(pool, body.clone(), Some(body.into()), None).await;
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_error_already_exists_when_resource_already_exists(pool: SqlitePool) {
-    let mut balance_per_month = BTreeMap::new();
-    let month = Faker.fake();
-    balance_per_month.insert(month, (-1000000..1000000).fake());
+    let mut resource = FinancialResourceYearly::new(
+        Faker.fake(),
+        Faker.fake(),
+        Faker.fake(),
+        Faker.fake(),
+        Faker.fake(),
+    );
+    let current_date = Faker.fake::<NaiveDate>();
+    let month = current_date.month().try_into().unwrap();
+    let year = current_date.year();
+    resource.insert_balance(year, month, (-1000000..1000000).fake());
+
     let body = SaveResource {
-        balance_per_month,
+        name: resource.base.name.clone(),
         ..Faker.fake()
     };
-    {
-        let context = TestContext::setup(pool.clone());
-        context.insert_year(body.year).await;
-        context.insert_month(month, body.year).await;
-        let body_cloned = body.clone();
-        let res = FinancialResourceYearly {
-            year: body_cloned.year,
-            balance_per_month: body_cloned.balance_per_month,
-            base: BaseFinancialResource {
-                name: body_cloned.name,
-                category: body_cloned.category,
-                r_type: body_cloned.r_type,
-                editable: body_cloned.editable,
-                ynab_account_ids: body_cloned.ynab_account_ids,
-                external_account_ids: body_cloned.external_account_ids,
-                ..Faker.fake()
-            },
-        };
+    let context = TestContext::setup(pool.clone());
+    context.insert_year(year).await;
+    context.insert_month(month, year).await;
+    context.set_resources(&[resource]).await;
 
-        context.set_resources(&[res]).await;
-    }
-    check_create(pool, false, body, None, Some(ErrorType::AlreadyExist)).await;
+    check_create(pool, body, None, Some(ErrorType::AlreadyExist)).await;
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
-async fn new_resource_updates_all_months(pool: SqlitePool) {
-    let mut balance_per_month = BTreeMap::new();
-    balance_per_month.insert(
-        TryFrom::<i16>::try_from(1).unwrap(),
-        (-1000000..1000000).fake(),
+async fn new_resource_updates_all_months_and_all_years(pool: SqlitePool) {
+    let mut res = FinancialResourceYearly::new(
+        Faker.fake(),
+        Faker.fake(),
+        Faker.fake(),
+        Faker.fake(),
+        Faker.fake(),
     );
-    balance_per_month.insert(
-        TryFrom::<i16>::try_from(2).unwrap(),
-        (-1000000..1000000).fake(),
-    );
-    balance_per_month.insert(
-        TryFrom::<i16>::try_from(3).unwrap(),
-        (-1000000..1000000).fake(),
-    );
-    balance_per_month.insert(
-        TryFrom::<i16>::try_from(7).unwrap(),
-        (-1000000..1000000).fake(),
-    );
-    balance_per_month.insert(
-        TryFrom::<i16>::try_from(11).unwrap(),
-        (-1000000..1000000).fake(),
-    );
+    let years: [i32; 2] = [(1000..3000).fake(), (1000..3000).fake()];
+    let months: [i16; 5] = [1, 2, 3, 8, 11];
+    for month in months {
+        let idx = (month % 2) as usize;
+        let year = years[idx];
+        res.insert_balance(year, month.try_into().unwrap(), (-1000000..1000000).fake());
+    }
+    let res_cloned = res.clone();
     let body = SaveResource {
-        balance_per_month,
-        ..Faker.fake()
-    };
-    let body_cloned = body.clone();
-    let res = FinancialResourceYearly {
-        year: body_cloned.year,
-        balance_per_month: body_cloned.balance_per_month,
-        base: BaseFinancialResource {
-            name: body_cloned.name,
-            category: body_cloned.category,
-            r_type: body_cloned.r_type,
-            editable: body_cloned.editable,
-            ynab_account_ids: body_cloned.ynab_account_ids,
-            external_account_ids: body_cloned.external_account_ids,
-            ..Faker.fake()
-        },
+        name: res_cloned.base.name,
+        resource_type: res_cloned.base.resource_type,
+        balances: res_cloned.balances,
+        ynab_account_ids: res_cloned.base.ynab_account_ids,
+        external_account_ids: res_cloned.base.external_account_ids,
     };
 
-    check_create(pool, true, body, Some(res), None).await;
+    check_create(pool, body, Some(res), None).await;
 }

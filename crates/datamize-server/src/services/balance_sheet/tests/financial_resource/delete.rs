@@ -1,39 +1,36 @@
-use std::collections::BTreeMap;
+use std::collections::HashSet;
 
-use datamize_domain::FinancialResourceYearly;
+use datamize_domain::{FinancialResourceYearly, YearlyBalances};
 use fake::{Fake, Faker};
 use pretty_assertions::{assert_eq, assert_ne};
 use sqlx::SqlitePool;
 
 use crate::services::{
-    balance_sheet::tests::financial_resource::testutils::{correctly_stub_resource, TestContext},
+    balance_sheet::tests::financial_resource::testutils::TestContext,
     testutils::{assert_err, ErrorType},
 };
 
 async fn check_delete(
     pool: SqlitePool,
-    create_year: bool,
     expected_resp: Option<FinancialResourceYearly>,
     expected_err: Option<ErrorType>,
 ) {
     let context = TestContext::setup(pool);
+    let mut checked_years = HashSet::<i32>::new();
 
-    let year = expected_resp.clone().unwrap_or_else(|| Faker.fake()).year;
-    if create_year {
-        context.insert_year(year).await;
-
-        // Create all months
-        for m in expected_resp
-            .clone()
-            .unwrap_or_else(|| Faker.fake())
-            .balance_per_month
-            .keys()
-        {
-            context.insert_month(*m, year).await;
+    // Create all months and years
+    for (year, month) in expected_resp
+        .clone()
+        .unwrap_or_else(|| Faker.fake())
+        .iter_months()
+    {
+        if !checked_years.contains(&year) {
+            checked_years.insert(year);
+            context.insert_year(year).await;
         }
+        context.insert_month(month, year).await;
     }
 
-    let expected_resp = correctly_stub_resource(expected_resp, year);
     if let Some(expected_resp) = expected_resp.clone() {
         context.set_resources(&[expected_resp]).await;
     }
@@ -57,10 +54,10 @@ async fn check_delete(
         let saved = context.get_res(expected_resp.base.id).await;
         assert_eq!(saved, Err(datamize_domain::db::DbError::NotFound));
 
-        if !expected_resp.balance_per_month.is_empty() {
+        if !expected_resp.is_empty() {
             // Updates all months that had balance
-            for m in expected_resp.balance_per_month.keys() {
-                let saved_month = context.get_month(*m, expected_resp.year).await;
+            for (year, month) in expected_resp.iter_months() {
+                let saved_month = context.get_month(month, year).await;
                 assert!(saved_month.is_ok());
 
                 let saved_month = saved_month.unwrap();
@@ -72,11 +69,13 @@ async fn check_delete(
         }
 
         // Delete the resource also computed net assets of the year
-        let saved_year = context.get_year(expected_resp.year).await;
-        assert!(saved_year.is_ok());
-        let saved_year = saved_year.unwrap();
-        if let Some(last_month) = saved_year.get_last_month() {
-            assert_eq!(saved_year.net_assets().total, last_month.net_assets().total);
+        let saved_years = context.get_years().await;
+        assert!(saved_years.is_ok());
+        let saved_years = saved_years.unwrap();
+        for saved_year in saved_years {
+            if let Some(last_month) = saved_year.get_last_month() {
+                assert_eq!(saved_year.net_assets().total, last_month.net_assets().total);
+            }
         }
     } else {
         assert_err(response.unwrap_err(), expected_err);
@@ -84,47 +83,31 @@ async fn check_delete(
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
-async fn returns_error_not_found_when_no_year(pool: SqlitePool) {
-    check_delete(pool, false, None, Some(ErrorType::NotFound)).await;
-}
-
-#[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_error_not_found_when_nothing_in_db(pool: SqlitePool) {
-    check_delete(pool, true, None, Some(ErrorType::NotFound)).await;
+    check_delete(pool, None, Some(ErrorType::NotFound)).await;
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_success_with_the_deletion(pool: SqlitePool) {
-    check_delete(pool, true, Some(Faker.fake()), None).await;
+    check_delete(pool, Some(Faker.fake()), None).await;
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
-async fn updates_all_months(pool: SqlitePool) {
-    let mut balance_per_month = BTreeMap::new();
-    balance_per_month.insert(
-        TryFrom::<i16>::try_from(1).unwrap(),
-        (-1000000..1000000).fake(),
+async fn updates_all_months_and_all_years(pool: SqlitePool) {
+    let mut res = FinancialResourceYearly::new(
+        Faker.fake(),
+        Faker.fake(),
+        Faker.fake(),
+        Faker.fake(),
+        Faker.fake(),
     );
-    balance_per_month.insert(
-        TryFrom::<i16>::try_from(2).unwrap(),
-        (-1000000..1000000).fake(),
-    );
-    balance_per_month.insert(
-        TryFrom::<i16>::try_from(3).unwrap(),
-        (-1000000..1000000).fake(),
-    );
-    balance_per_month.insert(
-        TryFrom::<i16>::try_from(7).unwrap(),
-        (-1000000..1000000).fake(),
-    );
-    balance_per_month.insert(
-        TryFrom::<i16>::try_from(11).unwrap(),
-        (-1000000..1000000).fake(),
-    );
-    let res = FinancialResourceYearly {
-        balance_per_month,
-        ..Faker.fake()
-    };
+    let years: [i32; 2] = [(1000..3000).fake(), (1000..3000).fake()];
+    let months: [i16; 5] = [1, 2, 3, 8, 11];
+    for month in months {
+        let idx = (month % 2) as usize;
+        let year = years[idx];
+        res.insert_balance(year, month.try_into().unwrap(), (-1000000..1000000).fake());
+    }
 
-    check_delete(pool, true, Some(res), None).await;
+    check_delete(pool, Some(res), None).await;
 }

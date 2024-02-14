@@ -4,7 +4,7 @@ use chrono::{Datelike, Local};
 use datamize_domain::{
     async_trait,
     db::{DbError, DynFinResRepo, DynMonthRepo, DynYearRepo},
-    Month, MonthNum, ResourcesToRefresh, Uuid,
+    Month, MonthNum, ResourcesToRefresh, Uuid, YearlyBalances,
 };
 use ynab::AccountRequests;
 
@@ -45,15 +45,8 @@ impl RefreshFinResServiceExt for RefreshFinResService {
         let mut year_data = self.year_repo.get_year_data_by_number(current_year).await?;
 
         let current_month: MonthNum = current_date.month().try_into().unwrap();
-        if let Err(DbError::NotFound) = self
-            .month_repo
-            .get_month_data_by_number(current_month, current_year)
-            .await
-        {
-            // If month doesn't exist, create it
-            let month = Month::new(current_month, current_year);
-            self.month_repo.add(&month, current_year).await?;
-        }
+        self.ensure_month_exists(current_year, current_month)
+            .await?;
 
         let mut resources = self.fin_res_repo.get_from_year(current_year).await?;
         resources.retain(|r| {
@@ -90,15 +83,15 @@ impl RefreshFinResServiceExt for RefreshFinResService {
                         .map(|a| a.balance.abs())
                         .sum::<i64>();
 
-                    match res.balance_per_month.get_mut(&current_month) {
+                    match res.get_balance(current_year, current_month) {
                         Some(current_balance) => {
-                            if *current_balance != balance {
-                                *current_balance = balance;
+                            if current_balance != balance {
+                                res.insert_balance(current_year, current_month, balance);
                                 refreshed.insert(res.base.id);
                             }
                         }
                         None => {
-                            res.balance_per_month.insert(current_month, balance);
+                            res.insert_balance(current_year, current_month, balance);
                             refreshed.insert(res.base.id);
                         }
                     }
@@ -119,15 +112,15 @@ impl RefreshFinResServiceExt for RefreshFinResService {
                         .map(|a| a.balance.abs())
                         .sum::<i64>();
 
-                    match res.balance_per_month.get_mut(&current_month) {
+                    match res.get_balance(current_year, current_month) {
                         Some(current_balance) => {
-                            if *current_balance != balance {
-                                *current_balance = balance;
+                            if current_balance != balance {
+                                res.insert_balance(current_year, current_month, balance);
                                 refreshed.insert(res.base.id);
                             }
                         }
                         None => {
-                            res.balance_per_month.insert(current_month, balance);
+                            res.insert_balance(current_year, current_month, balance);
                             refreshed.insert(res.base.id);
                         }
                     }
@@ -167,5 +160,17 @@ impl RefreshFinResService {
             external_account_service,
             ynab_client,
         })
+    }
+
+    /// Check if month exists, create if not
+    async fn ensure_month_exists(&self, year: i32, month: MonthNum) -> DatamizeResult<()> {
+        if let Err(DbError::NotFound) = self.month_repo.get_month_data_by_number(month, year).await
+        {
+            // If month doesn't exist, create it
+            let month = Month::new(month, year);
+            self.month_repo.add(&month, year).await?;
+        }
+
+        Ok(())
     }
 }

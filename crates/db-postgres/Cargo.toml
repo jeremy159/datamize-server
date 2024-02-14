@@ -22,5 +22,4 @@ tracing.workspace = true
 chrono.workspace = true
 serde_json.workspace = true
 futures.workspace = true
-
-async-recursion = "^1.0.4"
+itertools.workspace = true

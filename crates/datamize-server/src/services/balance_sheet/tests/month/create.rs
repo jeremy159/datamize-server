@@ -1,5 +1,5 @@
 use chrono::{Datelike, NaiveDate};
-use datamize_domain::{FinancialResourceMonthly, Month, MonthNum, NetTotal, NetTotals, SaveMonth};
+use datamize_domain::{Month, MonthNum, NetTotal, NetTotals, SaveMonth};
 use fake::{faker::chrono::en::Date, Fake, Faker};
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
@@ -95,18 +95,6 @@ async fn returns_error_already_exists_when_month_already_exists(pool: SqlitePool
             year,
             ..Faker.fake()
         };
-        let month = Month {
-            resources: month
-                .resources
-                .into_iter()
-                .map(|r| FinancialResourceMonthly {
-                    year,
-                    month: month.month,
-                    ..r
-                })
-                .collect(),
-            ..month
-        };
 
         context.set_month(&month, year).await;
     }
@@ -128,22 +116,10 @@ async fn update_net_totals_if_prev_month_exists(pool: SqlitePool) {
     let body = SaveMonth {
         month: month.try_into().unwrap(),
     };
-    let prev_month = Month {
+    let mut prev_month = Month {
         month: (month - 1).try_into().unwrap(),
         year,
         ..Faker.fake()
-    };
-    let mut prev_month = Month {
-        resources: prev_month
-            .resources
-            .into_iter()
-            .map(|r| FinancialResourceMonthly {
-                year: prev_month.year,
-                month: prev_month.month,
-                ..r
-            })
-            .collect(),
-        ..prev_month
     };
     prev_month.compute_net_totals();
 
@@ -190,22 +166,10 @@ async fn update_net_totals_if_prev_month_exists_in_prev_year(pool: SqlitePool) {
     let body = SaveMonth {
         month: MonthNum::January,
     };
-    let prev_month = Month {
+    let mut prev_month = Month {
         month: MonthNum::December,
         year: year - 1,
         ..Faker.fake()
-    };
-    let mut prev_month = Month {
-        resources: prev_month
-            .resources
-            .into_iter()
-            .map(|r| FinancialResourceMonthly {
-                year: prev_month.year,
-                month: prev_month.month,
-                ..r
-            })
-            .collect(),
-        ..prev_month
     };
     prev_month.compute_net_totals();
 
