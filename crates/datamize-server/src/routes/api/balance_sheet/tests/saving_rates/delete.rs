@@ -77,3 +77,23 @@ async fn returns_404_when_nothing_in_db(pool: SqlitePool) {
 async fn returns_success_with_the_deletion(pool: SqlitePool) {
     check_delete(pool, true, StatusCode::OK, Some(Faker.fake())).await;
 }
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_400_for_invalid_id_in_path(pool: SqlitePool) {
+    let context = TestContext::setup(pool).await;
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/saving_rates/{}", Faker.fake::<u32>()))
+                .header("Content-Type", "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}

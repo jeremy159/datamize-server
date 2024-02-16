@@ -40,7 +40,7 @@ async fn check_get(
                 .uri(format!(
                     "/saving_rates/{:?}",
                     expected_resp.clone().unwrap_or_else(|| Faker.fake()).id
-                )) // TODO: Test when passing wrong format (e.g. a i32 instead of uuid), most probably in the integration tests.
+                ))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -78,4 +78,23 @@ async fn returns_500_when_db_corrupted(pool: SqlitePool) {
     sabotage_saving_rates_table(&pool).await.unwrap();
 
     check_get(pool, true, StatusCode::INTERNAL_SERVER_ERROR, None).await;
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_400_for_invalid_id_in_path(pool: SqlitePool) {
+    let context = TestContext::setup(pool).await;
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/saving_rates/{}", Faker.fake::<u32>()))
+                .header("Content-Type", "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }

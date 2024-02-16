@@ -24,12 +24,15 @@ pub async fn refresh_balance_sheet_resources(
     println!("{payload:#?}");
     let body = match payload {
         Ok(p) => Some(p.0),
-        Err(
-            JsonRejection::MissingJsonContentType(_)
-            | JsonRejection::JsonSyntaxError(_)
-            | JsonRejection::BytesRejection(_),
-        ) => return Err(Into::<AppError>::into(payload.err().unwrap()))?,
-        Err(_) => None,
+        Err(JsonRejection::JsonSyntaxError(e)) if e.body_text().contains("EOF while parsing") => {
+            None
+        }
+        Err(JsonRejection::JsonDataError(e))
+            if e.body_text().contains("expected struct ResourcesToRefresh") =>
+        {
+            None
+        }
+        Err(e) => return Err(Into::<AppError>::into(e))?,
     };
     Ok(AppJson(fin_res_service.refresh_fin_res(body).await?))
 }

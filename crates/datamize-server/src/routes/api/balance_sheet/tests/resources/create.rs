@@ -10,7 +10,7 @@ use datamize_domain::{
     BaseFinancialResource, FinancialResourceType, FinancialResourceYearly, MonthNum, Uuid,
     YearlyBalances,
 };
-use fake::{Fake, Faker};
+use fake::{Dummy, Fake, Faker};
 use http_body_util::BodyExt;
 use pretty_assertions::{assert_eq, assert_ne};
 use serde::{Deserialize, Serialize};
@@ -175,4 +175,72 @@ async fn returns_409_when_resource_already_exists(pool: SqlitePool) {
     context.set_resources(&[resource]).await;
 
     check_create(pool, body, StatusCode::CONFLICT, None).await;
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_422_for_invalid_body_format_data(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    #[derive(Debug, Clone, Serialize, Dummy)]
+    struct ReqBody {
+        pub name: String,
+        pub resource_type: FinancialResourceType,
+    }
+    let body = Faker.fake::<ReqBody>();
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/resources")
+                .header("Content-Type", "application/json")
+                .body(Body::from(serde_json::to_string(&body).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_400_for_empty_body(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/resources")
+                .header("Content-Type", "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_415_for_missing_json_content_type(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    let body = Faker.fake::<CreateBody>();
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/resources")
+                .body(Body::from(serde_json::to_string(&body).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
 }

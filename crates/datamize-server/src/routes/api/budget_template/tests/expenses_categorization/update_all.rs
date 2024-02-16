@@ -2,10 +2,11 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use datamize_domain::ExpenseCategorization;
-use fake::{Fake, Faker};
+use datamize_domain::{ExpenseCategorization, Uuid};
+use fake::{Dummy, Fake, Faker};
 use http_body_util::BodyExt;
 use pretty_assertions::assert_eq;
+use serde::Serialize;
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 
@@ -62,4 +63,72 @@ async fn returns_success_with_the_update(pool: SqlitePool) {
     already_in_db[0] = body[0].clone();
 
     check_update_all(pool, Some(body), StatusCode::OK, Some(already_in_db)).await;
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_422_for_invalid_body_format_data(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    #[derive(Debug, Clone, Serialize, Dummy)]
+    struct ReqBody {
+        pub id: Uuid,
+        pub name: String,
+    }
+    let body = Faker.fake::<ReqBody>();
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("PUT")
+                .uri("/expenses_categorization")
+                .header("Content-Type", "application/json")
+                .body(Body::from(serde_json::to_string(&body).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_400_for_empty_body(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("PUT")
+                .uri("/expenses_categorization")
+                .header("Content-Type", "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_415_for_missing_json_content_type(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    let body = Faker.fake::<Vec<ExpenseCategorization>>();
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("PUT")
+                .uri("/expenses_categorization")
+                .body(Body::from(serde_json::to_string(&body).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
 }

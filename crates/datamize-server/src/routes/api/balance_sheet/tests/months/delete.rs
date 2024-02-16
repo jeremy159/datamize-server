@@ -2,7 +2,7 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use datamize_domain::{net_totals_equal_without_id, Month, NetTotals};
+use datamize_domain::{net_totals_equal_without_id, Month, MonthNum, NetTotals, Uuid};
 use fake::{Fake, Faker};
 use http_body_util::BodyExt;
 use pretty_assertions::assert_eq;
@@ -111,4 +111,52 @@ async fn does_not_delete_same_month_of_different_year(pool: SqlitePool) {
         .resources
         .sort_by(|a, b| a.base.name.cmp(&b.base.name));
     assert_eq!(saved, same_month_other_year);
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_400_for_invalid_year_in_path(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!(
+                    "/years/{}/months/{:?}",
+                    Faker.fake::<Uuid>(),
+                    Faker.fake::<MonthNum>()
+                ))
+                .header("Content-Type", "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_400_for_invalid_month_in_path(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!(
+                    "/years/{}/months/{:?}",
+                    Faker.fake::<i32>(),
+                    Faker.fake::<Uuid>()
+                ))
+                .header("Content-Type", "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }

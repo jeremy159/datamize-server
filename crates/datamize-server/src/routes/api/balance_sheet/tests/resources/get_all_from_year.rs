@@ -5,10 +5,10 @@ use axum::{
 use chrono::{Datelike, NaiveDate};
 use datamize_domain::{
     testutils::{correctly_stub_resources, transform_expected_resources},
-    FinancialResourceYearly, YearlyBalances,
+    FinancialResourceYearly, Uuid, YearlyBalances,
 };
 use db_sqlite::balance_sheet::sabotage_resources_table;
-use fake::{faker::chrono::en::Date, Fake};
+use fake::{faker::chrono::en::Date, Fake, Faker};
 use http_body_util::BodyExt;
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
@@ -89,4 +89,23 @@ async fn returns_500_when_db_corrupted(pool: SqlitePool) {
         None,
     )
     .await;
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_400_for_invalid_year_in_path(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/years/{}/resources", Faker.fake::<Uuid>()))
+                .header("Content-Type", "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }

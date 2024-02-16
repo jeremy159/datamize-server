@@ -3,9 +3,9 @@ use axum::{
     http::{Request, StatusCode},
 };
 use chrono::{Datelike, NaiveDate};
-use datamize_domain::SavingRate;
+use datamize_domain::{SavingRate, Uuid};
 use db_sqlite::balance_sheet::sabotage_saving_rates_table;
-use fake::{faker::chrono::en::Date, Fake};
+use fake::{faker::chrono::en::Date, Fake, Faker};
 use http_body_util::BodyExt;
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
@@ -41,7 +41,7 @@ async fn check_get_all(
         .into_app()
         .oneshot(
             Request::builder()
-                .uri(format!("/years/{:?}/saving_rates", year)) // TODO: Test when passing wrong format (e.g. a uuid instead of year number), most probably in the integration tests.
+                .uri(format!("/years/{:?}/saving_rates", year))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -88,4 +88,23 @@ async fn returns_500_when_db_corrupted(pool: SqlitePool) {
         None,
     )
     .await;
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_400_for_invalid_year_in_path(pool: SqlitePool) {
+    let context = TestContext::setup(pool).await;
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/years/{}/saving_rates", Faker.fake::<Uuid>()))
+                .header("Content-Type", "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }

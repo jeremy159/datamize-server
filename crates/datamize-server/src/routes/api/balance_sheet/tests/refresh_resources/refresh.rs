@@ -4,7 +4,7 @@ use axum::{
 };
 use chrono::{Datelike, Local};
 use datamize_domain::{BaseFinancialResource, FinancialResourceYearly, Uuid, YearlyBalances};
-use fake::{Fake, Faker};
+use fake::{Dummy, Fake, Faker};
 use http_body_util::BodyExt;
 use pretty_assertions::{assert_eq, assert_ne};
 use serde::{Deserialize, Serialize};
@@ -16,7 +16,7 @@ use crate::routes::api::balance_sheet::tests::refresh_resources::testutils::{
     correctly_stub_resources, TestContext,
 };
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Dummy)]
 struct CreateBody {
     pub ids: Vec<Uuid>,
 }
@@ -239,4 +239,52 @@ async fn only_update_requested_ids(pool: SqlitePool) {
         Some(vec![res_id]),
     )
     .await;
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_422_for_invalid_body_format_data(pool: SqlitePool) {
+    let context = TestContext::setup(pool, 0, Faker.fake()).await;
+
+    #[derive(Debug, Clone, Serialize, Dummy)]
+    struct ReqBody {
+        pub id: Uuid,
+        pub name: String,
+    }
+    let body = Faker.fake::<ReqBody>();
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/resources/refresh")
+                .header("Content-Type", "application/json")
+                .body(Body::from(serde_json::to_string(&body).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_415_for_missing_json_content_type(pool: SqlitePool) {
+    let context = TestContext::setup(pool, 0, Faker.fake()).await;
+
+    let body = Faker.fake::<CreateBody>();
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/resources/refresh")
+                .body(Body::from(serde_json::to_string(&body).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
 }

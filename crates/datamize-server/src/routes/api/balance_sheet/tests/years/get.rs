@@ -2,7 +2,7 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use datamize_domain::Year;
+use datamize_domain::{Uuid, Year};
 use db_sqlite::balance_sheet::sabotage_years_table;
 use fake::{Fake, Faker};
 use http_body_util::BodyExt;
@@ -62,4 +62,23 @@ async fn returns_500_when_db_corrupted(pool: SqlitePool) {
     sabotage_years_table(&pool).await.unwrap();
 
     check_get(pool, StatusCode::INTERNAL_SERVER_ERROR, None).await;
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_400_for_invalid_year_in_path(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/years/{}", Faker.fake::<Uuid>()))
+                .header("Content-Type", "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }

@@ -2,10 +2,11 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use datamize_domain::BudgeterConfig;
-use fake::{Fake, Faker};
+use datamize_domain::{BudgeterConfig, Uuid};
+use fake::{Dummy, Fake, Faker};
 use http_body_util::BodyExt;
 use pretty_assertions::assert_eq;
+use serde::Serialize;
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 
@@ -73,4 +74,92 @@ async fn returns_success_with_the_update(pool: SqlitePool) {
     let expected_resp = BudgeterConfig { ..body.clone() };
 
     check_update(pool, Some(body), StatusCode::OK, Some(expected_resp)).await;
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_400_for_invalid_id_in_path(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("PUT")
+                .uri(&format!("/budgeter/{}", Faker.fake::<u32>()))
+                .header("Content-Type", "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_422_for_invalid_body_format_data(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    #[derive(Debug, Clone, Serialize, Dummy)]
+    struct ReqBody {
+        pub id: Uuid,
+        pub name: String,
+    }
+    let body = Faker.fake::<ReqBody>();
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("PUT")
+                .uri(&format!("/budgeter/{}", Faker.fake::<Uuid>()))
+                .header("Content-Type", "application/json")
+                .body(Body::from(serde_json::to_string(&body).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_400_for_empty_body(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("PUT")
+                .uri(&format!("/budgeter/{}", Faker.fake::<Uuid>()))
+                .header("Content-Type", "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_415_for_missing_json_content_type(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    let body = Faker.fake::<BudgeterConfig>();
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("PUT")
+                .uri(&format!("/budgeter/{}", Faker.fake::<Uuid>()))
+                .body(Body::from(serde_json::to_string(&body).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
 }

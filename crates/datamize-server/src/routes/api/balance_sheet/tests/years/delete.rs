@@ -2,7 +2,7 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use datamize_domain::{net_totals_equal_without_id, NetTotals, Year};
+use datamize_domain::{net_totals_equal_without_id, NetTotals, Uuid, Year};
 use fake::{Fake, Faker};
 use http_body_util::BodyExt;
 use pretty_assertions::assert_eq;
@@ -77,4 +77,24 @@ async fn returns_404_when_nothing_in_db(pool: SqlitePool) {
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_success_with_the_deletion(pool: SqlitePool) {
     check_delete(pool, StatusCode::OK, Some(Faker.fake())).await;
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_400_for_invalid_year_in_path(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("DELETE")
+                .uri(&format!("/years/{}", Faker.fake::<Uuid>()))
+                .header("Content-Type", "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }

@@ -2,8 +2,9 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
+use chrono::{Datelike, NaiveDate};
 use datamize_domain::{NetTotal, NetTotals, Year};
-use fake::{Fake, Faker};
+use fake::{faker::chrono::en::Date, Fake, Faker};
 use http_body_util::BodyExt;
 use pretty_assertions::{assert_eq, assert_ne};
 use serde::{Deserialize, Serialize};
@@ -204,4 +205,79 @@ async fn update_net_totals_of_prev_and_next_years_if_exists(pool: SqlitePool) {
         saved_next_net_totals.portfolio.percent_var,
         next_year.net_portfolio().percent_var
     );
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_422_for_invalid_body_format_data(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    #[derive(Debug, Clone, Serialize)]
+    struct ReqBody {
+        year: String,
+    }
+    let body = ReqBody {
+        year: Date().fake::<NaiveDate>().year().to_string(),
+    };
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/years")
+                .header("Content-Type", "application/json")
+                .body(Body::from(serde_json::to_string(&body).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_400_for_empty_body(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/years")
+                .header("Content-Type", "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_415_for_missing_json_content_type(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    #[derive(Debug, Clone, Serialize)]
+    struct ReqBody {
+        year: String,
+    }
+    let body = ReqBody {
+        year: Date().fake::<NaiveDate>().year().to_string(),
+    };
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/years")
+                .body(Body::from(serde_json::to_string(&body).unwrap()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
 }

@@ -63,3 +63,22 @@ async fn returns_500_when_db_corrupted(pool: SqlitePool) {
 
     check_get(pool, StatusCode::INTERNAL_SERVER_ERROR, None).await;
 }
+
+#[sqlx::test(migrations = "../db-sqlite/migrations")]
+async fn returns_400_for_invalid_id_in_path(pool: SqlitePool) {
+    let context = TestContext::setup(pool);
+
+    let response = context
+        .app()
+        .oneshot(
+            Request::builder()
+                .uri(&format!("/expense_categorization/{}", Faker.fake::<u32>()))
+                .header("Content-Type", "application/json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
