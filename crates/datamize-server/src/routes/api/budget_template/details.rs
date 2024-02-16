@@ -1,8 +1,5 @@
-use crate::services::budget_template::DynTemplateDetailService;
-use axum::{
-    extract::{Query, State},
-    Json,
-};
+use crate::{error::AppJson, services::budget_template::DynTemplateDetailService};
+use axum::extract::{Query, State};
 use datamize_domain::{BudgetDetails, TemplateParams};
 
 use crate::error::HttpJsonDatamizeResult;
@@ -18,7 +15,7 @@ pub async fn template_details(
 ) -> HttpJsonDatamizeResult<BudgetDetails> {
     let month = template_params.month.unwrap_or_default();
 
-    Ok(Json(
+    Ok(AppJson(
         template_detail_service.get_template_details(month).await?,
     ))
 }

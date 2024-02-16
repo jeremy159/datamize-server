@@ -5,7 +5,7 @@ use axum::{
 use datamize_domain::{ResourcesToRefresh, Uuid};
 
 use crate::{
-    error::{HttpJsonDatamizeResult, JsonError},
+    error::{AppError, AppJson, HttpJsonDatamizeResult},
     services::balance_sheet::DynRefreshFinResService,
 };
 
@@ -28,8 +28,8 @@ pub async fn refresh_balance_sheet_resources(
             JsonRejection::MissingJsonContentType(_)
             | JsonRejection::JsonSyntaxError(_)
             | JsonRejection::BytesRejection(_),
-        ) => return Err(Into::<JsonError>::into(payload.err().unwrap()))?,
+        ) => return Err(Into::<AppError>::into(payload.err().unwrap()))?,
         Err(_) => None,
     };
-    Ok(Json(fin_res_service.refresh_fin_res(body).await?))
+    Ok(AppJson(fin_res_service.refresh_fin_res(body).await?))
 }

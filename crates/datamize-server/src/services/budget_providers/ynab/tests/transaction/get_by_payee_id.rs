@@ -94,7 +94,7 @@ async fn issue_with_db_should_not_return_data(pool: SqlitePool) {
         &fake::vec![TransactionDetail; 1..5],
         Faker.fake(),
         None,
-        Some(ErrorType::Internal),
+        Some(ErrorType::Database),
     )
     .await;
 }

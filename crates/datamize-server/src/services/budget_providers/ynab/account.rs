@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use datamize_domain::{
     async_trait,
     db::ynab::{DynYnabAccountMetaRepo, DynYnabAccountRepo},
@@ -32,8 +31,7 @@ impl YnabAccountServiceExt for YnabAccountService {
         let accounts_delta = self
             .ynab_client
             .get_accounts_delta(saved_accounts_delta)
-            .await
-            .context("failed to get accounts from ynab's API")?;
+            .await?;
 
         let accounts = accounts_delta
             .accounts
@@ -41,21 +39,13 @@ impl YnabAccountServiceExt for YnabAccountService {
             .filter(|a| !a.deleted)
             .collect::<Vec<_>>();
 
-        self.ynab_account_repo
-            .update_all(&accounts)
-            .await
-            .context("failed to save accounts in database")?;
+        self.ynab_account_repo.update_all(&accounts).await?;
 
         self.ynab_account_meta_repo
             .set_delta(accounts_delta.server_knowledge)
-            .await
-            .context("failed to save last known server knowledge of accounts in redis")?;
+            .await?;
 
-        let saved_accounts = self
-            .ynab_account_repo
-            .get_all()
-            .await
-            .context("failed to get accounts from database")?;
+        let saved_accounts = self.ynab_account_repo.get_all().await?;
 
         Ok(saved_accounts)
     }

@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use datamize_domain::{
     async_trait,
     db::ynab::{DynYnabPayeeMetaRepo, DynYnabPayeeRepo},
@@ -32,8 +31,7 @@ impl YnabPayeeServiceExt for YnabPayeeService {
         let payees_delta = self
             .ynab_client
             .get_payees_delta(saved_payees_delta)
-            .await
-            .context("failed to get payees from ynab's API")?;
+            .await?;
 
         let payees = payees_delta
             .payees
@@ -41,21 +39,13 @@ impl YnabPayeeServiceExt for YnabPayeeService {
             .filter(|a| !a.deleted)
             .collect::<Vec<_>>();
 
-        self.ynab_payee_repo
-            .update_all(&payees)
-            .await
-            .context("failed to save payees in database")?;
+        self.ynab_payee_repo.update_all(&payees).await?;
 
         self.ynab_payee_meta_repo
             .set_delta(payees_delta.server_knowledge)
-            .await
-            .context("failed to save last known server knowledge of payees in redis")?;
+            .await?;
 
-        let saved_payees = self
-            .ynab_payee_repo
-            .get_all()
-            .await
-            .context("failed to get payees from database")?;
+        let saved_payees = self.ynab_payee_repo.get_all().await?;
 
         Ok(saved_payees)
     }

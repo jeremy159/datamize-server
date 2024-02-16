@@ -1,7 +1,7 @@
-use axum::{extract::State, Json};
+use axum::extract::State;
 use datamize_domain::ExternalAccount;
 
-use crate::error::HttpJsonDatamizeResult;
+use crate::error::{AppJson, HttpJsonDatamizeResult};
 use crate::services::budget_providers::DynExternalAccountService;
 
 /// Returns all external accounts. Those are accounts that can be web scrapped.
@@ -9,7 +9,7 @@ use crate::services::budget_providers::DynExternalAccountService;
 pub async fn get_external_accounts(
     State(external_account_service): State<DynExternalAccountService>,
 ) -> HttpJsonDatamizeResult<Vec<ExternalAccount>> {
-    Ok(Json(
+    Ok(AppJson(
         external_account_service.get_all_external_accounts().await?,
     ))
 }

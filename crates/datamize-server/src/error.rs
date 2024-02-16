@@ -1,31 +1,44 @@
 use axum::{
-    extract::rejection::JsonRejection,
+    extract::{rejection::JsonRejection, FromRequest},
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
+use config::ConfigError;
 use datamize_domain::db::DbError;
-use serde_json::json;
+use serde::Serialize;
 
 pub type DatamizeResult<T> = Result<T, AppError>;
-pub type HttpJsonDatamizeResult<T> = Result<Json<T>, AppError>;
+pub type HttpJsonDatamizeResult<T> = Result<AppJson<T>, AppError>;
+
+#[derive(FromRequest, Debug)]
+#[from_request(via(axum::Json), rejection(AppError))]
+pub struct AppJson<T>(pub T);
+
+impl<T> IntoResponse for AppJson<T>
+where
+    axum::Json<T>: IntoResponse,
+{
+    fn into_response(self) -> Response {
+        axum::Json(self.0).into_response()
+    }
+}
 
 #[derive(thiserror::Error)]
 pub enum AppError {
-    #[error("resource does not exist")]
+    #[error("The request body contained invalid JSON")]
+    JsonRejection(#[from] JsonRejection),
+    #[error("Resource does not exist")]
     ResourceNotFound,
-    #[error("resource already exist")]
+    #[error("Resource already exist")]
     ResourceAlreadyExist,
-    #[error("Data is corrupted or invalid")]
-    DataIntegrityError(String),
-    #[error("validation errors")]
-    ValidationError,
-    #[error("media type error")]
-    MediaTypeError,
+    #[error("Error with Database interaction")]
+    DbError(#[from] DbError),
+    #[error("Error with the Configuration")]
+    ConfigError(#[from] ConfigError),
+    #[error("Error with Date conversion")]
+    ParseError(#[from] chrono::ParseError),
     #[error("Error in the YNAB API")]
     YnabError(#[from] ynab::Error),
-    #[error(transparent)]
-    InternalServerError(#[from] anyhow::Error),
 }
 
 impl std::fmt::Debug for AppError {
@@ -34,102 +47,68 @@ impl std::fmt::Debug for AppError {
     }
 }
 
-impl From<DbError> for AppError {
-    fn from(value: DbError) -> Self {
-        match value {
-            DbError::NotFound => AppError::ResourceNotFound,
-            DbError::AlreadyExists => AppError::ResourceAlreadyExist,
-            DbError::DataIntegrityError(e) => AppError::DataIntegrityError(e),
-            e => AppError::InternalServerError(e.into()),
-        }
-    }
-}
-
-impl From<config::ConfigError> for AppError {
-    fn from(value: config::ConfigError) -> Self {
-        AppError::InternalServerError(value.into())
-    }
-}
-
-impl From<chrono::ParseError> for AppError {
-    fn from(value: chrono::ParseError) -> Self {
-        AppError::InternalServerError(value.into())
-    }
-}
-
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        let (status, error_message) = match self {
-            AppError::InternalServerError(ref inner) => {
-                tracing::error!("AppError::InternalServerError: {:?}", self);
-                tracing::debug!("stacktrace: {}", inner.backtrace());
-                (StatusCode::INTERNAL_SERVER_ERROR, "something went wrong")
+        // How we want errors responses to be serialized
+        #[derive(Serialize)]
+        struct ErrorResponse {
+            message: String,
+        }
+
+        let (status, message) = match self {
+            AppError::JsonRejection(rejection) => {
+                // This error is caused by bad user input so don't log it
+                (rejection.status(), rejection.body_text())
             }
-            AppError::DataIntegrityError(e) => {
-                tracing::error!("AppError::DataIntegrityError: {:?}", e);
-                (StatusCode::BAD_REQUEST, "Data is corrupted or invalid")
+            AppError::ResourceNotFound => {
+                (StatusCode::NOT_FOUND, "Resource does not exist".to_owned())
             }
-            AppError::ValidationError => (StatusCode::UNPROCESSABLE_ENTITY, "validation errors"),
-            AppError::ResourceNotFound => (StatusCode::NOT_FOUND, "resource does not exist"),
-            AppError::ResourceAlreadyExist => (StatusCode::CONFLICT, "resource already exist"),
-            AppError::MediaTypeError => {
-                (StatusCode::UNSUPPORTED_MEDIA_TYPE, "unsupported media type")
+            AppError::ResourceAlreadyExist => {
+                (StatusCode::CONFLICT, "Resource already exist".to_owned())
             }
-            AppError::YnabError(ref e) => {
-                tracing::error!("AppError::YnabError: {:?}", e);
+            AppError::DbError(err) => {
+                tracing::error!(?err, "error from database");
+                match err {
+                    DbError::NotFound => {
+                        (StatusCode::NOT_FOUND, "Resource does not exist".to_owned())
+                    }
+                    DbError::AlreadyExists => {
+                        (StatusCode::CONFLICT, "Resource already exist".to_owned())
+                    }
+                    DbError::DataIntegrityError(_) => (
+                        StatusCode::BAD_REQUEST,
+                        "Data is corrupted or invalid".to_owned(),
+                    ),
+                    _ => (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        "Something went wrong".to_owned(),
+                    ),
+                }
+            }
+            AppError::ConfigError(err) => {
+                tracing::error!(?err, "error from config");
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    "something went wrong with ynab api",
+                    "Something went wrong".to_owned(),
+                )
+            }
+            AppError::ParseError(err) => {
+                tracing::error!(?err, "error from date parsing");
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Something went wrong".to_owned(),
+                )
+            }
+            AppError::YnabError(err) => {
+                tracing::error!(?err, "error from ynab api");
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Something went wrong".to_owned(),
                 )
             }
         };
 
-        let body = Json(json!({
-            "error": error_message,
-        }));
-        (status, body).into_response()
-    }
-}
-
-#[derive(Debug)]
-pub enum JsonError {
-    JsonExtractorRejection(JsonRejection),
-}
-
-impl From<JsonRejection> for JsonError {
-    fn from(value: JsonRejection) -> Self {
-        Self::JsonExtractorRejection(value)
-    }
-}
-
-impl From<JsonError> for AppError {
-    fn from(value: JsonError) -> Self {
-        match value {
-            JsonError::JsonExtractorRejection(x) => match x {
-                JsonRejection::JsonDataError(_) => AppError::ValidationError,
-                JsonRejection::JsonSyntaxError(e) => AppError::DataIntegrityError(e.to_string()),
-                JsonRejection::MissingJsonContentType(_) => AppError::MediaTypeError,
-                e => AppError::InternalServerError(e.into()),
-            },
-        }
-    }
-}
-
-impl IntoResponse for JsonError {
-    fn into_response(self) -> axum::response::Response {
-        let payload = json!({
-            "message": format!("{:?}", self),
-            "origin": "with_rejection"
-        });
-        let code = match self {
-            JsonError::JsonExtractorRejection(x) => match x {
-                JsonRejection::JsonDataError(_) => StatusCode::UNPROCESSABLE_ENTITY,
-                JsonRejection::JsonSyntaxError(_) => StatusCode::BAD_REQUEST,
-                JsonRejection::MissingJsonContentType(_) => StatusCode::UNSUPPORTED_MEDIA_TYPE,
-                _ => StatusCode::INTERNAL_SERVER_ERROR,
-            },
-        };
-        (code, Json(payload)).into_response()
+        (status, AppJson(ErrorResponse { message })).into_response()
     }
 }
 

@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use datamize_domain::{
     async_trait,
     db::ynab::{DynYnabTransactionMetaRepo, DynYnabTransactionRepo},
@@ -42,18 +41,15 @@ impl TransactionServiceExt for TransactionService {
         let transactions_delta = self
             .ynab_client
             .get_transactions_delta(saved_transactions_delta)
-            .await
-            .context("failed to get transactions from ynab's API")?;
+            .await?;
 
         self.ynab_transaction_repo
             .update_all(&transactions_delta.transactions)
-            .await
-            .context("failed to save transactions in database")?;
+            .await?;
 
         self.ynab_transaction_meta_repo
             .set_delta(transactions_delta.server_knowledge)
-            .await
-            .context("failed to save last known server knowledge of transactions in redis")?;
+            .await?;
 
         Ok(())
     }
@@ -65,8 +61,7 @@ impl TransactionServiceExt for TransactionService {
         Ok(self
             .ynab_transaction_repo
             .get_all()
-            .await
-            .context("failed to get transactions from database")?
+            .await?
             .into_iter()
             .map(Into::into)
             .collect())

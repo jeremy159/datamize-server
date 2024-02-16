@@ -45,5 +45,5 @@ async fn returns_all_that_is_in_db(pool: SqlitePool) {
 async fn returns_500_when_db_corrupted(pool: SqlitePool) {
     sabotage_expenses_categorization_table(&pool).await.unwrap();
 
-    check_get_all(pool, None, Some(ErrorType::Internal)).await;
+    check_get_all(pool, None, Some(ErrorType::Database)).await;
 }

@@ -1,12 +1,8 @@
-use axum::{
-    extract::{Path, State},
-    Json,
-};
-use axum_extra::extract::WithRejection;
+use axum::extract::{Path, State};
 use datamize_domain::{BudgeterConfig, Uuid};
 
 use crate::{
-    error::{HttpJsonDatamizeResult, JsonError},
+    error::{AppJson, HttpJsonDatamizeResult},
     services::budget_template::DynBudgeterService,
 };
 
@@ -16,7 +12,7 @@ pub async fn get_budgeter(
     Path(id): Path<Uuid>,
     State(budgeter_service): State<DynBudgeterService>,
 ) -> HttpJsonDatamizeResult<BudgeterConfig> {
-    Ok(Json(budgeter_service.get_budgeter(id).await?))
+    Ok(AppJson(budgeter_service.get_budgeter(id).await?))
 }
 
 /// Updates the budgeter's name and payee_ids.
@@ -24,9 +20,9 @@ pub async fn get_budgeter(
 pub async fn update_budgeter(
     Path(_id): Path<Uuid>,
     State(budgeter_service): State<DynBudgeterService>,
-    WithRejection(Json(body), _): WithRejection<Json<BudgeterConfig>, JsonError>,
+    AppJson(body): AppJson<BudgeterConfig>,
 ) -> HttpJsonDatamizeResult<BudgeterConfig> {
-    Ok(Json(budgeter_service.update_budgeter(body).await?))
+    Ok(AppJson(budgeter_service.update_budgeter(body).await?))
 }
 
 /// Deletes the budgeter and returns the entity.
@@ -35,5 +31,5 @@ pub async fn delete_budgeter(
     Path(id): Path<Uuid>,
     State(budgeter_service): State<DynBudgeterService>,
 ) -> HttpJsonDatamizeResult<BudgeterConfig> {
-    Ok(Json(budgeter_service.delete_budgeter(id).await?))
+    Ok(AppJson(budgeter_service.delete_budgeter(id).await?))
 }

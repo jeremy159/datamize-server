@@ -90,7 +90,7 @@ async fn should_return_error_when_issue_occured_while_parsing_date(pool: SqliteP
         pool,
         Some(String::from("wrong date format")),
         None,
-        Some(ErrorType::Internal),
+        Some(ErrorType::ChronoParse),
     )
     .await;
 }

@@ -94,7 +94,7 @@ async fn issue_with_db_should_not_update_saved_delta(pool: SqlitePool) {
         YnabData(Faker.fake(), Faker.fake()),
         None,
         None,
-        Some(ErrorType::Internal),
+        Some(ErrorType::Database),
     )
     .await;
 }

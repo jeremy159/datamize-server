@@ -46,7 +46,7 @@ impl SavingRate {
 pub struct Savings {
     /// Any categories that should be used to compute the savings.
     /// Will take all transactions of the category for the current year.
-    pub category_ids: Vec<Uuid>, // TODO: to use /budgets/{budget_id}/categories/{category_id}/transactions
+    pub category_ids: Vec<Uuid>,
     /// Any extra balance to be used, will be added to the total of categories included with this saving.
     #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub extra_balance: i64,
@@ -75,7 +75,7 @@ impl Savings {
 pub struct Incomes {
     /// Any payees that should be used to compute the incomes.
     /// Will take all transactions of the payee for the current year.
-    pub payee_ids: Vec<Uuid>, // TODO: to use /budgets/{budget_id}/payees/{payee_id}/transactions
+    pub payee_ids: Vec<Uuid>,
     /// Any extra balance to be used, will be added to the total of payees included with this saving.
     #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-1000000..1000000"))]
     pub extra_balance: i64,

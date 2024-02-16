@@ -38,7 +38,7 @@ thiserror.workspace = true
 sqlx.workspace = true
 itertools.workspace = true
 
-axum = "0.7"
+axum = { version = "0.7", features = ["macros"] }
 axum-extra = "^0.9"
 tower = "0.4"
 tower-request-id = "0.3"

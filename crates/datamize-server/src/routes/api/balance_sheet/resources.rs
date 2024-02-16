@@ -2,13 +2,11 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
 };
-use axum_extra::extract::WithRejection;
 use datamize_domain::{FinancialResourceYearly, SaveResource};
 
 use crate::{
-    error::{AppError, HttpJsonDatamizeResult, JsonError},
+    error::{AppError, AppJson, HttpJsonDatamizeResult},
     services::balance_sheet::DynFinResService,
 };
 
@@ -17,7 +15,7 @@ use crate::{
 pub async fn all_balance_sheet_resources(
     State(fin_res_service): State<DynFinResService>,
 ) -> HttpJsonDatamizeResult<Vec<FinancialResourceYearly>> {
-    Ok(Json(fin_res_service.get_all_fin_res().await?))
+    Ok(AppJson(fin_res_service.get_all_fin_res().await?))
 }
 
 /// Endpoint to get all financial resources of a particular year.
@@ -26,16 +24,18 @@ pub async fn balance_sheet_resources(
     Path(year): Path<i32>,
     State(fin_res_service): State<DynFinResService>,
 ) -> HttpJsonDatamizeResult<Vec<FinancialResourceYearly>> {
-    Ok(Json(fin_res_service.get_all_fin_res_from_year(year).await?))
+    Ok(AppJson(
+        fin_res_service.get_all_fin_res_from_year(year).await?,
+    ))
 }
 
 #[tracing::instrument(skip_all)]
 pub async fn create_balance_sheet_resource(
     State(fin_res_service): State<DynFinResService>,
-    WithRejection(Json(body), _): WithRejection<Json<SaveResource>, JsonError>,
-) -> Result<impl IntoResponse, AppError> {
-    Ok((
+    AppJson(body): AppJson<SaveResource>,
+) -> impl IntoResponse {
+    Ok::<_, AppError>((
         StatusCode::CREATED,
-        Json(fin_res_service.create_fin_res(body).await?),
+        AppJson(fin_res_service.create_fin_res(body).await?),
     ))
 }

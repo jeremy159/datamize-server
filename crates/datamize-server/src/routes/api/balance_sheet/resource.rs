@@ -1,12 +1,8 @@
-use axum::{
-    extract::{Path, State},
-    Json,
-};
-use axum_extra::extract::WithRejection;
+use axum::extract::{Path, State};
 use datamize_domain::{FinancialResourceYearly, UpdateResource, Uuid};
 
 use crate::{
-    error::{HttpJsonDatamizeResult, JsonError},
+    error::{AppJson, HttpJsonDatamizeResult},
     services::balance_sheet::DynFinResService,
 };
 
@@ -16,7 +12,7 @@ pub async fn balance_sheet_resource(
     Path(resource_id): Path<Uuid>,
     State(fin_res_service): State<DynFinResService>,
 ) -> HttpJsonDatamizeResult<FinancialResourceYearly> {
-    Ok(Json(fin_res_service.get_fin_res(resource_id).await?))
+    Ok(AppJson(fin_res_service.get_fin_res(resource_id).await?))
 }
 
 /// Updates the resource. Will create any non-existing months.
@@ -25,9 +21,9 @@ pub async fn balance_sheet_resource(
 pub async fn update_balance_sheet_resource(
     Path(_): Path<Uuid>,
     State(fin_res_service): State<DynFinResService>,
-    WithRejection(Json(body), _): WithRejection<Json<UpdateResource>, JsonError>,
+    AppJson(body): AppJson<UpdateResource>,
 ) -> HttpJsonDatamizeResult<FinancialResourceYearly> {
-    Ok(Json(fin_res_service.update_fin_res(body).await?))
+    Ok(AppJson(fin_res_service.update_fin_res(body).await?))
 }
 
 /// Deletes the resource and returns the entity
@@ -36,5 +32,5 @@ pub async fn delete_balance_sheet_resource(
     Path(resource_id): Path<Uuid>,
     State(fin_res_service): State<DynFinResService>,
 ) -> HttpJsonDatamizeResult<FinancialResourceYearly> {
-    Ok(Json(fin_res_service.delete_fin_res(resource_id).await?))
+    Ok(AppJson(fin_res_service.delete_fin_res(resource_id).await?))
 }

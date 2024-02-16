@@ -1,12 +1,8 @@
-use axum::{
-    extract::{Path, State},
-    Json,
-};
-use axum_extra::extract::WithRejection;
+use axum::extract::{Path, State};
 use datamize_domain::{ExpenseCategorization, Uuid};
 
 use crate::{
-    error::{HttpJsonDatamizeResult, JsonError},
+    error::{AppJson, HttpJsonDatamizeResult},
     services::budget_template::DynExpenseCategorizationService,
 };
 
@@ -16,7 +12,7 @@ pub async fn get_expense_categorization(
     Path(id): Path<Uuid>,
     State(expense_categorization_service): State<DynExpenseCategorizationService>,
 ) -> HttpJsonDatamizeResult<ExpenseCategorization> {
-    Ok(Json(
+    Ok(AppJson(
         expense_categorization_service
             .get_expense_categorization(id)
             .await?,
@@ -28,9 +24,9 @@ pub async fn get_expense_categorization(
 pub async fn update_expense_categorization(
     Path(_id): Path<Uuid>,
     State(expense_categorization_service): State<DynExpenseCategorizationService>,
-    WithRejection(Json(body), _): WithRejection<Json<ExpenseCategorization>, JsonError>,
+    AppJson(body): AppJson<ExpenseCategorization>,
 ) -> HttpJsonDatamizeResult<ExpenseCategorization> {
-    Ok(Json(
+    Ok(AppJson(
         expense_categorization_service
             .update_expense_categorization(body)
             .await?,

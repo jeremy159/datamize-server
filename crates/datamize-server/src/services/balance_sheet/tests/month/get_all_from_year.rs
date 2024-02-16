@@ -67,7 +67,7 @@ async fn returns_error_internal_when_db_corrupted(pool: SqlitePool) {
         pool,
         Some(Date().fake::<NaiveDate>().year()),
         None,
-        Some(ErrorType::Internal),
+        Some(ErrorType::Database),
     )
     .await;
 }

@@ -1,10 +1,10 @@
-use axum::{
-    extract::{Query, State},
-    Json,
-};
+use axum::extract::{Query, State};
 use datamize_domain::{BudgetSummary, TemplateParams};
 
-use crate::{error::HttpJsonDatamizeResult, services::budget_template::DynTemplateSummaryService};
+use crate::{
+    error::{AppJson, HttpJsonDatamizeResult},
+    services::budget_template::DynTemplateSummaryService,
+};
 
 /// Returns a budget template summary.
 /// Can specify the month to get summary from.
@@ -17,7 +17,7 @@ pub async fn template_summary(
 ) -> HttpJsonDatamizeResult<BudgetSummary> {
     let month = template_params.month.unwrap_or_default();
 
-    Ok(Json(
+    Ok(AppJson(
         template_summary_service.get_template_summary(month).await?,
     ))
 }

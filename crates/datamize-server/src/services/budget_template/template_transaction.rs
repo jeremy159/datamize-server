@@ -77,14 +77,11 @@ impl TemplateTransactionServiceExt for TemplateTransactionService {
                 category_ids[index]
             )) {
                 Ok(cat) => cat,
-                Err(_) => self
-                    .ynab_client
-                    .get_category_by_id(&category_ids[index].to_string())
-                    .await
-                    .context(format!(
-                        "failed to get category {} in ynab",
-                        category_ids[index]
-                    ))?,
+                Err(_) => {
+                    self.ynab_client
+                        .get_category_by_id(&category_ids[index].to_string())
+                        .await?
+                }
             };
             category_id_to_name_map.insert(category.id, category.name);
         }

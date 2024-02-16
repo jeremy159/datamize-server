@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use anyhow::Context;
 use chrono::{Datelike, Local, NaiveDate};
 use datamize_domain::{
     async_trait,
@@ -88,26 +87,20 @@ impl ScheduledTransactionServiceExt for ScheduledTransactionService {
         let scheduled_transactions_delta = self
             .ynab_client
             .get_scheduled_transactions_delta(saved_scheduled_transactions_delta)
-            .await
-            .context("failed to get scheduled transactions from ynab's API")?;
+            .await?;
 
         self.ynab_scheduled_transaction_repo
             .update_all(&scheduled_transactions_delta.scheduled_transactions)
-            .await
-            .context("failed to save scheduled transactions in database")?;
+            .await?;
 
         self.ynab_scheduled_transaction_meta_repo
             .set_delta(scheduled_transactions_delta.server_knowledge)
-            .await
-            .context(
-                "failed to save last known server knowledge of scheduled transactions in redis",
-            )?;
+            .await?;
 
         Ok(self
             .ynab_scheduled_transaction_repo
             .get_all()
-            .await
-            .context("failed to get scheduled transactions from database")?
+            .await?
             .into_iter()
             .map(Into::into)
             .collect())

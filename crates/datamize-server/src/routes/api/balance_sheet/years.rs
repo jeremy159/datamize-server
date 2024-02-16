@@ -1,9 +1,8 @@
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use axum_extra::extract::WithRejection;
+use axum::{extract::State, http::StatusCode, response::IntoResponse};
 use datamize_domain::{SaveYear, Year};
 
 use crate::{
-    error::{AppError, HttpJsonDatamizeResult, JsonError},
+    error::{AppError, AppJson, HttpJsonDatamizeResult},
     services::balance_sheet::DynYearService,
 };
 
@@ -12,7 +11,7 @@ use crate::{
 pub async fn balance_sheet_years(
     State(year_service): State<DynYearService>,
 ) -> HttpJsonDatamizeResult<Vec<Year>> {
-    Ok(Json(year_service.get_all_years().await?))
+    Ok(AppJson(year_service.get_all_years().await?))
 }
 
 /// Creates a new year if it doesn't already exist and returns the newly created entity.
@@ -20,10 +19,10 @@ pub async fn balance_sheet_years(
 #[tracing::instrument(skip_all)]
 pub async fn create_balance_sheet_year(
     State(year_service): State<DynYearService>,
-    WithRejection(Json(body), _): WithRejection<Json<SaveYear>, JsonError>,
+    AppJson(body): AppJson<SaveYear>,
 ) -> impl IntoResponse {
     Ok::<_, AppError>((
         StatusCode::CREATED,
-        Json(year_service.create_year(body).await?),
+        AppJson(year_service.create_year(body).await?),
     ))
 }

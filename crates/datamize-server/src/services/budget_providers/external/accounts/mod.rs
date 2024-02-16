@@ -5,7 +5,7 @@ use std::sync::Arc;
 use datamize_domain::{
     async_trait,
     db::external::{DynEncryptionKeyRepo, DynExternalAccountRepo},
-    AccountType, ExternalAccount, WebScrapingAccount,
+    AccountType, ExternalAccount, Uuid, WebScrapingAccount,
 };
 use futures::{future::BoxFuture, stream::FuturesOrdered, StreamExt};
 use internal::*;
@@ -17,7 +17,10 @@ use crate::{config, error::DatamizeResult};
 #[async_trait]
 pub trait ExternalAccountServiceExt: Send + Sync {
     async fn get_all_external_accounts(&self) -> DatamizeResult<Vec<ExternalAccount>>;
-    async fn refresh_all_web_scraping_accounts(&self) -> DatamizeResult<Vec<WebScrapingAccount>>;
+    async fn refresh_web_scraping_accounts(
+        &self,
+        accounts_to_refresh: Vec<Uuid>,
+    ) -> DatamizeResult<Vec<WebScrapingAccount>>;
 
     async fn create_external_account(&self, account: &WebScrapingAccount) -> DatamizeResult<()>;
     async fn get_external_account_by_name(&self, name: &str) -> DatamizeResult<WebScrapingAccount>;
@@ -49,7 +52,10 @@ impl ExternalAccountServiceExt for ExternalAccountService {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn refresh_all_web_scraping_accounts(&self) -> DatamizeResult<Vec<WebScrapingAccount>> {
+    async fn refresh_web_scraping_accounts(
+        &self,
+        accounts_to_refresh: Vec<Uuid>,
+    ) -> DatamizeResult<Vec<WebScrapingAccount>> {
         let configuration = config::Settings::build()?;
         let webdriver_location = configuration.webdriver.connection_string();
 
@@ -64,7 +70,8 @@ impl ExternalAccountServiceExt for ExternalAccountService {
             }
         };
 
-        let initial_accounts = self.external_account_repo.get_all().await?;
+        let mut initial_accounts = self.external_account_repo.get_all().await?;
+        initial_accounts.retain(|account| accounts_to_refresh.contains(&account.id));
         let updated_accounts = initial_accounts
             .clone()
             .into_iter()

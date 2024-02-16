@@ -1,12 +1,8 @@
-use axum::{
-    extract::{Path, State},
-    Json,
-};
-use axum_extra::extract::WithRejection;
+use axum::extract::{Path, State};
 use datamize_domain::{SavingRate, Uuid};
 
 use crate::{
-    error::{HttpJsonDatamizeResult, JsonError},
+    error::{AppJson, HttpJsonDatamizeResult},
     services::balance_sheet::DynSavingRateService,
 };
 
@@ -16,7 +12,7 @@ pub async fn balance_sheet_saving_rate(
     Path(saving_rate_id): Path<Uuid>,
     State(saving_rate_service): State<DynSavingRateService>,
 ) -> HttpJsonDatamizeResult<SavingRate> {
-    Ok(Json(
+    Ok(AppJson(
         saving_rate_service.get_saving_rate(saving_rate_id).await?,
     ))
 }
@@ -26,9 +22,9 @@ pub async fn balance_sheet_saving_rate(
 pub async fn update_balance_sheet_saving_rate(
     Path(_saving_rate_id): Path<Uuid>,
     State(saving_rate_service): State<DynSavingRateService>,
-    WithRejection(Json(body), _): WithRejection<Json<SavingRate>, JsonError>,
+    AppJson(body): AppJson<SavingRate>,
 ) -> HttpJsonDatamizeResult<SavingRate> {
-    Ok(Json(saving_rate_service.update_saving_rate(body).await?))
+    Ok(AppJson(saving_rate_service.update_saving_rate(body).await?))
 }
 
 /// Deletes the saving rate and returns the entity.
@@ -37,7 +33,7 @@ pub async fn delete_balance_sheet_saving_rate(
     Path(saving_rate_id): Path<Uuid>,
     State(saving_rate_service): State<DynSavingRateService>,
 ) -> HttpJsonDatamizeResult<SavingRate> {
-    Ok(Json(
+    Ok(AppJson(
         saving_rate_service
             .delete_saving_rate(saving_rate_id)
             .await?,

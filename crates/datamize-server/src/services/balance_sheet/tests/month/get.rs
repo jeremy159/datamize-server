@@ -56,5 +56,5 @@ async fn returns_success_with_what_is_in_db(pool: SqlitePool) {
 async fn returns_error_internal_when_db_corrupted(pool: SqlitePool) {
     sabotage_months_table(&pool).await.unwrap();
 
-    check_get(pool, true, None, Some(ErrorType::Internal)).await;
+    check_get(pool, true, None, Some(ErrorType::Database)).await;
 }

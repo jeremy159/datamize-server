@@ -1,6 +1,5 @@
 use std::{collections::HashSet, sync::Arc};
 
-use anyhow::Context;
 use chrono::{DateTime, Datelike, Local, NaiveDate};
 use datamize_domain::{
     async_trait,
@@ -72,8 +71,7 @@ where
         let category_groups_with_categories_delta = self
             .ynab_client
             .get_categories_delta(saved_categories_delta)
-            .await
-            .context("failed to get categories from ynab's API")?;
+            .await?;
 
         let (category_groups, categories): (Vec<CategoryGroup>, Vec<Vec<Category>>) =
             category_groups_with_categories_delta
@@ -96,21 +94,14 @@ where
 
         let expenses_categorization = self.get_expenses_categorization(category_groups).await?;
 
-        self.ynab_category_repo
-            .update_all(&categories)
-            .await
-            .context("failed to save categories in database")?;
+        self.ynab_category_repo.update_all(&categories).await?;
 
         self.ynab_category_meta_repo
             .set_delta(category_groups_with_categories_delta.server_knowledge)
-            .await
-            .context("failed to save last known server knowledge of categories in redis")?;
+            .await?;
 
         Ok((
-            self.ynab_category_repo
-                .get_all()
-                .await
-                .context("failed to get categories from database")?,
+            self.ynab_category_repo.get_all().await?,
             expenses_categorization,
         ))
     }
@@ -188,7 +179,6 @@ where
                     .ynab_client
                     .get_month_by_date(&DateTime::<Local>::from(month).date_naive().to_string())
                     .await
-                    .map_err(anyhow::Error::from)
                     .map(|month_detail| month_detail.categories)?;
 
                 let expenses_categorization =

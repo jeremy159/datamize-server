@@ -4,14 +4,11 @@ use chrono::{Datelike, Local};
 use datamize_domain::{
     async_trait,
     db::{DbError, DynFinResRepo, DynMonthRepo, DynYearRepo},
-    Month, MonthNum, ResourcesToRefresh, Uuid, YearlyBalances,
+    FinancialResourceYearly, Month, MonthNum, ResourcesToRefresh, Uuid, YearlyBalances,
 };
 use ynab::AccountRequests;
 
-use crate::{
-    error::DatamizeResult, services::budget_providers::DynExternalAccountService,
-    telemetry::spawn_blocking_with_tracing,
-};
+use crate::{error::DatamizeResult, services::budget_providers::DynExternalAccountService};
 
 #[async_trait]
 pub trait RefreshFinResServiceExt: Send + Sync {
@@ -56,15 +53,10 @@ impl RefreshFinResServiceExt for RefreshFinResService {
         });
 
         let accounts = self.ynab_client.get_accounts().await?;
-        let external_account_service = self.external_account_service.clone();
-        let external_accounts = spawn_blocking_with_tracing(move || async move {
-            external_account_service
-                .refresh_all_web_scraping_accounts()
-                .await
-        })
-        .await
-        .unwrap()
-        .await?;
+        let external_accounts = self
+            .external_account_service
+            .refresh_web_scraping_accounts(self.get_external_account_ids(&resources))
+            .await?;
 
         let mut refreshed = HashSet::new();
 
@@ -172,5 +164,14 @@ impl RefreshFinResService {
         }
 
         Ok(())
+    }
+
+    fn get_external_account_ids(&self, resources: &[FinancialResourceYearly]) -> Vec<Uuid> {
+        resources
+            .iter()
+            .flat_map(|r| r.base.external_account_ids.as_ref())
+            .flatten()
+            .copied()
+            .collect::<Vec<_>>()
     }
 }
