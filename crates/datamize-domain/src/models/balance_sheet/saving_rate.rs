@@ -155,7 +155,7 @@ impl From<SaveIncomes> for Incomes {
 impl From<SaveSavingRate> for SavingRate {
     fn from(value: SaveSavingRate) -> Self {
         Self {
-            id: Uuid::new_v4(),
+            id: value.id,
             name: value.name,
             year: value.year,
             savings: value.savings.into(),

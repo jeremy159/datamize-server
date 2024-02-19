@@ -2,7 +2,7 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use datamize_domain::{Incomes, SavingRate, Savings, Uuid};
+use datamize_domain::{Incomes, SaveSavingRate, SavingRate, Savings, Uuid};
 use fake::{Dummy, Fake, Faker};
 use http_body_util::BodyExt;
 use pretty_assertions::{assert_eq, assert_ne};
@@ -28,7 +28,7 @@ fn are_equal(a: &SavingRate, b: &SavingRate) {
 async fn check_update(
     pool: SqlitePool,
     create_year: bool,
-    req_body: Option<SavingRate>,
+    req_body: Option<SaveSavingRate>,
     expected_status: StatusCode,
     expected_resp: Option<SavingRate>,
 ) {
@@ -75,14 +75,14 @@ async fn check_update(
         assert_eq!(body, expected_resp);
         if let Some(req_body) = req_body {
             // Make sure the requested body is not equal to the saving rate that was in the db. I.e. compute totals should have updated something
-            assert_ne!(req_body, expected_resp);
+            assert_ne!(Into::<SavingRate>::into(req_body.clone()), expected_resp);
 
             // Make sure the update is persisted in db
             let saved = context
                 .get_saving_rate_by_name(&expected_resp.name)
                 .await
                 .unwrap();
-            are_equal(&req_body, &saved);
+            are_equal(&req_body.into(), &saved);
         }
     }
 }
@@ -99,17 +99,24 @@ async fn returns_404_when_nothing_in_db(pool: SqlitePool) {
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_success_with_the_update(pool: SqlitePool) {
-    let body: SavingRate = Faker.fake();
+    let body: SaveSavingRate = Faker.fake();
     let expected_resp = SavingRate {
         savings: Savings {
             total: Faker.fake(),
-            ..body.savings.clone()
+            category_ids: body.savings.category_ids.clone(),
+            extra_balance: body.savings.extra_balance,
         },
         incomes: Incomes {
             total: Faker.fake(),
-            ..body.incomes.clone()
+            payee_ids: body.incomes.payee_ids.clone(),
+            extra_balance: body.incomes.extra_balance,
         },
-        ..body.clone()
+        id: body.id,
+        name: body.name.clone(),
+        year: body.year,
+        employee_contribution: body.employee_contribution,
+        employer_contribution: body.employer_contribution,
+        mortgage_capital: body.mortgage_capital,
     };
 
     check_update(pool, true, Some(body), StatusCode::OK, Some(expected_resp)).await;

@@ -52,7 +52,7 @@ pub async fn spawn_app(db_pool: PgPool) -> TestApp {
         .await
         .expect("Failed to build application.");
     let application_port = application.port();
-    let _ = tokio::spawn(application.run());
+    tokio::spawn(application.run());
 
     // Give time for the app to start before sending in requests. Not ideal at all...
     tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;

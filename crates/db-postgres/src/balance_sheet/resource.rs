@@ -379,27 +379,39 @@ impl FinResRepo for PostgresFinResRepo {
         .execute(&self.db_conn_pool)
         .await?;
 
+        #[derive(Debug)]
+        struct MonthData {
+            id: Uuid,
+        }
+
         // Then the balance per month
         for (year, month, balance) in resource.iter_all_balances() {
+            let month_data = sqlx::query_as!(
+                MonthData,
+                r#"
+                SELECT
+                    m.id AS "id: Uuid"
+                FROM balance_sheet_months AS m
+                JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1
+                WHERE m.month = $2;
+                "#,
+                year,
+                month as i16,
+            )
+            .fetch_one(&self.db_conn_pool)
+            .await?;
+
             if let Some(balance) = balance {
                 sqlx::query!(
                     r#"
                     INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)
-                    SELECT r.id, m.id, balance
-                    FROM (
-                    VALUES
-                        ($1::bigint)
-                    ) x (balance)
-                    JOIN balance_sheet_resources AS r ON r.id = $2
-                    JOIN balance_sheet_years AS y ON y.year = $3
-                    JOIN balance_sheet_months AS m ON m.month = $4 AND m.year_id = y.id
+                    VALUES ($1, $2, $3)
                     ON CONFLICT (resource_id, month_id) DO UPDATE SET
                     balance = EXCLUDED.balance;
                     "#,
-                    balance,
                     resource.base.id,
-                    year,
-                    month as i16,
+                    month_data.id,
+                    balance,
                 )
                 .execute(&self.db_conn_pool)
                 .await?;
@@ -407,21 +419,57 @@ impl FinResRepo for PostgresFinResRepo {
                 sqlx::query!(
                     r#"
                     DELETE FROM balance_sheet_resources_months
-                    WHERE EXISTS(
-                        SELECT 1 FROM balance_sheet_resources AS r
-                        JOIN balance_sheet_years AS y ON y.year = $2
-                        JOIN balance_sheet_months AS m ON m.month = $3 AND m.year_id = y.id
-                        WHERE r.id = $1
-                    );
+                    WHERE resource_id = $1 AND month_id = $2;
                     "#,
                     resource.base.id,
-                    year,
-                    month as i16,
+                    month_data.id,
                 )
                 .execute(&self.db_conn_pool)
                 .await?;
             }
         }
+        // for (year, month, balance) in resource.iter_all_balances() {
+        //     if let Some(balance) = balance {
+        //         sqlx::query!(
+        //             r#"
+        //             INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)
+        //             SELECT r.id, m.id, balance
+        //             FROM (
+        //             VALUES
+        //                 ($1::bigint)
+        //             ) x (balance)
+        //             JOIN balance_sheet_resources AS r ON r.id = $2
+        //             JOIN balance_sheet_years AS y ON y.year = $3
+        //             JOIN balance_sheet_months AS m ON m.month = $4 AND m.year_id = y.id
+        //             ON CONFLICT (resource_id, month_id) DO UPDATE SET
+        //             balance = EXCLUDED.balance;
+        //             "#,
+        //             balance,
+        //             resource.base.id,
+        //             year,
+        //             month as i16,
+        //         )
+        //         .execute(&self.db_conn_pool)
+        //         .await?;
+        //     } else {
+        //         sqlx::query!(
+        //             r#"
+        //             DELETE FROM balance_sheet_resources_months
+        //             WHERE EXISTS(
+        //                 SELECT 1 FROM balance_sheet_resources AS r
+        //                 JOIN balance_sheet_years AS y ON y.year = $2
+        //                 JOIN balance_sheet_months AS m ON m.month = $3 AND m.year_id = y.id
+        //                 WHERE r.id = $1
+        //             );
+        //             "#,
+        //             resource.base.id,
+        //             year,
+        //             month as i16,
+        //         )
+        //         .execute(&self.db_conn_pool)
+        //         .await?;
+        //     }
+        // }
 
         Ok(())
     }

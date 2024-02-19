@@ -23,7 +23,6 @@ use crate::routes::api::balance_sheet::tests::resources::testutils::TestContext;
 struct CreateBody {
     pub name: String,
     pub resource_type: FinancialResourceType,
-    pub year: i32,
     pub balances: BTreeMap<i32, BTreeMap<MonthNum, Option<i64>>>,
     pub ynab_account_ids: Option<Vec<Uuid>>,
     pub external_account_ids: Option<Vec<Uuid>>,
@@ -33,7 +32,6 @@ impl fake::Dummy<fake::Faker> for CreateBody {
     fn dummy_with_rng<R: fake::Rng + ?Sized>(_: &fake::Faker, rng: &mut R) -> Self {
         let name = Fake::fake_with_rng(&Faker, rng);
         let resource_type = Fake::fake_with_rng(&Faker, rng);
-        let year = Fake::fake_with_rng(&(1000..3000), rng);
 
         let mut balances = BTreeMap::new();
         let len = (1..10).fake_with_rng(rng);
@@ -52,7 +50,6 @@ impl fake::Dummy<fake::Faker> for CreateBody {
         Self {
             name,
             resource_type,
-            year,
             balances,
             ynab_account_ids,
             external_account_ids,
@@ -164,14 +161,13 @@ async fn returns_409_when_resource_already_exists(pool: SqlitePool) {
     let body = CreateBody {
         name: res.base.name,
         resource_type: res.base.resource_type,
-        year,
         balances: res.balances,
         ynab_account_ids: res.base.ynab_account_ids,
         external_account_ids: res.base.external_account_ids,
     };
     let context = TestContext::setup(pool.clone());
-    context.insert_year(body.year).await;
-    context.insert_month(month, body.year).await;
+    context.insert_year(year).await;
+    context.insert_month(month, year).await;
     context.set_resources(&[resource]).await;
 
     check_create(pool, body, StatusCode::CONFLICT, None).await;

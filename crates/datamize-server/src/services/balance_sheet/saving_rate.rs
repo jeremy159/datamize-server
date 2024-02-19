@@ -22,7 +22,10 @@ pub trait SavingRateServiceExt: Send + Sync {
         &self,
         new_saving_rate: SaveSavingRate,
     ) -> DatamizeResult<SavingRate>;
-    async fn update_saving_rate(&self, new_saving_rate: SavingRate) -> DatamizeResult<SavingRate>;
+    async fn update_saving_rate(
+        &self,
+        new_saving_rate: SaveSavingRate,
+    ) -> DatamizeResult<SavingRate>;
     async fn delete_saving_rate(&self, saving_rate_id: Uuid) -> DatamizeResult<SavingRate>;
 }
 
@@ -39,6 +42,10 @@ impl SavingRateServiceExt for SavingRateService {
     #[tracing::instrument(skip(self))]
     async fn get_all_from_year(&self, year: i32) -> DatamizeResult<Vec<SavingRate>> {
         let mut saving_rates = self.saving_rate_repo.get_from_year(year).await?;
+        if saving_rates.is_empty() {
+            return Ok(vec![]);
+        }
+
         self.transaction_service
             .refresh_saved_transactions()
             .await?;
@@ -91,14 +98,17 @@ impl SavingRateServiceExt for SavingRateService {
         Ok(saving_rate)
     }
 
-    async fn update_saving_rate(&self, new_saving_rate: SavingRate) -> DatamizeResult<SavingRate> {
+    async fn update_saving_rate(
+        &self,
+        new_saving_rate: SaveSavingRate,
+    ) -> DatamizeResult<SavingRate> {
         let Ok(_) = self.saving_rate_repo.get(new_saving_rate.id).await else {
             return Err(AppError::ResourceNotFound);
         };
 
-        self.saving_rate_repo.update(&new_saving_rate).await?;
+        let mut saving_rate: SavingRate = new_saving_rate.into();
 
-        let mut saving_rate = new_saving_rate;
+        self.saving_rate_repo.update(&saving_rate).await?;
 
         self.transaction_service
             .refresh_saved_transactions()

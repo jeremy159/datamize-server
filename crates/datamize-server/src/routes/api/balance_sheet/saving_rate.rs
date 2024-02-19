@@ -1,5 +1,5 @@
 use axum::extract::{Path, State};
-use datamize_domain::{SavingRate, Uuid};
+use datamize_domain::{SaveSavingRate, SavingRate, Uuid};
 
 use crate::{
     error::{AppJson, HttpJsonDatamizeResult},
@@ -22,7 +22,7 @@ pub async fn balance_sheet_saving_rate(
 pub async fn update_balance_sheet_saving_rate(
     Path(_saving_rate_id): Path<Uuid>,
     State(saving_rate_service): State<DynSavingRateService>,
-    AppJson(body): AppJson<SavingRate>,
+    AppJson(body): AppJson<SaveSavingRate>,
 ) -> HttpJsonDatamizeResult<SavingRate> {
     Ok(AppJson(saving_rate_service.update_saving_rate(body).await?))
 }
