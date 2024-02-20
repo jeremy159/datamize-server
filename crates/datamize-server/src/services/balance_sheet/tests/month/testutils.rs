@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, collections::HashSet, sync::Arc};
 
 use datamize_domain::{
-    db::{DbResult, FinResRepo, MonthRepo, YearRepo},
+    db::{DbResult, MonthRepo, YearRepo},
     FinancialResourceMonthly, Month, MonthNum, NetTotals, Uuid, Year,
 };
 use db_sqlite::balance_sheet::{SqliteFinResRepo, SqliteMonthRepo, SqliteYearRepo};

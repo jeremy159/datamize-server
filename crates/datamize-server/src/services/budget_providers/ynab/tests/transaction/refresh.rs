@@ -1,4 +1,3 @@
-use db_sqlite::budget_providers::ynab::sabotage_transactions_table;
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
@@ -75,14 +74,14 @@ async fn returns_success_with_what_is_in_db(pool: SqlitePool) {
 
 // FIXME: For some reasons sometimes the test fails... Might be related to the redis test mock
 // #[sqlx::test(migrations = "../db-sqlite/migrations")]
-async fn issue_with_db_should_not_update_saved_delta(pool: SqlitePool) {
-    sabotage_transactions_table(&pool).await.unwrap();
+// async fn issue_with_db_should_not_update_saved_delta(pool: SqlitePool) {
+//     sabotage_transactions_table(&pool).await.unwrap();
 
-    check_refresh(
-        pool,
-        YnabData(Faker.fake()),
-        None,
-        Some(ErrorType::Database),
-    )
-    .await;
-}
+//     check_refresh(
+//         pool,
+//         YnabData(Faker.fake()),
+//         None,
+//         Some(ErrorType::Database),
+//     )
+//     .await;
+// }

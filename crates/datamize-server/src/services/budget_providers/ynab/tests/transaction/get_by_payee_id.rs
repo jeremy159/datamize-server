@@ -1,5 +1,4 @@
 use datamize_domain::Uuid;
-use db_sqlite::budget_providers::ynab::sabotage_transactions_table;
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
@@ -86,15 +85,15 @@ async fn returns_only_what_is_linked(pool: SqlitePool) {
 
 // FIXME: For some reasons sometimes the test fails... Might be related to the redis test mock
 // #[sqlx::test(migrations = "../db-sqlite/migrations")]
-async fn issue_with_db_should_not_return_data(pool: SqlitePool) {
-    sabotage_transactions_table(&pool).await.unwrap();
+// async fn issue_with_db_should_not_return_data(pool: SqlitePool) {
+//     sabotage_transactions_table(&pool).await.unwrap();
 
-    check_get_by_payee_id(
-        pool,
-        &fake::vec![TransactionDetail; 1..5],
-        Faker.fake(),
-        None,
-        Some(ErrorType::Database),
-    )
-    .await;
-}
+//     check_get_by_payee_id(
+//         pool,
+//         &fake::vec![TransactionDetail; 1..5],
+//         Faker.fake(),
+//         None,
+//         Some(ErrorType::Database),
+//     )
+//     .await;
+// }
