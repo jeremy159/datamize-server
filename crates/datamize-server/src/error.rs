@@ -49,6 +49,7 @@ impl std::fmt::Debug for AppError {
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
+        tracing::error!(error = ?self, "error encountered");
         // How we want errors responses to be serialized
         #[derive(Serialize)]
         struct ErrorResponse {
@@ -66,46 +67,32 @@ impl IntoResponse for AppError {
             AppError::ResourceAlreadyExist => {
                 (StatusCode::CONFLICT, "Resource already exist".to_owned())
             }
-            AppError::DbError(err) => {
-                tracing::error!(?err, "error from database");
-                match err {
-                    DbError::NotFound => {
-                        (StatusCode::NOT_FOUND, "Resource does not exist".to_owned())
-                    }
-                    DbError::AlreadyExists => {
-                        (StatusCode::CONFLICT, "Resource already exist".to_owned())
-                    }
-                    DbError::DataIntegrityError(_) => (
-                        StatusCode::BAD_REQUEST,
-                        "Data is corrupted or invalid".to_owned(),
-                    ),
-                    _ => (
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        "Something went wrong".to_owned(),
-                    ),
+            AppError::DbError(err) => match err {
+                DbError::NotFound => (StatusCode::NOT_FOUND, "Resource does not exist".to_owned()),
+                DbError::AlreadyExists => {
+                    (StatusCode::CONFLICT, "Resource already exist".to_owned())
                 }
-            }
-            AppError::ConfigError(err) => {
-                tracing::error!(?err, "error from config");
-                (
+                DbError::DataIntegrityError(_) => (
+                    StatusCode::BAD_REQUEST,
+                    "Data is corrupted or invalid".to_owned(),
+                ),
+                _ => (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "Something went wrong".to_owned(),
-                )
-            }
-            AppError::ParseError(err) => {
-                tracing::error!(?err, "error from date parsing");
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Something went wrong".to_owned(),
-                )
-            }
-            AppError::YnabError(err) => {
-                tracing::error!(?err, "error from ynab api");
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Something went wrong".to_owned(),
-                )
-            }
+                ),
+            },
+            AppError::ConfigError(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Something went wrong".to_owned(),
+            ),
+            AppError::ParseError(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Something went wrong".to_owned(),
+            ),
+            AppError::YnabError(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Something went wrong".to_owned(),
+            ),
         };
 
         (status, AppJson(ErrorResponse { message })).into_response()
@@ -116,10 +103,10 @@ pub fn error_chain_fmt(
     e: &impl std::error::Error,
     f: &mut std::fmt::Formatter<'_>,
 ) -> std::fmt::Result {
-    writeln!(f, "{}\n", e)?;
+    writeln!(f, "{}", e)?;
     let mut current = e.source();
     while let Some(cause) = current {
-        writeln!(f, "Caused by:\n\t{}", cause)?;
+        writeln!(f, "Caused by:\n\t{:?}", cause)?;
         current = cause.source();
     }
     Ok(())

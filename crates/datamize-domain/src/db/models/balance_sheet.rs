@@ -79,12 +79,6 @@ pub trait FinResRepo: Send + Sync {
     async fn get_by_name(&self, name: &str) -> DbResult<FinancialResourceYearly>;
     async fn update(&self, resource: &FinancialResourceYearly) -> DbResult<()>;
     async fn update_and_delete(&self, resource: &UpdateResource) -> DbResult<()>;
-    async fn update_monthly(
-        &self,
-        resource: &FinancialResourceMonthly,
-        month: MonthNum,
-        year: i32,
-    ) -> DbResult<()>;
     async fn delete(&self, resource_id: Uuid) -> DbResult<()>;
 }
 

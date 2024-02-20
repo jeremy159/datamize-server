@@ -474,68 +474,6 @@ impl FinResRepo for PostgresFinResRepo {
         Ok(())
     }
 
-    #[tracing::instrument(skip_all)]
-    async fn update_monthly(
-        &self,
-        resource: &FinancialResourceMonthly,
-        month: MonthNum,
-        year: i32,
-    ) -> DbResult<()> {
-        let resource_type = resource.base.resource_type.to_string();
-        // First update the resource itself
-        sqlx::query!(
-            r#"
-            INSERT INTO balance_sheet_resources (id, name, resource_type, ynab_account_ids, external_account_ids)
-            VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT (id) DO UPDATE SET
-            name = EXCLUDED.name,
-            resource_type = EXCLUDED.resource_type,
-            ynab_account_ids = EXCLUDED.ynab_account_ids,
-            external_account_ids = EXCLUDED.external_account_ids;
-            "#,
-            resource.base.id,
-            resource.base.name,
-            resource_type,
-            resource
-                .base
-                .ynab_account_ids
-                .as_ref()
-                .map(|accounts| accounts.as_slice()),
-            resource
-                .base
-                .external_account_ids
-                .as_ref()
-                .map(|accounts| accounts.as_slice()),
-        )
-        .execute(&self.db_conn_pool)
-        .await?;
-
-        // Then the balance of the month
-        sqlx::query!(
-            r#"
-            INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)
-            SELECT r.id, m.id, balance
-            FROM (
-            VALUES
-                ($1::bigint)
-            ) x (balance)
-            JOIN balance_sheet_resources AS r ON r.id = $2
-            JOIN balance_sheet_years AS y ON y.year = $3
-            JOIN balance_sheet_months AS m ON m.month = $4 AND m.year_id = y.id
-            ON CONFLICT (resource_id, month_id) DO UPDATE SET
-            balance = EXCLUDED.balance;
-            "#,
-            resource.balance,
-            resource.base.id,
-            year,
-            month as i16,
-        )
-        .execute(&self.db_conn_pool)
-        .await?;
-
-        Ok(())
-    }
-
     #[tracing::instrument(skip(self))]
     async fn delete(&self, resource_id: Uuid) -> DbResult<()> {
         sqlx::query!(

@@ -381,7 +381,7 @@ struct TransactionsResp {
 struct DummyTransaction {
     pub id: Uuid,
     pub date: chrono::NaiveDate,
-    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-100000..100000"))]
+    #[dummy(faker = "-100000..100000")]
     pub amount: i64,
     pub memo: Option<String>,
     pub cleared: DummyClearedType,
@@ -429,7 +429,7 @@ enum DummyDebtTransactionType {
 struct DummySubTransaction {
     pub id: Uuid,
     pub transaction_id: Uuid,
-    #[cfg_attr(any(feature = "testutils", test), dummy(faker = "-100000..100000"))]
+    #[dummy(faker = "-100000..100000")]
     pub amount: i64,
     pub memo: Option<String>,
     pub payee_id: Option<Uuid>,

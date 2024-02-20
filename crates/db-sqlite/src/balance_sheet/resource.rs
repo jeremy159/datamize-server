@@ -21,6 +21,81 @@ impl SqliteFinResRepo {
     pub fn new_arced(db_conn_pool: SqlitePool) -> Arc<Self> {
         Arc::new(Self { db_conn_pool })
     }
+
+    #[tracing::instrument(skip_all)]
+    pub async fn update_monthly(
+        &self,
+        resource: &FinancialResourceMonthly,
+        month: MonthNum,
+        year: i32,
+    ) -> DbResult<()> {
+        let ynab_account_ids = serde_json::to_string(&IdsRecord {
+            ids: resource.base.ynab_account_ids.clone(),
+        })
+        .unwrap();
+        let external_account_ids = serde_json::to_string(&IdsRecord {
+            ids: resource.base.external_account_ids.clone(),
+        })
+        .unwrap();
+
+        let resource_type = resource.base.resource_type.to_string();
+        // First update the resource itself
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_resources (id, name, resource_type, ynab_account_ids, external_account_ids)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (id) DO UPDATE SET
+            name = EXCLUDED.name,
+            resource_type = EXCLUDED.resource_type,
+            ynab_account_ids = EXCLUDED.ynab_account_ids,
+            external_account_ids = EXCLUDED.external_account_ids;
+            "#,
+            resource.base.id,
+            resource.base.name,
+            resource_type,
+            ynab_account_ids,
+            external_account_ids,
+        )
+        .execute(&self.db_conn_pool)
+        .await?;
+
+        #[derive(Debug)]
+        struct MonthData {
+            id: Uuid,
+        }
+
+        let month_data = sqlx::query_as!(
+            MonthData,
+            r#"
+            SELECT
+                m.id AS "id: Uuid"
+            FROM balance_sheet_months AS m
+            JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1
+            WHERE m.month = $2;
+            "#,
+            year,
+            month,
+        )
+        .fetch_one(&self.db_conn_pool)
+        .await?;
+
+        // Then the balance of the month
+        sqlx::query!(
+            r#"
+            INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (resource_id, month_id) DO UPDATE SET
+            balance = EXCLUDED.balance;
+            "#,
+            resource.base.id,
+            month_data.id,
+            resource.balance,
+        )
+        .execute(&self.db_conn_pool)
+        .await?;
+
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -478,81 +553,6 @@ impl FinResRepo for SqliteFinResRepo {
                 .await?;
             }
         }
-
-        Ok(())
-    }
-
-    #[tracing::instrument(skip_all)]
-    async fn update_monthly(
-        &self,
-        resource: &FinancialResourceMonthly,
-        month: MonthNum,
-        year: i32,
-    ) -> DbResult<()> {
-        let ynab_account_ids = serde_json::to_string(&IdsRecord {
-            ids: resource.base.ynab_account_ids.clone(),
-        })
-        .unwrap();
-        let external_account_ids = serde_json::to_string(&IdsRecord {
-            ids: resource.base.external_account_ids.clone(),
-        })
-        .unwrap();
-
-        let resource_type = resource.base.resource_type.to_string();
-        // First update the resource itself
-        sqlx::query!(
-            r#"
-            INSERT INTO balance_sheet_resources (id, name, resource_type, ynab_account_ids, external_account_ids)
-            VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT (id) DO UPDATE SET
-            name = EXCLUDED.name,
-            resource_type = EXCLUDED.resource_type,
-            ynab_account_ids = EXCLUDED.ynab_account_ids,
-            external_account_ids = EXCLUDED.external_account_ids;
-            "#,
-            resource.base.id,
-            resource.base.name,
-            resource_type,
-            ynab_account_ids,
-            external_account_ids,
-        )
-        .execute(&self.db_conn_pool)
-        .await?;
-
-        #[derive(Debug)]
-        struct MonthData {
-            id: Uuid,
-        }
-
-        let month_data = sqlx::query_as!(
-            MonthData,
-            r#"
-            SELECT
-                m.id AS "id: Uuid"
-            FROM balance_sheet_months AS m
-            JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1
-            WHERE m.month = $2;
-            "#,
-            year,
-            month,
-        )
-        .fetch_one(&self.db_conn_pool)
-        .await?;
-
-        // Then the balance of the month
-        sqlx::query!(
-            r#"
-            INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (resource_id, month_id) DO UPDATE SET
-            balance = EXCLUDED.balance;
-            "#,
-            resource.base.id,
-            month_data.id,
-            resource.balance,
-        )
-        .execute(&self.db_conn_pool)
-        .await?;
 
         Ok(())
     }
