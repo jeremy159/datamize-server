@@ -50,36 +50,35 @@ pub fn parse_balance(input: &str) -> anyhow::Result<i64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use proptest::prelude::*;
 
-    #[test]
-    fn test_parse_balance() {
-        let tests = [
-            ("$1.00", 1000),
-            ("$0.00", 0),
-            ("$0.01", 10),
-            ("$0.10", 100),
-            ("$0.99", 990),
-            ("$1.99", 1990),
-            ("1.00$", 1000),
-            ("0.00$", 0),
-            ("0.01$", 10),
-            ("0.10$", 100),
-            ("0.99$", 990),
-            ("1.99$", 1990),
-            ("$2.00", 2000),
-            ("$2.01", 2010),
-            ("$2.99", 2990),
-            ("$3124.27", 3124270),
-            ("200.27", 200270),
-            ("654.2$", 654200),
-            ("8 428", 8428000),
-            ("8 428$", 8428000),
-            ("7 524.5", 7524500),
-            ("5,847.56", 5847560),
-        ];
+    proptest! {
+        #[test]
+        /// Optionnal leading dollar sign with optionnal commas
+        /// ldscs = Leading Dollar Sign Comma Separated
+        fn parse_valid_amounts_ldscs(a in r#"(\$)?(([0-9]+)|([0-9]{1,3})(\,[0-9]{3})*)(\.[0-9]{1,2})?"#) {
+            parse_balance(&a).unwrap();
+        }
 
-        for (input, expected) in tests {
-            assert_eq!(parse_balance(input).unwrap(), expected);
+        #[test]
+        /// Optionnal leading dollar sign with optionnal spaces
+        /// ldsss = Leading Dollar Sign Space Separated
+        fn parse_valid_amounts_ldsss(a in r#"(\$)?(([0-9]+)|([0-9]{1,3})(\s[0-9]{3})*)(\.[0-9]{1,2})?"#) {
+            parse_balance(&a).unwrap();
+        }
+
+        #[test]
+        /// Optionnal Ending dollar sign with optionnal commas
+        /// edscs = Ending Dollar Sign Comma Separated
+        fn parse_valid_amounts_edscs(a in r#"(([0-9]+)|([0-9]{1,3})(\,[0-9]{3})*)(\.[0-9]{1,2})?(\$)?"#) {
+            parse_balance(&a).unwrap();
+        }
+
+        #[test]
+        /// Optionnal Ending dollar sign with optionnal spaces
+        /// edsss = Ending Dollar Sign Space Separated
+        fn parse_valid_amounts_edsss(a in r#"(([0-9]+)|([0-9]{1,3})(\s[0-9]{3})*)(\.[0-9]{1,2})?(\$)?"#) {
+            parse_balance(&a).unwrap();
         }
     }
 }

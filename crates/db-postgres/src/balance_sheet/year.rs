@@ -29,6 +29,7 @@ impl PostgresYearRepo {
     }
 }
 
+// TODO: Create index for month and year access to increase performance.
 #[async_trait]
 impl YearRepo for PostgresYearRepo {
     #[tracing::instrument(skip(self))]
