@@ -10,7 +10,7 @@ use db_postgres::get_connection_pool;
 async fn main() -> anyhow::Result<()> {
     let subscriber = get_subscriber(
         "datamize".into(),
-        "datamize=debug,tower_http=debug".into(),
+        "datamize=trace,tower_http=debug".into(),
         std::io::stdout,
     );
     init_subscriber(subscriber);

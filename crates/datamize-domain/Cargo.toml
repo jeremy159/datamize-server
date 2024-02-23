@@ -27,6 +27,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 rrule.workspace = true
 fred.workspace = true
+axum-login.workspace = true
 
 serde_repr = "^0.1.14"
 secrecy = { version = "0.8.0", features = ["serde"] }

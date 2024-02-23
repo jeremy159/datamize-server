@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO users (id, access_token, refresh_token, expires_at)\n            VALUES ($1, $2, $3, $4)\n            ON CONFLICT (id) DO UPDATE SET\n            access_token = EXCLUDED.access_token,\n            refresh_token = EXCLUDED.refresh_token,\n            expires_at = EXCLUDED.expires_at;\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "ab3be0a43138d67d80aaee6c88f0f66b210379e5eeed1c8d8546ac073a37709b"
+}

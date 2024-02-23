@@ -1,5 +1,6 @@
 use datamize_domain::secrecy::{ExposeSecret, Secret};
 use db_postgres::{PgConnectOptions, PgSslMode};
+use oauth2::{basic::BasicClient, AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
 use serde::Deserialize;
 use sqlx::ConnectOptions;
 
@@ -24,6 +25,11 @@ pub struct YnabClientSettings {
     pub pat: Secret<String>,
     pub pat_file: String,
     pub base_url: String,
+    pub client_id: String,
+    pub client_secret: Secret<String>,
+    pub redirect_url: String,
+    pub auth_url: String,
+    pub token_url: String,
 }
 
 impl YnabClientSettings {
@@ -36,8 +42,20 @@ impl YnabClientSettings {
             _ => self.pat,
         };
 
-        ynab::Client::new(self.pat.expose_secret(), &self.base_url)
+        ynab::Client::new(self.pat.expose_secret(), Some(&self.base_url))
             .expect("Failed to build ynab client.")
+    }
+
+    pub fn oauth_client(self) -> Result<BasicClient, oauth2::url::ParseError> {
+        Ok(BasicClient::new(
+            ClientId::new(self.client_id),
+            Some(ClientSecret::new(
+                self.client_secret.expose_secret().to_string(),
+            )),
+            AuthUrl::new(self.auth_url)?,
+            Some(TokenUrl::new(self.token_url)?),
+        )
+        .set_redirect_uri(RedirectUrl::new(self.redirect_url)?))
     }
 }
 

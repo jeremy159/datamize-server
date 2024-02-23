@@ -10,6 +10,8 @@ pub enum Error {
     Api(ApiError),
     #[error("{0:?}")]
     Conversion(#[from] serde_json::Error),
+    #[error("Invalid URL Error: {0:?}")]
+    UrlParse(url::ParseError),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

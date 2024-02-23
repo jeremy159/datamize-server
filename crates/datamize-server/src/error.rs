@@ -7,6 +7,8 @@ use config::ConfigError;
 use datamize_domain::db::DbError;
 use serde::Serialize;
 
+use crate::users::backend::Backend;
+
 pub type DatamizeResult<T> = Result<T, AppError>;
 pub type HttpJsonDatamizeResult<T> = Result<AppJson<T>, AppError>;
 
@@ -31,6 +33,10 @@ pub enum AppError {
     ResourceNotFound,
     #[error("Resource already exist")]
     ResourceAlreadyExist,
+    #[error("User is not authorized to access the requested endpoint")]
+    Unauthorized,
+    #[error("Missing or tampered CSRF Token")]
+    MissingCsrfToken,
     #[error("Error with Database interaction")]
     DbError(#[from] DbError),
     #[error("Error with the Configuration")]
@@ -39,6 +45,14 @@ pub enum AppError {
     ParseError(#[from] chrono::ParseError),
     #[error("Error in the YNAB API")]
     YnabError(#[from] ynab::Error),
+    #[error("Error with the Oauth Backend")]
+    OauthBackendError(#[from] axum_login::Error<Backend>),
+}
+
+impl From<axum_login::tower_sessions::session::Error> for AppError {
+    fn from(value: axum_login::tower_sessions::session::Error) -> Self {
+        AppError::OauthBackendError(value.into())
+    }
 }
 
 impl std::fmt::Debug for AppError {
@@ -67,6 +81,11 @@ impl IntoResponse for AppError {
             AppError::ResourceAlreadyExist => {
                 (StatusCode::CONFLICT, "Resource already exist".to_owned())
             }
+            AppError::Unauthorized => (StatusCode::UNAUTHORIZED, "Unauthorized".to_owned()),
+            AppError::MissingCsrfToken => (
+                StatusCode::BAD_REQUEST,
+                "Missing or tampered CSRF Token".to_owned(),
+            ),
             AppError::DbError(err) => match err {
                 DbError::NotFound => (StatusCode::NOT_FOUND, "Resource does not exist".to_owned()),
                 DbError::AlreadyExists => {
@@ -90,6 +109,10 @@ impl IntoResponse for AppError {
                 "Something went wrong".to_owned(),
             ),
             AppError::YnabError(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Something went wrong".to_owned(),
+            ),
+            AppError::OauthBackendError(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Something went wrong".to_owned(),
             ),

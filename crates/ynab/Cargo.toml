@@ -28,6 +28,7 @@ chrono = { workspace = true, features = ["serde"] }
 async-trait.workspace = true
 reqwest = { version = "^0.11.18", default-features = false, features = ["json", "cookies", "rustls-tls"] }
 num-traits = "0.2"
+url = "2.5"
 
 sqlx = { workspace = true, features = ["postgres"], optional = true }
 mockall = { version = "0.12", optional = true }

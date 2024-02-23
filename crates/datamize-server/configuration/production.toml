@@ -1,5 +1,8 @@
 [application]
 host = "0.0.0.0"
 
+[ynab_client]
+redirect_url = "http://localhost:8080"
+
 [database]
 require_ssl = true

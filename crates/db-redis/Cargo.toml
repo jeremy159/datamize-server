@@ -20,6 +20,10 @@ datamize-domain.workspace = true
 # Non-Local Deps
 tracing.workspace = true
 fred.workspace = true
+axum-login.workspace = true
+thiserror.workspace = true
+
+rmp-serde = "1.1"
 
 [dev-dependencies]
 fred = { workspace = true, features = ["mocks"]}

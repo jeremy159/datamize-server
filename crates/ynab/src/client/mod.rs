@@ -12,6 +12,7 @@ mod payee_locations;
 mod payees;
 mod scheduled_transactions;
 mod transactions;
+mod user;
 
 pub use accounts::*;
 pub use budgets::*;
@@ -22,6 +23,7 @@ pub use payee_locations::*;
 pub use payees::*;
 pub use scheduled_transactions::*;
 pub use transactions::*;
+pub use user::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Response<T> {
@@ -37,9 +39,11 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(ynab_api_token: &str, ynab_base_url: &str) -> YnabResult<Self> {
-        let ynab_base_url = Url::parse(ynab_base_url)
-            .unwrap_or_else(|_| panic!("`{}` to be a valid URL", ynab_base_url));
+    pub fn new(ynab_api_token: &str, ynab_base_url: Option<&str>) -> YnabResult<Self> {
+        let ynab_base_url = ynab_base_url
+            .unwrap_or("https://api.youneedabudget.com/v1/")
+            .parse()
+            .map_err(Error::UrlParse)?;
         let http_client = Client::build_http_client()?;
 
         Ok(Self {

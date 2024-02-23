@@ -5,6 +5,7 @@ mod month;
 mod payee;
 mod scheduled_transaction;
 mod transaction;
+mod user;
 
 pub use account::*;
 pub use budget::*;
@@ -13,16 +14,10 @@ pub use month::*;
 pub use payee::*;
 pub use scheduled_transaction::*;
 pub use transaction::*;
+pub use user::*;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::fmt;
-use uuid::Uuid;
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-/// See https://api.youneedabudget.com/v1#/User/getUser
-pub struct User {
-    pub id: Uuid,
-}
 
 #[cfg_attr(test, derive(fake::Dummy))]
 #[derive(Debug, Clone, Copy, Serialize)]

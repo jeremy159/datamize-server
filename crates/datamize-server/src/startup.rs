@@ -2,6 +2,14 @@ use std::sync::Arc;
 
 use anyhow::{Context, Ok, Result};
 use axum::{body::Body, routing::get, Router};
+use axum_login::{
+    tower_sessions::{
+        cookie::{time::Duration, SameSite},
+        Expiry, SessionManagerLayer,
+    },
+    AuthManagerLayerBuilder,
+};
+use db_redis::towser_sessions_store::RedisStore;
 use http::{header::CONTENT_TYPE, Request};
 use sqlx::PgPool;
 use tokio::{net::TcpListener, signal};
@@ -11,7 +19,7 @@ use tracing::error_span;
 
 use crate::{
     config::Settings,
-    routes::{get_api_routes, get_budget_providers_routes, health_check},
+    routes::{get_api_routes, get_budget_providers_routes, get_oauth_routes, health_check},
 };
 
 #[derive(Clone)]
@@ -33,13 +41,31 @@ impl Application {
             db_redis::get_connection_pool(&configuration.redis.connection_string())
                 .await
                 .context("failed to get redis connection pool")?;
-        let ynab_client = Arc::new(configuration.ynab_client.client());
+        let ynab_client = Arc::new(configuration.ynab_client.clone().client()); // TODO: To remove, will need one ynab_client per different user, since access_token is only known once we identify him.
+        let ynab_oauth_client = configuration.ynab_client.oauth_client()?;
 
         let app_state = AppState {
             ynab_client,
             db_conn_pool,
-            redis_conn_pool,
+            redis_conn_pool: redis_conn_pool.clone(),
         };
+
+        // Session layer.
+        //
+        // This uses `tower-sessions` to establish a layer that will provide the session
+        // as a request extension.
+        let session_store = RedisStore::new(redis_conn_pool);
+        let session_layer = SessionManagerLayer::new(session_store)
+            .with_secure(false)
+            .with_same_site(SameSite::Lax) // Ensure we send the cookie from the OAuth redirect.
+            .with_expiry(Expiry::OnInactivity(Duration::days(1)));
+
+        // Auth service.
+        //
+        // This combines the session layer with our backend to establish the auth
+        // service which will provide the auth session as a request extension.
+        let (oauth_routes, backend) = get_oauth_routes(&app_state, ynab_oauth_client);
+        let auth_layer = AuthManagerLayerBuilder::new(backend, session_layer).build();
 
         let address = format!(
             "{}:{}",
@@ -63,13 +89,20 @@ impl Application {
             "http://localhost:4300"
                 .parse::<axum::http::HeaderValue>()
                 .unwrap(),
+            "http://localhost:8080"
+                .parse::<axum::http::HeaderValue>()
+                .unwrap(),
         ];
 
+        // TODO: Implement oauth with YNAB. Check https://github.com/tokio-rs/axum/blob/main/examples/oauth/src/main.rs as an example
+        // TODO: Also check https://github.com/maxcountryman/axum-login/blob/main/examples/oauth2/src/main.rs
         let app = Router::new()
-            .route("/", get(|| async { "Welcome to Datamize!" }))
-            .route("/health_check", get(health_check))
             .nest("/api", api_routes)
             .nest("/budget_providers", budget_providers_routes)
+            .nest("/oauth", oauth_routes)
+            .route("/", get(|| async { "Welcome to Datamize!" }))
+            .route("/health_check", get(health_check))
+            .layer(auth_layer)
             .layer(
                 CorsLayer::new()
                     .allow_origin(origins)

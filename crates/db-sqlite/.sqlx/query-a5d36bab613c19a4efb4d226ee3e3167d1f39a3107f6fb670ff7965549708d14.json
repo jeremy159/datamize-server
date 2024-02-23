@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                id as \"id: Uuid\",\n                access_token as \"access_token: String\",\n                refresh_token as \"refresh_token: String\",\n                expires_at as \"expires_at: chrono::DateTime<chrono::Utc>\"\n            FROM users\n            WHERE id = $1;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "access_token: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "refresh_token: String",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "expires_at: chrono::DateTime<chrono::Utc>",
+        "ordinal": 3,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "a5d36bab613c19a4efb4d226ee3e3167d1f39a3107f6fb670ff7965549708d14"
+}
