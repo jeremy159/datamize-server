@@ -30,7 +30,7 @@ struct Response<T> {
     data: T,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Client {
     ynab_api_token: String,
     ynab_base_url: Url,
@@ -82,6 +82,7 @@ impl Client {
 
         let http_client = reqwest::Client::builder()
             .default_headers(headers)
+            .redirect(reqwest::redirect::Policy::none())
             .build()?;
 
         Ok(http_client)

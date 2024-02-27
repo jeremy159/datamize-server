@@ -23,9 +23,21 @@ pub fn get_oauth_routes<S: Clone + Send + Sync + 'static>(
 
     (
         Router::new()
-            .route("/callback", get(callback))
-            .route("/login", get(login))
-            .route("/logout", get(logout)),
+            .merge(get_callback_route())
+            .merge(get_login_route())
+            .merge(get_logout_route()),
         backend,
     )
+}
+
+fn get_callback_route<S: Clone + Sync + Send + 'static>() -> Router<S> {
+    Router::new().route("/callback", get(callback))
+}
+
+fn get_login_route<S: Clone + Sync + Send + 'static>() -> Router<S> {
+    Router::new().route("/login", get(login))
+}
+
+fn get_logout_route<S: Clone + Sync + Send + 'static>() -> Router<S> {
+    Router::new().route("/logout", get(logout))
 }

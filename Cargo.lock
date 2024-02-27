@@ -4093,6 +4093,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "fake",
+ "http 0.2.11",
  "mockall",
  "num-traits",
  "reqwest",
