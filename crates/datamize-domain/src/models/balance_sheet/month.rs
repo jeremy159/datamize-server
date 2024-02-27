@@ -4,6 +4,10 @@ use uuid::Uuid;
 use super::{FinancialResourceMonthly, NetTotal};
 use crate::{MonthNum, NetTotals};
 
+// TODO: Try to convert these model to follow the 'Fat Model' design.
+// https://loco.rs/docs/the-app/models/
+// https://github.com/loco-rs/loco/blob/master/examples/demo/src/models/_entities/users.rs
+// https://github.com/SeaQL/sea-orm/blob/master/src/database/db_connection.rs
 /// A balance sheet of the month.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Month {

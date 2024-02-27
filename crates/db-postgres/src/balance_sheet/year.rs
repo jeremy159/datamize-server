@@ -30,6 +30,8 @@ impl PostgresYearRepo {
 }
 
 // TODO: Create index for month and year access to increase performance.
+// And update all schema to improve manipulation (e.g. UNIQUE on cols appropriate,
+// no col with id as name but for example resource_id instead).
 #[async_trait]
 impl YearRepo for PostgresYearRepo {
     #[tracing::instrument(skip(self))]
