@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                m.month_id as \"id: Uuid\",\n                m.month as \"month: MonthNum\",\n                y.year as \"year: i32\"\n            FROM balance_sheet_months AS m\n            JOIN balance_sheet_years AS y ON y.year_id = m.year_id AND y.year = $1\n            ORDER BY m.month;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "month: MonthNum",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "year: i32",
+        "ordinal": 2,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d9a7523bfb4c29a25731c9a12313963b4968f5d79edf64360ccef7b81ad70840"
+}

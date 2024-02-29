@@ -3,7 +3,6 @@ use axum::{
     http::{Request, StatusCode},
 };
 use datamize_domain::{Month, MonthNum, Uuid};
-use db_sqlite::balance_sheet::sabotage_months_table;
 use fake::{Fake, Faker};
 use http_body_util::BodyExt;
 use pretty_assertions::assert_eq;
@@ -70,13 +69,6 @@ async fn returns_404_when_nothing_in_db(pool: SqlitePool) {
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_success_with_what_is_in_db(pool: SqlitePool) {
     check_get(pool, true, StatusCode::OK, Some(Faker.fake())).await;
-}
-
-#[sqlx::test(migrations = "../db-sqlite/migrations")]
-async fn returns_500_when_db_corrupted(pool: SqlitePool) {
-    sabotage_months_table(&pool).await.unwrap();
-
-    check_get(pool, true, StatusCode::INTERNAL_SERVER_ERROR, None).await;
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]

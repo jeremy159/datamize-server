@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                DELETE FROM balance_sheet_unique_resources\n                WHERE resource_id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1a9f4cf048d24aabfcf4576c3cd7f5dadf0a8fec40e2874b565b131f3c0a53ee"
+}

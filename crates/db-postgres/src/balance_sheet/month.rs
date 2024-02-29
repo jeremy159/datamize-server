@@ -33,7 +33,7 @@ impl MonthRepo for PostgresMonthRepo {
         sqlx::query_as!(
             YearData,
             r#"
-            SELECT id, year, refreshed_at
+            SELECT year_id AS "id: Uuid", year, refreshed_at
             FROM balance_sheet_years
             WHERE year = $1;
             "#,
@@ -50,11 +50,11 @@ impl MonthRepo for PostgresMonthRepo {
             MonthData,
             r#"
             SELECT
-                m.id AS "id: Uuid",
+                m.month_id AS "id: Uuid",
                 m.month as "month: MonthNum",
                 y.year as "year: i32"
             FROM balance_sheet_months AS m
-            JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1
+            JOIN balance_sheet_years AS y ON y.year_id = m.year_id AND y.year = $1
             WHERE m.month = $2;
             "#,
             year,
@@ -71,11 +71,11 @@ impl MonthRepo for PostgresMonthRepo {
             MonthData,
             r#"
             SELECT
-                m.id as "id: Uuid",
+                m.month_id as "id: Uuid",
                 m.month as "month: MonthNum",
                 y.year as "year: i32"
             FROM balance_sheet_months AS m
-            JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1
+            JOIN balance_sheet_years AS y ON y.year_id = m.year_id AND y.year = $1
             ORDER BY m.month;
             "#,
             year,
@@ -120,11 +120,11 @@ impl MonthRepo for PostgresMonthRepo {
             MonthData,
             r#"
             SELECT
-                m.id as "id: Uuid",
+                m.month_id as "id: Uuid",
                 m.month as "month: MonthNum",
                 y.year as "year: i32"
             FROM balance_sheet_months AS m
-            JOIN balance_sheet_years AS y ON y.id = m.year_id
+            JOIN balance_sheet_years AS y ON y.year_id = m.year_id
             ORDER BY y.year, m.month;
             "#
         )
@@ -162,11 +162,11 @@ impl MonthRepo for PostgresMonthRepo {
             MonthData,
             r#"
             SELECT
-                m.id as "id: Uuid",
+                m.month_id as "id: Uuid",
                 m.month as "month: MonthNum",
                 y.year as "year: i32"
             FROM balance_sheet_months AS m
-            JOIN balance_sheet_years AS y ON y.id = m.year_id
+            JOIN balance_sheet_years AS y ON y.year_id = m.year_id
             WHERE (y.year > $2 OR (y.year = $2 AND m.month >= $1))
             ORDER BY y.year, m.month;
             "#,
@@ -200,7 +200,7 @@ impl MonthRepo for PostgresMonthRepo {
 
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_months (id, month, year_id)
+            INSERT INTO balance_sheet_months (month_id, month, year_id)
             VALUES ($1, $2, $3);
             "#,
             month.id,
@@ -220,17 +220,17 @@ impl MonthRepo for PostgresMonthRepo {
         let db_rows = sqlx::query!(
             r#"
             SELECT
-                m.id as "month_id: Uuid",
+                m.month_id as "month_id: Uuid",
                 m.month as "month: MonthNum",
-                n.id as "net_total_id: Uuid",
+                n.net_total_id as "net_total_id: Uuid",
                 n.type as "net_type: NetTotalType",
                 n.total,
                 n.percent_var as "percent_var: f32",
                 n.balance_var,
                 n.last_updated as "last_updated?: DateTime<Utc>"
             FROM balance_sheet_months AS m
-            JOIN balance_sheet_net_totals_months AS n ON m.id = n.month_id
-            JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1
+            JOIN balance_sheet_net_totals_months AS n ON m.month_id = n.month_id
+            JOIN balance_sheet_years AS y ON y.year_id = m.year_id AND y.year = $1
             WHERE m.month = $2;
             "#,
             year,
@@ -294,7 +294,7 @@ impl MonthRepo for PostgresMonthRepo {
         let rows = sqlx::query!(
             r#"
             SELECT
-                id AS "id: Uuid",
+                net_total_id AS "id: Uuid",
                 type AS "net_type: NetTotalType",
                 total,
                 percent_var as "percent_var: f32",
@@ -379,9 +379,9 @@ impl MonthRepo for PostgresMonthRepo {
         let net_type = NetTotalType::Asset.to_string();
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, last_updated, month_id)
+            INSERT INTO balance_sheet_net_totals_months (net_total_id, type, total, percent_var, balance_var, last_updated, month_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
-            ON CONFLICT (id) DO UPDATE
+            ON CONFLICT (net_total_id) DO UPDATE
             SET type = EXCLUDED.type,
             total = EXCLUDED.total,
             percent_var = EXCLUDED.percent_var,
@@ -402,9 +402,9 @@ impl MonthRepo for PostgresMonthRepo {
         let net_type = NetTotalType::Portfolio.to_string();
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, last_updated, month_id)
+            INSERT INTO balance_sheet_net_totals_months (net_total_id, type, total, percent_var, balance_var, last_updated, month_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
-            ON CONFLICT (id) DO UPDATE
+            ON CONFLICT (net_total_id) DO UPDATE
             SET type = EXCLUDED.type,
             total = EXCLUDED.total,
             percent_var = EXCLUDED.percent_var,
@@ -432,7 +432,7 @@ impl MonthRepo for PostgresMonthRepo {
         sqlx::query!(
             r#"
                 DELETE FROM balance_sheet_months
-                WHERE month = $1 AND year_id in (SELECT y.id
+                WHERE month = $1 AND year_id in (SELECT y.year_id
                 FROM balance_sheet_years AS y WHERE y.year = $2);
             "#,
             month_num as i16,
@@ -444,33 +444,3 @@ impl MonthRepo for PostgresMonthRepo {
         Ok(())
     }
 }
-
-// #[tracing::instrument(skip(db_conn_pool))]
-// pub async fn get_months_of_resource(
-//     db_conn_pool: &PgPool,
-//     resource_id: Uuid,
-// ) -> Result<Vec<MonthData>, sqlx::Error> {
-//     let mut months: Vec<MonthData> = vec![];
-
-//     let db_rows = sqlx::query!(
-//         r#"
-//             SELECT
-//                 m.*
-//             FROM balance_sheet_months AS m
-//             JOIN balance_sheet_resources_months AS rm ON m.id = rm.month_id AND rm.resource_id = $1
-//             ORDER BY m.month ASC;
-//             "#,
-//         resource_id,
-//     )
-//     .fetch_all(db_conn_pool)
-//     .await?;
-
-//     for r in db_rows {
-//         months.push(MonthData {
-//             id: r.id,
-//             month: r.month,
-//         })
-//     }
-
-//     Ok(months)
-// }

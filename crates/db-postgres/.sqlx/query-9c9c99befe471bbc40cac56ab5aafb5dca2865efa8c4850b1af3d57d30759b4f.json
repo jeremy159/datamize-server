@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    DELETE FROM resources_balance_per_months\n                    WHERE resource_id = $1 AND month_id = $2;\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9c9c99befe471bbc40cac56ab5aafb5dca2865efa8c4850b1af3d57d30759b4f"
+}

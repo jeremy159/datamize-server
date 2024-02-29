@@ -42,9 +42,9 @@ impl SqliteFinResRepo {
         // First update the resource itself
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_resources (id, name, resource_type, ynab_account_ids, external_account_ids)
+            INSERT INTO balance_sheet_resources (resource_id, name, resource_type, ynab_account_ids, external_account_ids)
             VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT (id) DO UPDATE SET
+            ON CONFLICT (resource_id) DO UPDATE SET
             name = EXCLUDED.name,
             resource_type = EXCLUDED.resource_type,
             ynab_account_ids = EXCLUDED.ynab_account_ids,
@@ -68,9 +68,9 @@ impl SqliteFinResRepo {
             MonthData,
             r#"
             SELECT
-                m.id AS "id: Uuid"
+                m.month_id AS "id: Uuid"
             FROM balance_sheet_months AS m
-            JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1
+            JOIN balance_sheet_years AS y ON y.year_id = m.year_id AND y.year = $1
             WHERE m.month = $2;
             "#,
             year,
@@ -107,7 +107,7 @@ impl FinResRepo for SqliteFinResRepo {
         let db_rows = sqlx::query!(
             r#"
             SELECT
-                r.id AS "id: Uuid",
+                r.resource_id AS "id: Uuid",
                 r.name,
                 r.resource_type,
                 r.ynab_account_ids,
@@ -116,9 +116,9 @@ impl FinResRepo for SqliteFinResRepo {
                 m.month AS "month: MonthNum",
                 y.year AS "year: i32"
             FROM balance_sheet_resources AS r
-            JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id
-            JOIN balance_sheet_months AS m ON rm.month_id = m.id
-            JOIN balance_sheet_years AS y ON y.id = m.year_id
+            JOIN balance_sheet_resources_months AS rm ON r.resource_id = rm.resource_id
+            JOIN balance_sheet_months AS m ON rm.month_id = m.month_id
+            JOIN balance_sheet_years AS y ON y.year_id = m.year_id
             "#
         )
         .fetch_all(&self.db_conn_pool)
@@ -166,7 +166,7 @@ impl FinResRepo for SqliteFinResRepo {
         let db_rows = sqlx::query!(
             r#"
             SELECT
-                r.id AS "id: Uuid",
+                r.resource_id AS "id: Uuid",
                 r.name,
                 r.resource_type,
                 r.ynab_account_ids,
@@ -175,9 +175,9 @@ impl FinResRepo for SqliteFinResRepo {
                 m.month AS "month: MonthNum",
                 y.year AS "year: i32"
             FROM balance_sheet_resources AS r
-            JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id
-            JOIN balance_sheet_months AS m ON rm.month_id = m.id
-            JOIN balance_sheet_years AS y ON y.id = m.year_id
+            JOIN balance_sheet_resources_months AS rm ON r.resource_id = rm.resource_id
+            JOIN balance_sheet_months AS m ON rm.month_id = m.month_id
+            JOIN balance_sheet_years AS y ON y.year_id = m.year_id
             WHERE y.year = $1;
             "#,
             year,
@@ -231,16 +231,16 @@ impl FinResRepo for SqliteFinResRepo {
         let db_rows = sqlx::query!(
             r#"
                 SELECT
-                    r.id AS "id: Uuid",
+                    r.resource_id AS "id: Uuid",
                     r.name,
                     r.resource_type,
                     r.ynab_account_ids,
                     r.external_account_ids,
                     rm.balance
                 FROM balance_sheet_resources AS r
-                JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id
-                JOIN balance_sheet_months AS m ON rm.month_id = m.id AND m.month = $1
-                JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $2
+                JOIN balance_sheet_resources_months AS rm ON r.resource_id = rm.resource_id
+                JOIN balance_sheet_months AS m ON rm.month_id = m.month_id AND m.month = $1
+                JOIN balance_sheet_years AS y ON y.year_id = m.year_id AND y.year = $2
                 ORDER BY r.name;
                 "#,
             month,
@@ -282,7 +282,7 @@ impl FinResRepo for SqliteFinResRepo {
         let db_rows = sqlx::query!(
             r#"
             SELECT
-                r.id AS "id: Uuid",
+                r.resource_id AS "id: Uuid",
                 r.name,
                 r.resource_type,
                 r.ynab_account_ids,
@@ -291,10 +291,10 @@ impl FinResRepo for SqliteFinResRepo {
                 m.month AS "month: MonthNum",
                 y.year AS "year: i32"
             FROM balance_sheet_resources AS r
-            JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id
-            JOIN balance_sheet_months AS m ON rm.month_id = m.id
-            JOIN balance_sheet_years AS y ON y.id = m.year_id
-            WHERE r.id = $1;
+            JOIN balance_sheet_resources_months AS rm ON r.resource_id = rm.resource_id
+            JOIN balance_sheet_months AS m ON rm.month_id = m.month_id
+            JOIN balance_sheet_years AS y ON y.year_id = m.year_id
+            WHERE r.resource_id = $1;
             "#,
             resource_id,
         )
@@ -344,7 +344,7 @@ impl FinResRepo for SqliteFinResRepo {
         let db_rows = sqlx::query!(
             r#"
             SELECT
-                r.id AS "id: Uuid",
+                r.resource_id AS "id: Uuid",
                 r.name,
                 r.resource_type,
                 r.ynab_account_ids,
@@ -353,9 +353,9 @@ impl FinResRepo for SqliteFinResRepo {
                 m.month AS "month: MonthNum",
                 y.year AS "year: i32"
             FROM balance_sheet_resources AS r
-            JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id
-            JOIN balance_sheet_months AS m ON rm.month_id = m.id
-            JOIN balance_sheet_years AS y ON y.id = m.year_id
+            JOIN balance_sheet_resources_months AS rm ON r.resource_id = rm.resource_id
+            JOIN balance_sheet_months AS m ON rm.month_id = m.month_id
+            JOIN balance_sheet_years AS y ON y.year_id = m.year_id
             WHERE r.name = $1;
             "#,
             name,
@@ -416,9 +416,9 @@ impl FinResRepo for SqliteFinResRepo {
         // First update the resource itself
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_resources (id, name, resource_type, ynab_account_ids, external_account_ids)
+            INSERT INTO balance_sheet_resources (resource_id, name, resource_type, ynab_account_ids, external_account_ids)
             VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT (id) DO UPDATE
+            ON CONFLICT (resource_id) DO UPDATE
             SET name = EXCLUDED.name,
             resource_type = EXCLUDED.resource_type,
             ynab_account_ids = EXCLUDED.ynab_account_ids,
@@ -443,9 +443,9 @@ impl FinResRepo for SqliteFinResRepo {
                 MonthData,
                 r#"
                 SELECT
-                    m.id AS "id: Uuid"
+                    m.month_id AS "id: Uuid"
                 FROM balance_sheet_months AS m
-                JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1
+                JOIN balance_sheet_years AS y ON y.year_id = m.year_id AND y.year = $1
                 WHERE m.month = $2;
                 "#,
                 year,
@@ -488,9 +488,9 @@ impl FinResRepo for SqliteFinResRepo {
         // First update the resource itself
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_resources (id, name, resource_type, ynab_account_ids, external_account_ids)
+            INSERT INTO balance_sheet_resources (resource_id, name, resource_type, ynab_account_ids, external_account_ids)
             VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT (id) DO UPDATE
+            ON CONFLICT (resource_id) DO UPDATE
             SET name = EXCLUDED.name,
             resource_type = EXCLUDED.resource_type,
             ynab_account_ids = EXCLUDED.ynab_account_ids,
@@ -515,9 +515,9 @@ impl FinResRepo for SqliteFinResRepo {
                 MonthData,
                 r#"
                 SELECT
-                    m.id AS "id: Uuid"
+                    m.month_id AS "id: Uuid"
                 FROM balance_sheet_months AS m
-                JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1
+                JOIN balance_sheet_years AS y ON y.year_id = m.year_id AND y.year = $1
                 WHERE m.month = $2;
                 "#,
                 year,
@@ -562,7 +562,7 @@ impl FinResRepo for SqliteFinResRepo {
         sqlx::query!(
             r#"
                 DELETE FROM balance_sheet_resources
-                WHERE id = $1
+                WHERE resource_id = $1
             "#,
             resource_id,
         )
@@ -579,7 +579,7 @@ struct IdsRecord {
 }
 
 pub async fn sabotage_resources_table(pool: &SqlitePool) -> DbResult<()> {
-    sqlx::query!("ALTER TABLE balance_sheet_resources DROP COLUMN name;",)
+    sqlx::query!("ALTER TABLE balance_sheet_resources DROP COLUMN resource_type;",)
         .execute(pool)
         .await?;
 

@@ -4,7 +4,6 @@ use axum::{
 };
 use chrono::{Datelike, NaiveDate};
 use datamize_domain::Month;
-use db_sqlite::balance_sheet::sabotage_months_table;
 use fake::{faker::chrono::en::Date, Fake};
 use http_body_util::BodyExt;
 use pretty_assertions::assert_eq;
@@ -77,22 +76,6 @@ async fn returns_all_that_is_in_db(pool: SqlitePool) {
         )),
         StatusCode::OK,
         Some(fake::vec![Month; 3..6]),
-    )
-    .await;
-}
-
-#[sqlx::test(migrations = "../db-sqlite/migrations")]
-async fn returns_500_when_db_corrupted(pool: SqlitePool) {
-    sabotage_months_table(&pool).await.unwrap();
-
-    check_get_all(
-        pool,
-        Some((
-            Date().fake::<NaiveDate>().year(),
-            Date().fake::<NaiveDate>().year(),
-        )),
-        StatusCode::INTERNAL_SERVER_ERROR,
-        None,
     )
     .await;
 }

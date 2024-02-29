@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                SELECT\n                    m.month_id AS \"id: Uuid\"\n                FROM balance_sheet_months AS m\n                JOIN balance_sheet_years AS y ON y.year_id = m.year_id AND y.year = $1\n                WHERE m.month = $2;\n                ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: Uuid",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4",
+        "Int2"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "8e11b57c50664a62b35873c6bc15db97b43baf9d4adbd540626eda56c3e7329b"
+}

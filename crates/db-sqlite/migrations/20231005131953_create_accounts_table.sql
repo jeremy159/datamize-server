@@ -13,5 +13,10 @@ CREATE TABLE accounts(
   direct_import_linked BOOLEAN,
   direct_import_in_error BOOLEAN,
   deleted BOOLEAN NOT NULL,
+  last_reconciled_at DATETIME,
+  debt_original_balance BIGINT,
+  debt_interest_rates TEXT NOT NULL,
+  debt_minimum_payments TEXT NOT NULL,
+  debt_escrow_amounts TEXT NOT NULL,
   PRIMARY KEY (id)
 );

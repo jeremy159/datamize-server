@@ -1,4 +1,4 @@
-INSERT INTO public.balance_sheet_resources (id, name, resource_type)
+INSERT INTO public.balance_sheet_unique_resources (resource_id, name, resource_type)
 VALUES
   ('ef6454a5-9322-4e92-9bf9-122e53b71fa7', 'Res_Asset_Cash_Test', 'asset_cash'), -- no ynab or external accounts ids
   ('3930790f-db52-405d-b551-32d14c5450ce', 'Res_Asset_Investment_Test', 'asset_investment'),
@@ -6,7 +6,7 @@ VALUES
   ('33debac2-b8a8-440c-86b6-86157113ef62', 'Res_Liability_Cash_Test', 'liability_cash'),
   ('2b0c6f1d-b5c7-4e57-a33b-43d1a0ae8344', 'Res_Liability_Longterm_Test', 'liability_longTerm');
 
-INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)
+INSERT INTO public.resources_balance_per_months (resource_id, month_id, balance)
 VALUES
   -- Jan 2022
   ('ef6454a5-9322-4e92-9bf9-122e53b71fa7', 'fe57c6dc-a520-4cd3-a611-617dc24d050d', 720080),

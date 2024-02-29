@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                INSERT INTO resources_balance_per_months (resource_id, month_id, balance)\n                SELECT r.resource_id, m.month_id, balance\n                FROM (\n                VALUES\n                    ($1::bigint)\n                ) x (balance)\n                JOIN balance_sheet_unique_resources AS r ON r.resource_id = $2\n                JOIN balance_sheet_years AS y ON y.year = $3\n                JOIN balance_sheet_months AS m ON m.month = $4 AND m.year_id = y.year_id\n                ON CONFLICT (resource_id, month_id) DO UPDATE SET\n                balance = EXCLUDED.balance;\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Uuid",
+        "Int4",
+        "Int2"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1b50609ae4d8d4acdb6557c1634f3928ad72571cf14d9088fc4001a247a99a6d"
+}

@@ -22,7 +22,7 @@ impl PostgresSavingRateRepo {
         sqlx::query_as!(
             YearData,
             r#"
-            SELECT id, year, refreshed_at
+            SELECT year_id AS "id: Uuid", year, refreshed_at
             FROM balance_sheet_years
             WHERE year = $1;
             "#,
@@ -41,7 +41,7 @@ impl SavingRateRepo for PostgresSavingRateRepo {
         let db_rows = sqlx::query!(
             r#"
             SELECT
-                sr.id as saving_rate_id,
+                sr.saving_rate_id as saving_rate_id,
                 sr.name,
                 sr.savings AS "savings!: IdsAndBalanceRecord",
                 sr.employer_contribution,
@@ -49,7 +49,7 @@ impl SavingRateRepo for PostgresSavingRateRepo {
                 sr.mortgage_capital,
                 sr.incomes AS "incomes!: IdsAndBalanceRecord"
             FROM balance_sheet_saving_rates AS sr
-            JOIN balance_sheet_years AS y ON y.id = sr.year_id AND y.year = $1;
+            JOIN balance_sheet_years AS y ON y.year_id = sr.year_id AND y.year = $1;
             "#,
             year,
         )
@@ -84,7 +84,7 @@ impl SavingRateRepo for PostgresSavingRateRepo {
         let db_row = sqlx::query!(
             r#"
             SELECT
-                sr.id,
+                sr.saving_rate_id AS "id",
                 sr.name,
                 sr.savings AS "savings!: IdsAndBalanceRecord",
                 sr.employer_contribution,
@@ -93,8 +93,8 @@ impl SavingRateRepo for PostgresSavingRateRepo {
                 sr.incomes AS "incomes!: IdsAndBalanceRecord",
                 y.year
             FROM balance_sheet_saving_rates AS sr
-            JOIN balance_sheet_years AS y ON y.id = sr.year_id
-            WHERE sr.id = $1;
+            JOIN balance_sheet_years AS y ON y.year_id = sr.year_id
+            WHERE sr.saving_rate_id = $1;
             "#,
             saving_rate_id,
         )
@@ -126,7 +126,7 @@ impl SavingRateRepo for PostgresSavingRateRepo {
         let db_row = sqlx::query!(
             r#"
             SELECT
-                sr.id,
+                sr.saving_rate_id AS "id",
                 sr.name,
                 sr.savings AS "savings!: IdsAndBalanceRecord",
                 sr.employer_contribution,
@@ -135,7 +135,7 @@ impl SavingRateRepo for PostgresSavingRateRepo {
                 sr.incomes AS "incomes!: IdsAndBalanceRecord",
                 y.year
             FROM balance_sheet_saving_rates AS sr
-            JOIN balance_sheet_years AS y ON y.id = sr.year_id
+            JOIN balance_sheet_years AS y ON y.year_id = sr.year_id
             WHERE sr.name = $1;
             "#,
             name,
@@ -169,9 +169,9 @@ impl SavingRateRepo for PostgresSavingRateRepo {
 
         sqlx::query_unchecked!(
             r#"
-            INSERT INTO balance_sheet_saving_rates (id, name, savings, employer_contribution, employee_contribution, mortgage_capital, incomes, year_id)
+            INSERT INTO balance_sheet_saving_rates (saving_rate_id, name, savings, employer_contribution, employee_contribution, mortgage_capital, incomes, year_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            ON CONFLICT (id) DO UPDATE SET
+            ON CONFLICT (saving_rate_id) DO UPDATE SET
             name = EXCLUDED.name,
             savings = EXCLUDED.savings,
             employer_contribution = EXCLUDED.employer_contribution,
@@ -200,7 +200,7 @@ impl SavingRateRepo for PostgresSavingRateRepo {
         sqlx::query!(
             r#"
                 DELETE FROM balance_sheet_saving_rates
-                WHERE id = $1
+                WHERE saving_rate_id = $1
             "#,
             saving_rate_id,
         )

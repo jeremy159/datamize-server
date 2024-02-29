@@ -31,7 +31,7 @@ impl FinResRepo for PostgresFinResRepo {
         let db_rows = sqlx::query!(
             r#"
             SELECT
-                r.id AS "id: Uuid",
+                r.resource_id AS "id: Uuid",
                 r.name,
                 r.resource_type,
                 r.ynab_account_ids,
@@ -39,10 +39,10 @@ impl FinResRepo for PostgresFinResRepo {
                 rm.balance,
                 m.month AS "month: MonthNum",
                 y.year AS "year: i32"
-            FROM balance_sheet_resources AS r
-            JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id
-            JOIN balance_sheet_months AS m ON rm.month_id = m.id
-            JOIN balance_sheet_years AS y ON y.id = m.year_id
+            FROM balance_sheet_unique_resources AS r
+            JOIN resources_balance_per_months AS rm ON r.resource_id = rm.resource_id
+            JOIN balance_sheet_months AS m ON rm.month_id = m.month_id
+            JOIN balance_sheet_years AS y ON y.year_id = m.year_id
             "#
         )
         .fetch_all(&self.db_conn_pool)
@@ -77,7 +77,7 @@ impl FinResRepo for PostgresFinResRepo {
         let db_rows = sqlx::query!(
             r#"
             SELECT
-                r.id AS "id: Uuid",
+                r.resource_id AS "id: Uuid",
                 r.name,
                 r.resource_type,
                 r.ynab_account_ids,
@@ -85,10 +85,10 @@ impl FinResRepo for PostgresFinResRepo {
                 rm.balance,
                 m.month AS "month: MonthNum",
                 y.year AS "year: i32"
-            FROM balance_sheet_resources AS r
-            JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id
-            JOIN balance_sheet_months AS m ON rm.month_id = m.id
-            JOIN balance_sheet_years AS y ON y.id = m.year_id
+            FROM balance_sheet_unique_resources AS r
+            JOIN resources_balance_per_months AS rm ON r.resource_id = rm.resource_id
+            JOIN balance_sheet_months AS m ON rm.month_id = m.month_id
+            JOIN balance_sheet_years AS y ON y.year_id = m.year_id
             WHERE y.year = $1;
             "#,
             year,
@@ -129,16 +129,16 @@ impl FinResRepo for PostgresFinResRepo {
         let db_rows = sqlx::query!(
             r#"
                 SELECT
-                    r.id AS "id: Uuid",
+                    r.resource_id AS "id: Uuid",
                     r.name,
                     r.resource_type,
                     r.ynab_account_ids,
                     r.external_account_ids,
                     rm.balance
-                FROM balance_sheet_resources AS r
-                JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id
-                JOIN balance_sheet_months AS m ON rm.month_id = m.id AND m.month = $1
-                JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $2
+                FROM balance_sheet_unique_resources AS r
+                JOIN resources_balance_per_months AS rm ON r.resource_id = rm.resource_id
+                JOIN balance_sheet_months AS m ON rm.month_id = m.month_id AND m.month = $1
+                JOIN balance_sheet_years AS y ON y.year_id = m.year_id AND y.year = $2
                 ORDER BY r.name;
                 "#,
             month as i16,
@@ -167,7 +167,7 @@ impl FinResRepo for PostgresFinResRepo {
         let db_rows = sqlx::query!(
             r#"
             SELECT
-                r.id AS "id: Uuid",
+                r.resource_id AS "id: Uuid",
                 r.name,
                 r.resource_type,
                 r.ynab_account_ids,
@@ -175,11 +175,11 @@ impl FinResRepo for PostgresFinResRepo {
                 rm.balance,
                 m.month AS "month: MonthNum",
                 y.year AS "year: i32"
-            FROM balance_sheet_resources AS r
-            JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id
-            JOIN balance_sheet_months AS m ON rm.month_id = m.id
-            JOIN balance_sheet_years AS y ON y.id = m.year_id
-            WHERE r.id = $1;
+            FROM balance_sheet_unique_resources AS r
+            JOIN resources_balance_per_months AS rm ON r.resource_id = rm.resource_id
+            JOIN balance_sheet_months AS m ON rm.month_id = m.month_id
+            JOIN balance_sheet_years AS y ON y.year_id = m.year_id
+            WHERE r.resource_id = $1;
             "#,
             resource_id,
         )
@@ -216,7 +216,7 @@ impl FinResRepo for PostgresFinResRepo {
         let db_rows = sqlx::query!(
             r#"
             SELECT
-                r.id AS "id: Uuid",
+                r.resource_id AS "id: Uuid",
                 r.name,
                 r.resource_type,
                 r.ynab_account_ids,
@@ -224,10 +224,10 @@ impl FinResRepo for PostgresFinResRepo {
                 rm.balance,
                 m.month AS "month: MonthNum",
                 y.year AS "year: i32"
-            FROM balance_sheet_resources AS r
-            JOIN balance_sheet_resources_months AS rm ON r.id = rm.resource_id
-            JOIN balance_sheet_months AS m ON rm.month_id = m.id
-            JOIN balance_sheet_years AS y ON y.id = m.year_id
+            FROM balance_sheet_unique_resources AS r
+            JOIN resources_balance_per_months AS rm ON r.resource_id = rm.resource_id
+            JOIN balance_sheet_months AS m ON rm.month_id = m.month_id
+            JOIN balance_sheet_years AS y ON y.year_id = m.year_id
             WHERE r.name = $1;
             "#,
             name,
@@ -268,9 +268,9 @@ impl FinResRepo for PostgresFinResRepo {
         // First update the resource itself
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_resources (id, name, resource_type, ynab_account_ids, external_account_ids)
+            INSERT INTO balance_sheet_unique_resources (resource_id, name, resource_type, ynab_account_ids, external_account_ids)
             VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT (id) DO UPDATE
+            ON CONFLICT (resource_id) DO UPDATE
             SET name = EXCLUDED.name,
             resource_type = EXCLUDED.resource_type,
             ynab_account_ids = EXCLUDED.ynab_account_ids,
@@ -297,15 +297,15 @@ impl FinResRepo for PostgresFinResRepo {
         for (year, month, balance) in resource.iter_balances() {
             sqlx::query!(
                 r#"
-                INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)
-                SELECT r.id, m.id, balance
+                INSERT INTO resources_balance_per_months (resource_id, month_id, balance)
+                SELECT r.resource_id, m.month_id, balance
                 FROM (
                 VALUES
                     ($1::bigint)
                 ) x (balance)
-                JOIN balance_sheet_resources AS r ON r.id = $2
+                JOIN balance_sheet_unique_resources AS r ON r.resource_id = $2
                 JOIN balance_sheet_years AS y ON y.year = $3
-                JOIN balance_sheet_months AS m ON m.month = $4 AND m.year_id = y.id
+                JOIN balance_sheet_months AS m ON m.month = $4 AND m.year_id = y.year_id
                 ON CONFLICT (resource_id, month_id) DO UPDATE SET
                 balance = EXCLUDED.balance;
                 "#,
@@ -326,12 +326,12 @@ impl FinResRepo for PostgresFinResRepo {
 
         // sqlx::query!(
         //     r#"
-        //         INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)
+        //         INSERT INTO resources_balance_per_months (resource_id, month_id, balance)
         //         SELECT r.id, m.id, x.balance
         //         FROM (
         //             SELECT unnest($1::INT[], $2::SMALLINT[], $3::BIGINT[]) AS balance
         //         ) AS x
-        //         JOIN balance_sheet_resources AS r ON r.id = $4
+        //         JOIN balance_sheet_unique_resources AS r ON r.id = $4
         //         JOIN balance_sheet_years AS y ON y.year = x.year
         //         JOIN balance_sheet_months AS m ON m.month = x.month AND m.year_id = y.id
         //         ON CONFLICT (resource_id, month_id) DO UPDATE SET
@@ -354,9 +354,9 @@ impl FinResRepo for PostgresFinResRepo {
         // First update the resource itself
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_resources (id, name, resource_type, ynab_account_ids, external_account_ids)
+            INSERT INTO balance_sheet_unique_resources (resource_id, name, resource_type, ynab_account_ids, external_account_ids)
             VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT (id) DO UPDATE
+            ON CONFLICT (resource_id) DO UPDATE
             SET name = EXCLUDED.name,
             resource_type = EXCLUDED.resource_type,
             ynab_account_ids = EXCLUDED.ynab_account_ids,
@@ -390,9 +390,9 @@ impl FinResRepo for PostgresFinResRepo {
                 MonthData,
                 r#"
                 SELECT
-                    m.id AS "id: Uuid"
+                    m.month_id AS "id: Uuid"
                 FROM balance_sheet_months AS m
-                JOIN balance_sheet_years AS y ON y.id = m.year_id AND y.year = $1
+                JOIN balance_sheet_years AS y ON y.year_id = m.year_id AND y.year = $1
                 WHERE m.month = $2;
                 "#,
                 year,
@@ -404,7 +404,7 @@ impl FinResRepo for PostgresFinResRepo {
             if let Some(balance) = balance {
                 sqlx::query!(
                     r#"
-                    INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)
+                    INSERT INTO resources_balance_per_months (resource_id, month_id, balance)
                     VALUES ($1, $2, $3)
                     ON CONFLICT (resource_id, month_id) DO UPDATE SET
                     balance = EXCLUDED.balance;
@@ -418,7 +418,7 @@ impl FinResRepo for PostgresFinResRepo {
             } else {
                 sqlx::query!(
                     r#"
-                    DELETE FROM balance_sheet_resources_months
+                    DELETE FROM resources_balance_per_months
                     WHERE resource_id = $1 AND month_id = $2;
                     "#,
                     resource.base.id,
@@ -432,13 +432,13 @@ impl FinResRepo for PostgresFinResRepo {
         //     if let Some(balance) = balance {
         //         sqlx::query!(
         //             r#"
-        //             INSERT INTO balance_sheet_resources_months (resource_id, month_id, balance)
+        //             INSERT INTO resources_balance_per_months (resource_id, month_id, balance)
         //             SELECT r.id, m.id, balance
         //             FROM (
         //             VALUES
         //                 ($1::bigint)
         //             ) x (balance)
-        //             JOIN balance_sheet_resources AS r ON r.id = $2
+        //             JOIN balance_sheet_unique_resources AS r ON r.id = $2
         //             JOIN balance_sheet_years AS y ON y.year = $3
         //             JOIN balance_sheet_months AS m ON m.month = $4 AND m.year_id = y.id
         //             ON CONFLICT (resource_id, month_id) DO UPDATE SET
@@ -454,9 +454,9 @@ impl FinResRepo for PostgresFinResRepo {
         //     } else {
         //         sqlx::query!(
         //             r#"
-        //             DELETE FROM balance_sheet_resources_months
+        //             DELETE FROM resources_balance_per_months
         //             WHERE EXISTS(
-        //                 SELECT 1 FROM balance_sheet_resources AS r
+        //                 SELECT 1 FROM balance_sheet_unique_resources AS r
         //                 JOIN balance_sheet_years AS y ON y.year = $2
         //                 JOIN balance_sheet_months AS m ON m.month = $3 AND m.year_id = y.id
         //                 WHERE r.id = $1
@@ -478,8 +478,8 @@ impl FinResRepo for PostgresFinResRepo {
     async fn delete(&self, resource_id: Uuid) -> DbResult<()> {
         sqlx::query!(
             r#"
-                DELETE FROM balance_sheet_resources
-                WHERE id = $1
+                DELETE FROM balance_sheet_unique_resources
+                WHERE resource_id = $1
             "#,
             resource_id,
         )

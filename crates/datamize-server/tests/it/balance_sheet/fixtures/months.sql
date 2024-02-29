@@ -1,4 +1,4 @@
-INSERT INTO public.balance_sheet_months (id, month, year_id)
+INSERT INTO public.balance_sheet_months (month_id, month, year_id)
 VALUES
   -- Jan 2022
   ('fe57c6dc-a520-4cd3-a611-617dc24d050d', 1, 'a8807643-efcc-446d-8495-8d3c42d5af4a'),
@@ -12,7 +12,7 @@ VALUES
   ('8ca12f29-93b9-4d06-8d7d-5bcde81efbc9', 11, '36e89291-c088-446b-a320-d9fd44d93743');
   -- Nothing in 2024
 
-INSERT INTO balance_sheet_net_totals_months (id, type, total, percent_var, balance_var, last_updated, month_id)
+INSERT INTO public.balance_sheet_net_totals_months (net_total_id, type, total, percent_var, balance_var, last_updated, month_id)
 VALUES
   ('691f8c2c-50c8-49af-a882-f12248ac665d', 'asset', 884400, 0.1083, 792003, '2023-04-03 15:11:51.512406+00', 'fe57c6dc-a520-4cd3-a611-617dc24d050d'),
   ('606cd327-00ec-475a-8db1-1f6c576453dc', 'portfolio', 978503, 0.0030, 366151, '2023-04-03 15:11:51.512406+00', 'fe57c6dc-a520-4cd3-a611-617dc24d050d'),

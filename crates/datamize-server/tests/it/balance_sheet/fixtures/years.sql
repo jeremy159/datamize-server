@@ -1,10 +1,10 @@
-INSERT INTO public.balance_sheet_years (id, year, refreshed_at)
+INSERT INTO public.balance_sheet_years (year_id, year, refreshed_at)
 VALUES
   ('a8807643-efcc-446d-8495-8d3c42d5af4a', 2022, '2023-04-03 15:11:51.512406+00'),
   ('36e89291-c088-446b-a320-d9fd44d93743', 2023, '2023-12-21 19:41:52.478037+00'),
   ('99294fc1-8e32-4508-a91f-061f059400b7', 2024, '2024-01-31 13:23:12.790315+00');
 
-INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, last_updated, year_id)
+INSERT INTO public.balance_sheet_net_totals_years (net_total_id, type, total, percent_var, balance_var, last_updated, year_id)
 VALUES
   ('d546e562-45bb-4248-857a-ff7024695721', 'asset', 884400, 0.1083, 792003, '2023-04-03 15:11:51.512406+00', 'a8807643-efcc-446d-8495-8d3c42d5af4a'),
   ('b94896f7-ad76-40c5-a5d1-7c2592538662', 'portfolio', 978503, 0.0030, 366151, '2023-04-03 15:11:51.512406+00', 'a8807643-efcc-446d-8495-8d3c42d5af4a'),

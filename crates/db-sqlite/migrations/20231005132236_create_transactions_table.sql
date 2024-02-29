@@ -18,6 +18,9 @@ CREATE TABLE transactions(
   account_name TEXT NOT NULL,
   payee_name TEXT,
   category_name TEXT,
+  import_payee_name TEXT,
+  import_payee_name_original TEXT,
+  debt_transaction_type TEXT,
   subtransactions TEXT NOT NULL,
   PRIMARY KEY (id)
 );

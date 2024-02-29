@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO balance_sheet_resources (resource_id, name, resource_type, ynab_account_ids, external_account_ids)\n            VALUES ($1, $2, $3, $4, $5)\n            ON CONFLICT (resource_id) DO UPDATE\n            SET name = EXCLUDED.name,\n            resource_type = EXCLUDED.resource_type,\n            ynab_account_ids = EXCLUDED.ynab_account_ids,\n            external_account_ids = EXCLUDED.external_account_ids;\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "fa30b8332369943272f31efbda6b1b4bff59075e31ec7ef1bfa52b46745f6117"
+}

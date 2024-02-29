@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT year_id as \"id: Uuid\", year as \"year: i32\", refreshed_at as \"refreshed_at: DateTime<Utc>\"\n            FROM balance_sheet_years\n            WHERE year = $1;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "year: i32",
+        "ordinal": 1,
+        "type_info": "Int64"
+      },
+      {
+        "name": "refreshed_at: DateTime<Utc>",
+        "ordinal": 2,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "f681b20594b69bb56c939ae1c5c0fe4763bac745850be6c5ce3f6220de146bf1"
+}

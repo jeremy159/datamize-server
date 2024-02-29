@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                SELECT\n                    r.resource_id AS \"id: Uuid\",\n                    r.name,\n                    r.resource_type,\n                    r.ynab_account_ids,\n                    r.external_account_ids,\n                    rm.balance\n                FROM balance_sheet_resources AS r\n                JOIN balance_sheet_resources_months AS rm ON r.resource_id = rm.resource_id\n                JOIN balance_sheet_months AS m ON rm.month_id = m.month_id AND m.month = $1\n                JOIN balance_sheet_years AS y ON y.year_id = m.year_id AND y.year = $2\n                ORDER BY r.name;\n                ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "resource_type",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "ynab_account_ids",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "external_account_ids",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "balance",
+        "ordinal": 5,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "658666246fc1effaec1d1dc94a9c219a40688bb773efb720a8272ac925e7f330"
+}

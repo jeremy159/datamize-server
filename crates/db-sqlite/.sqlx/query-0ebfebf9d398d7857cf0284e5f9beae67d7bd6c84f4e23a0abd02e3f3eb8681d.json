@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                net_total_id AS \"id: Uuid\",\n                type AS \"net_type: NetTotalType\",\n                total,\n                percent_var as \"percent_var: f32\",\n                balance_var,\n                last_updated as \"last_updated?: DateTime<Utc>\"\n            FROM balance_sheet_net_totals_years\n            WHERE year_id = $1;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "net_type: NetTotalType",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "total",
+        "ordinal": 2,
+        "type_info": "Int64"
+      },
+      {
+        "name": "percent_var: f32",
+        "ordinal": 3,
+        "type_info": "Float"
+      },
+      {
+        "name": "balance_var",
+        "ordinal": 4,
+        "type_info": "Int64"
+      },
+      {
+        "name": "last_updated?: DateTime<Utc>",
+        "ordinal": 5,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "0ebfebf9d398d7857cf0284e5f9beae67d7bd6c84f4e23a0abd02e3f3eb8681d"
+}

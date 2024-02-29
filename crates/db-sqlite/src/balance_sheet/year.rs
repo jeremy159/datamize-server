@@ -37,7 +37,7 @@ impl YearRepo for SqliteYearRepo {
             YearData,
             r#"
             SELECT
-                id as "id: Uuid",
+                year_id as "id: Uuid",
                 year as "year: i32",
                 refreshed_at as "refreshed_at: DateTime<Utc>"
             FROM balance_sheet_years
@@ -71,7 +71,7 @@ impl YearRepo for SqliteYearRepo {
             YearData,
             r#"
             SELECT
-                id as "id: Uuid",
+                year_id as "id: Uuid",
                 year as "year: i32",
                 refreshed_at as "refreshed_at: DateTime<Utc>"
             FROM balance_sheet_years
@@ -109,7 +109,7 @@ impl YearRepo for SqliteYearRepo {
         sqlx::query_as!(
             YearData,
             r#"
-            SELECT id as "id: Uuid", year as "year: i32", refreshed_at as "refreshed_at: DateTime<Utc>"
+            SELECT year_id as "id: Uuid", year as "year: i32", refreshed_at as "refreshed_at: DateTime<Utc>"
             FROM balance_sheet_years
             WHERE year = $1;
             "#,
@@ -124,7 +124,7 @@ impl YearRepo for SqliteYearRepo {
     async fn add(&self, year: &Year) -> DbResult<()> {
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_years (id, year, refreshed_at)
+            INSERT INTO balance_sheet_years (year_id, year, refreshed_at)
             VALUES ($1, $2, $3);
             "#,
             year.id,
@@ -184,7 +184,7 @@ impl YearRepo for SqliteYearRepo {
         let rows = sqlx::query!(
             r#"
             SELECT
-                id AS "id: Uuid",
+                net_total_id AS "id: Uuid",
                 type AS "net_type: NetTotalType",
                 total,
                 percent_var as "percent_var: f32",
@@ -262,9 +262,9 @@ impl YearRepo for SqliteYearRepo {
         let net_type = NetTotalType::Asset.to_string();
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, last_updated, year_id)
+            INSERT INTO balance_sheet_net_totals_years (net_total_id, type, total, percent_var, balance_var, last_updated, year_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
-            ON CONFLICT (id) DO UPDATE
+            ON CONFLICT (net_total_id) DO UPDATE
             SET type = EXCLUDED.type,
             total = EXCLUDED.total,
             percent_var = EXCLUDED.percent_var,
@@ -285,9 +285,9 @@ impl YearRepo for SqliteYearRepo {
         let net_type = NetTotalType::Portfolio.to_string();
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_net_totals_years (id, type, total, percent_var, balance_var, last_updated, year_id)
+            INSERT INTO balance_sheet_net_totals_years (net_total_id, type, total, percent_var, balance_var, last_updated, year_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
-            ON CONFLICT (id) DO UPDATE
+            ON CONFLICT (net_total_id) DO UPDATE
             SET type = EXCLUDED.type,
             total = EXCLUDED.total,
             percent_var = EXCLUDED.percent_var,
@@ -314,9 +314,9 @@ impl YearRepo for SqliteYearRepo {
     async fn update_refreshed_at(&self, year: &YearData) -> DbResult<()> {
         sqlx::query!(
             r#"
-            INSERT INTO balance_sheet_years (id, year, refreshed_at)
+            INSERT INTO balance_sheet_years (year_id, year, refreshed_at)
             VALUES ($1, $2, $3)
-            ON CONFLICT (id) DO UPDATE SET
+            ON CONFLICT (year_id) DO UPDATE SET
             refreshed_at = EXCLUDED.refreshed_at;
             "#,
             year.id,

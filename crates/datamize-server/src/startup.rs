@@ -65,7 +65,6 @@ impl Application {
                 .unwrap(),
         ];
 
-        // TODO: Implement oauth with YNAB. Check https://github.com/tokio-rs/axum/blob/main/examples/oauth/src/main.rs as an example
         let app = Router::new()
             .route("/", get(|| async { "Welcome to Datamize!" }))
             .route("/health_check", get(health_check))

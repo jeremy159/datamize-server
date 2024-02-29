@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    INSERT INTO resources_balance_per_months (resource_id, month_id, balance)\n                    VALUES ($1, $2, $3)\n                    ON CONFLICT (resource_id, month_id) DO UPDATE SET\n                    balance = EXCLUDED.balance;\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "110aadc9d9dd829d837fa253b881a831502ed07a68fa714d4e1136913d1062cf"
+}

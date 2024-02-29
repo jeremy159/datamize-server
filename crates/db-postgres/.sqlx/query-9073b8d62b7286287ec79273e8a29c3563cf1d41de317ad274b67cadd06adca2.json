@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                net_total_id AS \"id: Uuid\",\n                type AS \"net_type: NetTotalType\",\n                total,\n                percent_var as \"percent_var: f32\",\n                balance_var,\n                last_updated as \"last_updated?: DateTime<Utc>\"\n            FROM balance_sheet_net_totals_months\n            WHERE month_id = $1;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: Uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "net_type: NetTotalType",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "total",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "percent_var: f32",
+        "type_info": "Float4"
+      },
+      {
+        "ordinal": 4,
+        "name": "balance_var",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "last_updated?: DateTime<Utc>",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "9073b8d62b7286287ec79273e8a29c3563cf1d41de317ad274b67cadd06adca2"
+}

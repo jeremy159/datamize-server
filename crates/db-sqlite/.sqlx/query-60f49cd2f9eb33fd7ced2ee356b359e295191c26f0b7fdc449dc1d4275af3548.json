@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n                DELETE FROM balance_sheet_resources\n                WHERE resource_id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "60f49cd2f9eb33fd7ced2ee356b359e295191c26f0b7fdc449dc1d4275af3548"
+}

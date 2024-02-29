@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            INSERT INTO balance_sheet_years (year_id, year, refreshed_at)\n            VALUES ($1, $2, $3);\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "d50cd800348bee1fe5cacc9286e28d1a9514a8602904b0bc0ce06ec57d42c3b4"
+}

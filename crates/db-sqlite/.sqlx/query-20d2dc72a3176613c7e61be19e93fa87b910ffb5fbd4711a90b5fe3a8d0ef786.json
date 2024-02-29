@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                m.month_id AS \"id: Uuid\"\n            FROM balance_sheet_months AS m\n            JOIN balance_sheet_years AS y ON y.year_id = m.year_id AND y.year = $1\n            WHERE m.month = $2;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "20d2dc72a3176613c7e61be19e93fa87b910ffb5fbd4711a90b5fe3a8d0ef786"
+}

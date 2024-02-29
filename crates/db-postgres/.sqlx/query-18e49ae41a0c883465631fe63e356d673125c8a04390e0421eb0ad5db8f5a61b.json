@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                DELETE FROM balance_sheet_months\n                WHERE month = $1 AND year_id in (SELECT y.year_id\n                FROM balance_sheet_years AS y WHERE y.year = $2);\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int2",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "18e49ae41a0c883465631fe63e356d673125c8a04390e0421eb0ad5db8f5a61b"
+}

@@ -1,0 +1,96 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                sr.saving_rate_id AS \"id\",\n                sr.name,\n                sr.savings AS \"savings!: IdsAndBalanceRecord\",\n                sr.employer_contribution,\n                sr.employee_contribution,\n                sr.mortgage_capital,\n                sr.incomes AS \"incomes!: IdsAndBalanceRecord\",\n                y.year\n            FROM balance_sheet_saving_rates AS sr\n            JOIN balance_sheet_years AS y ON y.year_id = sr.year_id\n            WHERE sr.name = $1;\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "savings!: IdsAndBalanceRecord",
+        "type_info": {
+          "Custom": {
+            "name": "ids_and_balance",
+            "kind": {
+              "Composite": [
+                [
+                  "ids",
+                  "UuidArray"
+                ],
+                [
+                  "extra_balance",
+                  "Int8"
+                ]
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "employer_contribution",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "employee_contribution",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "mortgage_capital",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "incomes!: IdsAndBalanceRecord",
+        "type_info": {
+          "Custom": {
+            "name": "ids_and_balance",
+            "kind": {
+              "Composite": [
+                [
+                  "ids",
+                  "UuidArray"
+                ],
+                [
+                  "extra_balance",
+                  "Int8"
+                ]
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "year",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "b1fb791ac8cfd23dff860f24242151d33c2755d7ff9d0b744bd4ae5d2fa65caf"
+}

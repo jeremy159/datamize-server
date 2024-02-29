@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                DELETE FROM balance_sheet_saving_rates\n                WHERE saving_rate_id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1c6b412ac45513cef51f59ed7918466b1639adacf0510b9ec22d56bf9645f8b8"
+}
