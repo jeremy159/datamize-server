@@ -19,7 +19,14 @@ Once you have that token in a file, run `docker secret create ynab_pat ynab_pat.
 
 And that's it, you should be able to run the server with access to YNAB's API.
 
-## To get inspiration from
+## Development Status
 
-- https://advanced-tools-for-ynab.web.app
-- https://beyondrule4.jmmorrissey.com/home
+- [x] Better computation & representation of Budgeters
+- [x] Better computation & representation of Expenses
+- [x] Better representation of Net Totals
+- [x] Improved Error logs
+- [x] Better representation of Financial Resource throughout years
+- [] Oauth with YNAB
+- [] Saving User Preferences in the DB
+- [] Better handling of newly deleted elements from YNAB's API
+- [] Better handling of different budget
