@@ -1,5 +1,5 @@
-CREATE EXTENSION IF NOT EXISTS pgcrypto
 -- Step 1: Create the new resources
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 INSERT INTO balance_sheet_unique_resources (resource_id, name, resource_type, ynab_account_ids, external_account_ids)
 (SELECT
  	gen_random_uuid(),
