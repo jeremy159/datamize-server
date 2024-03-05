@@ -32,7 +32,10 @@ async fn check_get(
             .await;
     }
 
-    let response = context.into_service().get_template_summary(month).await;
+    let response = context
+        .into_service()
+        .get_template_summary(month, false)
+        .await;
 
     // We don't really care what's the answer, as long as it is able to parse it
     response.unwrap();

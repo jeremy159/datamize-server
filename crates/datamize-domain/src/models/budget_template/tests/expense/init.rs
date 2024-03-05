@@ -18,7 +18,10 @@ fn correctly_converts_category_to_uncomputed_expense() {
 
     // Default value for the other fields
     assert_eq!(expense.expense_type(), &ExpenseType::default());
-    assert_eq!(expense.sub_expense_type(), &SubExpenseType::default());
+    assert_eq!(
+        expense.sub_expense_type(),
+        &SubExpenseType::default().to_string()
+    );
     assert_eq!(expense.individual_associated(), Option::default());
     assert_eq!(expense.scheduled_transactions(), Vec::default());
 }
@@ -28,10 +31,13 @@ fn no_categorization_when_category_does_not_match_any_group() {
     let category: Category = Faker.fake();
     let expense: Expense<Uncomputed> = category.clone().into();
     let expenses_categorization = fake::vec![ExpenseCategorization; 1..5];
-    let expense = expense.set_categorization(&expenses_categorization);
+    let expense = expense.set_categorization(&expenses_categorization, false);
 
     assert_eq!(expense.expense_type(), &ExpenseType::default());
-    assert_eq!(expense.sub_expense_type(), &SubExpenseType::default());
+    assert_eq!(
+        expense.sub_expense_type(),
+        &SubExpenseType::default().to_string()
+    );
 }
 
 #[test]
@@ -42,7 +48,7 @@ fn sets_type_and_sub_type_of_categorization_when_match() {
         ..Faker.fake()
     };
     let expense: Expense<Uncomputed> = category.clone().into();
-    let expense = expense.set_categorization(&expenses_categorization);
+    let expense = expense.set_categorization(&expenses_categorization, false);
 
     assert_eq!(
         expense.expense_type(),
@@ -50,7 +56,7 @@ fn sets_type_and_sub_type_of_categorization_when_match() {
     );
     assert_eq!(
         expense.sub_expense_type(),
-        &expenses_categorization[0].sub_expense_type
+        &expenses_categorization[0].sub_expense_type.to_string()
     );
 }
 

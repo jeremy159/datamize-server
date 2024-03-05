@@ -89,7 +89,7 @@ impl YearRepo for PostgresYearRepo {
             let net_totals = self.get_net_totals(yd.id).await?;
             let months = self
                 .month_repo
-                .get_months_of_year_without_resources(year)
+                .get_months_of_year_without_resources(yd.year)
                 .await?;
 
             years.push(Year {

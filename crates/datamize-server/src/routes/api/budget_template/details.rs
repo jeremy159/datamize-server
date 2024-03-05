@@ -13,9 +13,15 @@ pub async fn template_details(
     State(template_detail_service): State<DynTemplateDetailService>,
     template_params: Query<TemplateParams>,
 ) -> HttpJsonDatamizeResult<BudgetDetails> {
+    let use_category_groups_as_sub_type = template_params
+        .use_category_groups_as_sub_type
+        .unwrap_or_default()
+        .0;
     let month = template_params.month.unwrap_or_default();
 
     Ok(AppJson(
-        template_detail_service.get_template_details(month).await?,
+        template_detail_service
+            .get_template_details(month, use_category_groups_as_sub_type)
+            .await?,
     ))
 }

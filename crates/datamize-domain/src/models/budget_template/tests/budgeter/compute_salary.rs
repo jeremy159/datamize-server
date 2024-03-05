@@ -1,4 +1,4 @@
-use chrono::{Datelike, Days, Local};
+use chrono::{Datelike, Days, Local, Months};
 use fake::{Fake, Faker};
 use pretty_assertions::assert_eq;
 use uuid::Uuid;
@@ -119,6 +119,7 @@ fn salary_takes_all_linked_scheduled_transactions() {
         frequency: RecurFrequency::Never,
         payee_id: Some(budgeter.payee_ids()[0]),
         payee_name: Some(Faker.fake()),
+        date_next: Local::now().date_naive(),
         ..Faker.fake()
     };
     let sec_trans = DatamizeScheduledTransaction {
@@ -126,6 +127,7 @@ fn salary_takes_all_linked_scheduled_transactions() {
         frequency: RecurFrequency::Never,
         payee_id: Some(budgeter.payee_ids()[1]),
         payee_name: Some(Faker.fake()),
+        date_next: Local::now().date_naive(),
         ..Faker.fake()
     };
     check_method_budgeter(
@@ -196,6 +198,7 @@ fn salary_takes_all_linked_scheduled_transactions_even_when_repeated() {
         frequency: RecurFrequency::Never,
         payee_id: Some(budgeter.payee_ids()[1]),
         payee_name: Some(Faker.fake()),
+        date_next: Local::now().date_naive(),
         ..Faker.fake()
     };
     check_method_budgeter(
@@ -264,6 +267,7 @@ fn salary_takes_inflow_from_sub_transaction() {
         frequency: RecurFrequency::Never,
         payee_id: Some(budgeter.payee_ids()[0]),
         payee_name: Some(Faker.fake()),
+        date_next: Local::now().date_naive(),
         subtransactions,
         ..Faker.fake()
     };
@@ -293,6 +297,7 @@ fn salary_does_not_take_inflow_from_sub_transaction_even_if_defined() {
         frequency: RecurFrequency::Never,
         payee_id: Some(budgeter.payee_ids()[0]),
         payee_name: Some(Faker.fake()),
+        date_next: Local::now().date_naive(),
         subtransactions,
         ..Faker.fake()
     };
@@ -304,5 +309,38 @@ fn salary_does_not_take_inflow_from_sub_transaction_even_if_defined() {
         Expected {
             salary_month: transaction.amount,
         },
+    );
+}
+
+#[test]
+fn salary_does_not_take_amount_from_transaction_when_first_occurence_is_the_month_after() {
+    let config = BudgeterConfig {
+        payee_ids: fake::vec![Uuid; 2..3],
+        ..Faker.fake()
+    };
+    let budgeter: Budgeter<Configured> = config.clone().into();
+    let inflow_cat_id = Faker.fake();
+
+    let date_first = Local::now()
+        .date_naive()
+        .checked_add_days(Days::new(2))
+        .and_then(|d| d.checked_add_months(Months::new(1)))
+        .unwrap();
+    let transaction = DatamizeScheduledTransaction {
+        amount: (1..100000).fake(),
+        frequency: RecurFrequency::Every3Months,
+        payee_id: Some(budgeter.payee_ids()[0]),
+        payee_name: Some(Faker.fake()),
+        subtransactions: vec![],
+        date_first,
+        date_next: date_first,
+        ..Faker.fake()
+    };
+
+    check_method_budgeter(
+        budgeter,
+        &vec![transaction.clone()],
+        Some(inflow_cat_id),
+        Expected { salary_month: 0 },
     );
 }

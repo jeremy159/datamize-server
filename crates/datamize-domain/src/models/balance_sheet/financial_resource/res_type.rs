@@ -1,10 +1,7 @@
 use std::str::FromStr;
 
-use serde::{Deserialize, Serialize};
-
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Hash)]
-#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum FinancialResourceType {
     Asset(AssetType),
     Liability(LiabilityType),
@@ -71,8 +68,7 @@ pub enum ResourceCategory {
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Hash, Default)]
-#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Default)]
 pub enum AssetType {
     /// Refers to current owned cash, like bank accounts.
     #[default]
@@ -94,8 +90,7 @@ impl std::fmt::Display for AssetType {
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Hash, Default)]
-#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
+#[derive(Debug, PartialEq, Eq, Clone, Hash, Default)]
 pub enum LiabilityType {
     /// Refers to current due cash, like credit cards.
     #[default]

@@ -3,7 +3,8 @@ use std::{collections::HashSet, sync::Arc};
 use datamize_domain::{
     async_trait,
     db::{DbError, DynFinResRepo, DynMonthRepo, DynYearRepo},
-    FinancialResourceYearly, Month, SaveResource, UpdateResource, Uuid, Year, YearlyBalances,
+    FinancialResourceYearly, Month, MonthNum, SaveResource, UpdateResource, Uuid, Year,
+    YearlyBalances,
 };
 
 use crate::error::{AppError, DatamizeResult};
@@ -64,7 +65,7 @@ impl FinResServiceExt for FinResService {
 
         self.ensure_month_year_exist(&resource).await?;
         self.fin_res_repo.update(&resource).await?;
-        self.update_net_totals(&resource).await?;
+        self.update_net_totals(resource.get_first_month()).await?;
 
         Ok(resource)
     }
@@ -83,7 +84,8 @@ impl FinResServiceExt for FinResService {
         self.ensure_month_year_exist(&updated_res).await?;
         self.fin_res_repo.update_and_delete(&updated_res).await?;
         let resource = self.fin_res_repo.get(updated_res.base.id).await?;
-        self.update_net_totals(&resource).await?;
+        self.update_net_totals(updated_res.get_first_month())
+            .await?;
 
         Ok(resource)
     }
@@ -92,7 +94,7 @@ impl FinResServiceExt for FinResService {
     async fn delete_fin_res(&self, fin_res_id: Uuid) -> DatamizeResult<FinancialResourceYearly> {
         let resource = self.fin_res_repo.get(fin_res_id).await?;
         self.fin_res_repo.delete(fin_res_id).await?;
-        self.update_net_totals(&resource).await?;
+        self.update_net_totals(resource.get_first_month()).await?;
 
         Ok(resource)
     }
@@ -136,8 +138,8 @@ impl FinResService {
         Ok(())
     }
 
-    async fn update_net_totals(&self, resource: &FinancialResourceYearly) -> DatamizeResult<()> {
-        if let Some((year, month)) = resource.get_first_month() {
+    async fn update_net_totals(&self, first_month: Option<(i32, MonthNum)>) -> DatamizeResult<()> {
+        if let Some((year, month)) = first_month {
             self.month_repo.update_net_totals(month, year).await?;
             self.year_repo.update_net_totals(year).await?;
         }

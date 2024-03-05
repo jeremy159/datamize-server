@@ -11,7 +11,11 @@ use crate::{
 
 #[async_trait]
 pub trait TemplateDetailServiceExt: Send + Sync {
-    async fn get_template_details(&self, month: MonthTarget) -> DatamizeResult<BudgetDetails>;
+    async fn get_template_details(
+        &self,
+        month: MonthTarget,
+        use_category_groups_as_sub_type: bool,
+    ) -> DatamizeResult<BudgetDetails>;
 }
 
 pub type DynTemplateDetailService = Arc<dyn TemplateDetailServiceExt>;
@@ -40,7 +44,11 @@ impl TemplateDetailService {
 #[async_trait]
 impl TemplateDetailServiceExt for TemplateDetailService {
     #[tracing::instrument(skip(self))]
-    async fn get_template_details(&self, month: MonthTarget) -> DatamizeResult<BudgetDetails> {
+    async fn get_template_details(
+        &self,
+        month: MonthTarget,
+        use_category_groups_as_sub_type: bool,
+    ) -> DatamizeResult<BudgetDetails> {
         let (saved_categories, expenses_categorization) =
             self.category_service.get_categories_of_month(month).await?;
         let saved_scheduled_transactions = self
@@ -70,6 +78,7 @@ impl TemplateDetailServiceExt for TemplateDetailService {
             &month.into(),
             expenses_categorization,
             &budgeters,
+            use_category_groups_as_sub_type,
         ))
     }
 }

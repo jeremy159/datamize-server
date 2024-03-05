@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Datelike, Local};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -47,17 +47,28 @@ impl Budgeter<Configured> {
             .collect();
 
         for st in filtered_trans {
-            let repeats = st
-                .get_dates_when_transaction_repeats(date)
-                .unwrap_or_default()
-                .len();
+            let occurrences = {
+                let mut occurrences = st
+                    .get_dates_when_transaction_repeats(date)
+                    .unwrap_or_default();
+
+                if occurrences.is_empty() && st.date_next.month() == date.month() {
+                    occurrences = vec![st.date_next];
+                }
+
+                occurrences
+            };
+
+            if occurrences.is_empty() {
+                continue;
+            }
 
             let payee_amount = Budgeter::<Configured>::get_payee_amount(st, inflow_cat_id);
 
             let salary_fragment = SalaryFragment {
                 payee_name: st.payee_name.clone(),
                 payee_amount,
-                repeats: if repeats > 0 { repeats } else { 1 },
+                occurrences,
             };
             let entry = fragmented_salary
                 .entry(st.payee_id.unwrap()) // We know here payee_id is defined
@@ -68,7 +79,7 @@ impl Budgeter<Configured> {
         let salary_month = fragmented_salary
             .values()
             .flatten()
-            .map(|fs| fs.payee_amount * fs.repeats as i64)
+            .map(|fs| fs.payee_amount * fs.occurrences.len() as i64)
             .sum();
 
         Budgeter {

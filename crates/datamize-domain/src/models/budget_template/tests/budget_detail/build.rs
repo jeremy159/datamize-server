@@ -39,6 +39,7 @@ fn check_method(
         date,
         expenses_categorization,
         budgeters,
+        false,
     );
 
     assert_eq!(

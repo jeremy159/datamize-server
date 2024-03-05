@@ -159,6 +159,13 @@ where
             }
         }
 
+        // TODO: Quick fix, for now also populate what we have in DB, but figure something better.
+        // The issue is if we have a saved delta, we won't get the full list of categories from YNAB,
+        // hence neither of the expenses categorization.
+        for ec in self.expense_categorization_repo.get_all().await? {
+            expenses_categorization_set.insert(ec);
+        }
+
         Ok(expenses_categorization_set.into_iter().collect())
     }
 }

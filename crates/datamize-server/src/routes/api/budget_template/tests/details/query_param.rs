@@ -6,6 +6,7 @@ use axum::{
 };
 use datamize_domain::{async_trait, BudgetDetails, MonthTarget};
 use http_body_util::BodyExt;
+use pretty_assertions::assert_eq;
 use tower::ServiceExt;
 
 use crate::{
@@ -19,8 +20,13 @@ async fn get_template_details_success_with_no_query_params() {
     struct MockTemplateDetailService {}
     #[async_trait]
     impl TemplateDetailServiceExt for MockTemplateDetailService {
-        async fn get_template_details(&self, month: MonthTarget) -> DatamizeResult<BudgetDetails> {
+        async fn get_template_details(
+            &self,
+            month: MonthTarget,
+            use_category_groups_as_sub_type: bool,
+        ) -> DatamizeResult<BudgetDetails> {
             assert_eq!(month, MonthTarget::Current);
+            assert_eq!(use_category_groups_as_sub_type, true);
             Ok(BudgetDetails::default())
         }
     }
@@ -50,8 +56,13 @@ async fn get_template_details_success_with_query_params() {
     struct MockTemplateDetailService {}
     #[async_trait]
     impl TemplateDetailServiceExt for MockTemplateDetailService {
-        async fn get_template_details(&self, month: MonthTarget) -> DatamizeResult<BudgetDetails> {
+        async fn get_template_details(
+            &self,
+            month: MonthTarget,
+            use_category_groups_as_sub_type: bool,
+        ) -> DatamizeResult<BudgetDetails> {
             assert_eq!(month, MonthTarget::Previous);
+            assert_eq!(use_category_groups_as_sub_type, false);
             Ok(BudgetDetails::default())
         }
     }
@@ -61,7 +72,7 @@ async fn get_template_details_success_with_query_params() {
     let response = app
         .oneshot(
             Request::builder()
-                .uri("/details?month=previous")
+                .uri("/details?month=previous&use_category_groups_as_sub_type=false")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -81,7 +92,11 @@ async fn get_template_details_error_400_with_unsupported_query_param_value() {
     struct MockTemplateDetailService {}
     #[async_trait]
     impl TemplateDetailServiceExt for MockTemplateDetailService {
-        async fn get_template_details(&self, _month: MonthTarget) -> DatamizeResult<BudgetDetails> {
+        async fn get_template_details(
+            &self,
+            _month: MonthTarget,
+            _use_category_groups_as_sub_type: bool,
+        ) -> DatamizeResult<BudgetDetails> {
             Ok(BudgetDetails::default())
         }
     }
@@ -91,7 +106,7 @@ async fn get_template_details_error_400_with_unsupported_query_param_value() {
     let response = app
         .oneshot(
             Request::builder()
-                .uri("/details?month=dfdfb")
+                .uri("/details?month=dfdfb&use_category_groups_as_sub_type=ddewewe")
                 .body(Body::empty())
                 .unwrap(),
         )

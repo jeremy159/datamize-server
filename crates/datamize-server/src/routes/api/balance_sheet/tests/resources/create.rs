@@ -22,6 +22,7 @@ use crate::routes::api::balance_sheet::tests::resources::testutils::TestContext;
 #[derive(Debug, Deserialize, Serialize, Clone)]
 struct CreateBody {
     pub name: String,
+    #[serde(with = "datamize_domain::string")]
     pub resource_type: FinancialResourceType,
     pub balances: BTreeMap<i32, BTreeMap<MonthNum, Option<i64>>>,
     pub ynab_account_ids: Option<Vec<Uuid>>,
@@ -180,6 +181,7 @@ async fn returns_422_for_invalid_body_format_data(pool: SqlitePool) {
     #[derive(Debug, Clone, Serialize, Dummy)]
     struct ReqBody {
         pub name: String,
+        #[serde(with = "datamize_domain::string")]
         pub resource_type: FinancialResourceType,
     }
     let body = Faker.fake::<ReqBody>();

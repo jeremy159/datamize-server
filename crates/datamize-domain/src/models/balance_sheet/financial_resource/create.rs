@@ -9,6 +9,7 @@ use crate::YearlyBalances;
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct SaveResource {
     pub name: String,
+    #[serde(with = "super::string")]
     pub resource_type: FinancialResourceType,
     pub balances: BalancePerYearPerMonth,
     pub ynab_account_ids: Option<Vec<Uuid>>,

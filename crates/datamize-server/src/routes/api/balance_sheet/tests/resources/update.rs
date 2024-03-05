@@ -22,6 +22,7 @@ use crate::routes::api::balance_sheet::tests::resources::testutils::TestContext;
 struct UpdateBody {
     pub id: Uuid,
     pub name: String,
+    #[serde(with = "datamize_domain::string")]
     pub resource_type: FinancialResourceType,
     pub balances: BTreeMap<i32, BTreeMap<MonthNum, Option<i64>>>,
     pub ynab_account_ids: Option<Vec<Uuid>>,

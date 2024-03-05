@@ -31,7 +31,7 @@ async fn get_all_returns_all_that_is_in_db(pool: PgPool) {
     // Assert
     assert_eq!(response.status(), reqwest::StatusCode::OK);
     let value: Vec<Month> = serde_json::from_str(&response.text().await.unwrap()).unwrap();
-    assert_eq!(value.len(), 5);
+    assert_eq!(value.len(), 6);
 }
 
 #[sqlx::test(migrations = "../db-postgres/migrations")]

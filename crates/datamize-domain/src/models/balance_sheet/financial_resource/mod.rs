@@ -33,6 +33,7 @@ pub struct BaseFinancialResource {
     pub name: String,
     /// The type separates the resource in 2 groups: Assets vs Liabilities.
     /// Liabilities should have a negative balance.
+    #[serde(with = "string")]
     pub resource_type: FinancialResourceType,
     /// Any YNAB accounts that should be used to refresh this resource's balance.
     pub ynab_account_ids: Option<Vec<Uuid>>,
@@ -227,4 +228,30 @@ pub trait YearlyBalances {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ResourcesToRefresh {
     pub ids: Vec<Uuid>,
+}
+
+pub mod string {
+    use std::fmt::Display;
+    use std::str::FromStr;
+
+    use serde::{de, Deserialize, Deserializer, Serializer};
+
+    pub fn serialize<T, S>(value: &T, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        T: Display,
+        S: Serializer,
+    {
+        serializer.collect_str(value)
+    }
+
+    pub fn deserialize<'de, T, D>(deserializer: D) -> Result<T, D::Error>
+    where
+        T: FromStr,
+        T::Err: Display,
+        D: Deserializer<'de>,
+    {
+        String::deserialize(deserializer)?
+            .parse()
+            .map_err(de::Error::custom)
+    }
 }

@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use datamize_domain::{
-    FinancialResourceType, FinancialResourceYearly, MonthNum, Uuid, YearlyBalances,
+    FinancialResourceType, FinancialResourceYearly, MonthNum, Uuid, Year, YearlyBalances,
 };
 use fake::{Dummy, Fake, Faker};
 use pretty_assertions::assert_eq;
@@ -73,6 +73,7 @@ async fn get_all_of_year_returns_all_that_is_in_db(pool: PgPool) {
 #[derive(Debug, Serialize, Clone, Dummy)]
 struct CreateBody {
     name: String,
+    #[serde(with = "datamize_domain::string")]
     resource_type: FinancialResourceType,
     balances: BTreeMap<i32, BTreeMap<MonthNum, Option<i64>>>,
     ynab_account_ids: Option<Vec<Uuid>>,
@@ -201,6 +202,7 @@ async fn get_returns_existing_resources(pool: PgPool) {
 struct UpdateBody {
     id: Uuid,
     name: String,
+    #[serde(with = "datamize_domain::string")]
     resource_type: FinancialResourceType,
     balances: BTreeMap<i32, BTreeMap<MonthNum, Option<i64>>>,
     ynab_account_ids: Option<Vec<Uuid>>,
@@ -324,6 +326,100 @@ async fn update_adds_new_month_of_resource(pool: PgPool) {
         serde_json::from_str(&response.text().await.unwrap()).unwrap();
     assert_eq!(value.get_balance(2022, MonthNum::June), Some(new_balance));
     assert_eq!(value.get_balance(2022, MonthNum::February), Some(494498));
+}
+
+#[sqlx::test(
+    migrations = "../db-postgres/migrations",
+    fixtures("years", "months", "resources")
+)]
+async fn update_does_not_change_year_net_totals_of_previous_year(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let mut month_balances = BTreeMap::new();
+    let new_balance = (-1000000..1000000).fake();
+    month_balances.insert(MonthNum::November, Some(new_balance));
+    let mut balances = BTreeMap::new();
+    balances.insert(2023, month_balances);
+    let body = UpdateBody {
+        id: "ef6454a5-9322-4e92-9bf9-122e53b71fa7".parse().unwrap(),
+        name: "Res_Asset_Cash_Test".to_string(),
+        balances,
+        ..Faker.fake()
+    };
+
+    let year_2022_prev = app.get_year(2022).await;
+    let year_2022_prev: Year = serde_json::from_str(&year_2022_prev.text().await.unwrap()).unwrap();
+
+    // Act
+    let response = app
+        .update_resource("ef6454a5-9322-4e92-9bf9-122e53b71fa7", &body)
+        .await;
+
+    // Assert
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    let year_2022_after = app.get_year(2022).await;
+    let year_2022_after: Year =
+        serde_json::from_str(&year_2022_after.text().await.unwrap()).unwrap();
+
+    assert_eq!(year_2022_after.net_totals, year_2022_prev.net_totals);
+}
+
+#[sqlx::test(
+    migrations = "../db-postgres/migrations",
+    fixtures("years", "months", "resources")
+)]
+async fn update_does_not_put_same_net_totals_to_all_years(pool: PgPool) {
+    // Arange
+    let app = spawn_app(pool).await;
+    let mut month_balances = BTreeMap::new();
+    let new_balance = (-1000000..1000000).fake();
+    month_balances.insert(MonthNum::January, Some(new_balance));
+    let mut balances = BTreeMap::new();
+    balances.insert(2022, month_balances);
+    let body = UpdateBody {
+        id: "ef6454a5-9322-4e92-9bf9-122e53b71fa7".parse().unwrap(),
+        name: "Res_Asset_Cash_Test".to_string(),
+        balances,
+        ..Faker.fake()
+    };
+
+    // Act
+    let response = app
+        .update_resource("ef6454a5-9322-4e92-9bf9-122e53b71fa7", &body)
+        .await;
+
+    // Assert
+    assert_eq!(response.status(), reqwest::StatusCode::OK);
+    let year_2022: Year =
+        serde_json::from_str(&app.get_year(2022).await.text().await.unwrap()).unwrap();
+    let year_2023: Year =
+        serde_json::from_str(&app.get_year(2023).await.text().await.unwrap()).unwrap();
+
+    assert_ne!(
+        year_2022.net_totals.assets.balance_var,
+        year_2023.net_totals.assets.balance_var
+    );
+    assert_ne!(
+        year_2022.net_totals.assets.percent_var,
+        year_2023.net_totals.assets.percent_var
+    );
+    assert_ne!(
+        year_2022.net_totals.assets.total,
+        year_2023.net_totals.assets.total
+    );
+
+    assert_ne!(
+        year_2022.net_totals.portfolio.balance_var,
+        year_2023.net_totals.portfolio.balance_var
+    );
+    assert_ne!(
+        year_2022.net_totals.portfolio.percent_var,
+        year_2023.net_totals.portfolio.percent_var
+    );
+    assert_ne!(
+        year_2022.net_totals.portfolio.total,
+        year_2023.net_totals.portfolio.total
+    );
 }
 
 #[sqlx::test(

@@ -34,7 +34,10 @@ async fn check_get(
             .await;
     }
 
-    let response = context.into_service().get_template_details(month).await;
+    let response = context
+        .into_service()
+        .get_template_details(month, false)
+        .await;
 
     if let Some(expected_resp) = expected_resp {
         assert_eq!(response.unwrap(), expected_resp);

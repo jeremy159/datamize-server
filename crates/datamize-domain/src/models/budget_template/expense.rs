@@ -25,8 +25,9 @@ pub struct Expense<S: ExpenseState> {
     #[serde(rename = "type")]
     expense_type: ExpenseType,
     /// The sub_type the expense relates to. This can be useful for example to group only housing expenses together.
+    /// By default it will use the category group name, but it can also use the enum `SubExpenseType`
     #[serde(rename = "sub_type")]
-    sub_expense_type: SubExpenseType,
+    sub_expense_type: String,
     /// The individual associated with the expense. This is used to let know this expense is associated with a person in particular.
     individual_associated: Option<String>,
     #[serde(skip)]
@@ -52,7 +53,7 @@ impl<S: ExpenseState> Expense<S> {
         &self.expense_type
     }
 
-    pub fn sub_expense_type(&self) -> &SubExpenseType {
+    pub fn sub_expense_type(&self) -> &str {
         &self.sub_expense_type
     }
 
@@ -107,14 +108,22 @@ impl<S: ExpenseState> Expense<S> {
         self
     }
 
-    pub fn set_categorization(mut self, expenses_categorization: &[ExpenseCategorization]) -> Self {
+    pub fn set_categorization(
+        mut self,
+        expenses_categorization: &[ExpenseCategorization],
+        use_category_groups_as_sub_type: bool,
+    ) -> Self {
         match expenses_categorization
             .iter()
             .find(|c| c.id == self.category.category_group_id)
         {
             Some(categorization) => {
                 self.expense_type = categorization.expense_type.clone();
-                self.sub_expense_type = categorization.sub_expense_type.clone();
+                self.sub_expense_type = if use_category_groups_as_sub_type {
+                    self.category.category_group_name.clone()
+                } else {
+                    categorization.sub_expense_type.clone().to_string()
+                };
                 self
             }
             None => self,
@@ -350,6 +359,7 @@ impl From<Category> for Expense<Uncomputed> {
             id: value.id,
             name: value.name.clone(),
             category: value,
+            sub_expense_type: SubExpenseType::Undefined.to_string(),
             ..Default::default()
         }
     }

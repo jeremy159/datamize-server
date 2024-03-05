@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -58,8 +59,9 @@ pub struct SalaryFragment {
     payee_name: Option<String>,
     /// Amount of this salary.
     payee_amount: i64,
-    /// Number of times this salary fragment is repeated throughout the monthé
-    repeats: usize,
+    /// Dates when this salary fragment is repeated throughout the month.
+    #[cfg_attr(any(feature = "testutils", test), dummy(default))]
+    occurrences: Vec<NaiveDate>,
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]

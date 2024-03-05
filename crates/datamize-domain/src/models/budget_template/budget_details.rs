@@ -11,6 +11,12 @@ use super::{
     Expense, ExpenseCategorization, ExpenseType, Uncomputed,
 };
 
+#[derive(Debug, Deserialize, Default)]
+pub struct TemplateParams {
+    pub month: Option<MonthTarget>,
+    pub use_category_groups_as_sub_type: Option<CategoryGroupsAsSubType>,
+}
+
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Deserialize, Default, Copy, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -33,9 +39,13 @@ impl From<MonthTarget> for DateTime<Local> {
     }
 }
 
-#[derive(Debug, Deserialize, Default)]
-pub struct TemplateParams {
-    pub month: Option<MonthTarget>,
+#[derive(Debug, Deserialize, Clone, Copy)]
+pub struct CategoryGroupsAsSubType(pub bool);
+
+impl Default for CategoryGroupsAsSubType {
+    fn default() -> Self {
+        Self(true)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -138,6 +148,7 @@ impl BudgetDetails {
         date: &DateTime<Local>,
         expenses_categorization: Vec<ExpenseCategorization>,
         budgeters: &[Budgeter<ComputedSalary>],
+        use_category_groups_as_sub_type: bool,
     ) -> Self {
         let mut scheduled_transactions_map =
             BudgetDetails::build_category_to_scheduled_transaction_map(
@@ -150,7 +161,7 @@ impl BudgetDetails {
             .filter(|c| !c.hidden && !c.deleted)
             .map(Into::<Expense<Uncomputed>>::into)
             .map(|e| {
-                e.set_categorization(&expenses_categorization)
+                e.set_categorization(&expenses_categorization, use_category_groups_as_sub_type)
                     .set_individual_association(budgeters)
             })
             .filter(|e| e.expense_type() != &ExpenseType::Undefined)
