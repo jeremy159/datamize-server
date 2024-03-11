@@ -293,26 +293,38 @@ impl FinResRepo for PostgresFinResRepo {
         .execute(&mut *transaction)
         .await?;
 
+        #[derive(Debug)]
+        struct MonthData {
+            id: Uuid,
+        }
+
         // Then the balance per month
         for (year, month, balance) in resource.iter_balances() {
+            let month_data = sqlx::query_as!(
+                MonthData,
+                r#"
+                SELECT
+                    m.month_id AS "id: Uuid"
+                FROM balance_sheet_months AS m
+                JOIN balance_sheet_years AS y ON y.year_id = m.year_id AND y.year = $1
+                WHERE m.month = $2;
+                "#,
+                year,
+                month as i16,
+            )
+            .fetch_one(&mut *transaction)
+            .await?;
+
             sqlx::query!(
                 r#"
                 INSERT INTO resources_balance_per_months (resource_id, month_id, balance)
-                SELECT r.resource_id, m.month_id, balance
-                FROM (
-                VALUES
-                    ($1::bigint)
-                ) x (balance)
-                JOIN balance_sheet_unique_resources AS r ON r.resource_id = $2
-                JOIN balance_sheet_years AS y ON y.year = $3
-                JOIN balance_sheet_months AS m ON m.month = $4 AND m.year_id = y.year_id
+                VALUES ($1, $2, $3)
                 ON CONFLICT (resource_id, month_id) DO UPDATE SET
                 balance = EXCLUDED.balance;
                 "#,
-                balance,
                 resource.base.id,
-                year,
-                month as i16,
+                month_data.id,
+                balance,
             )
             .execute(&mut *transaction)
             .await?;
@@ -345,11 +357,15 @@ impl FinResRepo for PostgresFinResRepo {
         // .execute(&mut *transaction)
         // .await?;
 
+        transaction.commit().await?;
+
         Ok(())
     }
 
     #[tracing::instrument(skip_all)]
     async fn update_and_delete(&self, resource: &UpdateResource) -> DbResult<()> {
+        let mut transaction = self.db_conn_pool.begin().await?;
+
         let resource_type = resource.base.resource_type.to_string();
         // First update the resource itself
         sqlx::query!(
@@ -376,7 +392,7 @@ impl FinResRepo for PostgresFinResRepo {
                 .as_ref()
                 .map(|accounts| accounts.as_slice()),
         )
-        .execute(&self.db_conn_pool)
+        .execute(&mut *transaction)
         .await?;
 
         #[derive(Debug)]
@@ -398,7 +414,7 @@ impl FinResRepo for PostgresFinResRepo {
                 year,
                 month as i16,
             )
-            .fetch_one(&self.db_conn_pool)
+            .fetch_one(&mut *transaction)
             .await?;
 
             if let Some(balance) = balance {
@@ -413,7 +429,7 @@ impl FinResRepo for PostgresFinResRepo {
                     month_data.id,
                     balance,
                 )
-                .execute(&self.db_conn_pool)
+                .execute(&mut *transaction)
                 .await?;
             } else {
                 sqlx::query!(
@@ -424,7 +440,7 @@ impl FinResRepo for PostgresFinResRepo {
                     resource.base.id,
                     month_data.id,
                 )
-                .execute(&self.db_conn_pool)
+                .execute(&mut *transaction)
                 .await?;
             }
         }
@@ -470,6 +486,8 @@ impl FinResRepo for PostgresFinResRepo {
         //         .await?;
         //     }
         // }
+
+        transaction.commit().await?;
 
         Ok(())
     }

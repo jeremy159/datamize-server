@@ -21,6 +21,11 @@ pub async fn get_rpp_canada_life_sandryne(
 
     c.goto("https://my.canadalife.com/acceder").await?;
 
+    c.find(Locator::Id("onetrust-accept-btn-handler"))
+        .await?
+        .click()
+        .await?;
+
     let password = String::from_utf8(aead::open(
         encryption_key,
         account.encrypted_password.expose_secret().as_ref(),

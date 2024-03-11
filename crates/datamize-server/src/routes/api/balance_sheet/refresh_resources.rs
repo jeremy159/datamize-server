@@ -1,38 +1,23 @@
-use axum::{
-    extract::{rejection::JsonRejection, State},
-    Json,
-};
+use axum::extract::State;
+use axum_extra::extract::OptionalQuery;
 use datamize_domain::{ResourcesToRefresh, Uuid};
 
 use crate::{
-    error::{AppError, AppJson, HttpJsonDatamizeResult},
+    error::{AppJson, HttpJsonDatamizeResult},
     services::balance_sheet::DynRefreshFinResService,
 };
 
 /// Endpoint to refresh financial resources.
 /// Only resources from the current month will be refreshed by this endpoint.
 /// If current month does not exists, it will create it.
-/// An optionnal body can be passed to specify which resources to refresh.
+/// An optionnal query parameter can be passed to specify which resources to refresh.
 ///
 /// This endpoint basically calls the YNAB api for some resources and starts a web scrapper for others.
 /// Will return an array of ids for Financial Resources updated.
 #[tracing::instrument(skip_all)]
 pub async fn refresh_balance_sheet_resources(
     State(fin_res_service): State<DynRefreshFinResService>,
-    payload: Result<Json<ResourcesToRefresh>, JsonRejection>,
+    OptionalQuery(params): OptionalQuery<ResourcesToRefresh>,
 ) -> HttpJsonDatamizeResult<Vec<Uuid>> {
-    println!("{payload:#?}");
-    let body = match payload {
-        Ok(p) => Some(p.0),
-        Err(JsonRejection::JsonSyntaxError(e)) if e.body_text().contains("EOF while parsing") => {
-            None
-        }
-        Err(JsonRejection::JsonDataError(e))
-            if e.body_text().contains("expected struct ResourcesToRefresh") =>
-        {
-            None
-        }
-        Err(e) => return Err(Into::<AppError>::into(e))?,
-    };
-    Ok(AppJson(fin_res_service.refresh_fin_res(body).await?))
+    Ok(AppJson(fin_res_service.refresh_fin_res(params).await?))
 }

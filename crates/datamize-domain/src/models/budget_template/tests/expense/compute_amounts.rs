@@ -82,7 +82,6 @@ fn compute_projected_amount_is_goal_target_when_goal_not_plan_spending() {
         GoalType::Debt,
         GoalType::MonthlyFunding,
         GoalType::TargetBalance,
-        GoalType::TargetBalanceByDate,
     ];
     let category = Category {
         goal_type: Some(goals.choose(&mut rand::thread_rng()).unwrap().to_owned()),
@@ -256,6 +255,48 @@ fn compute_projected_amount_when_goal_target_is_plan_spending_and_cadence_every_
             projected_amount: goal_target / (cadence - 1) as i64,
         },
         Some("Is goal target divided by cadence minus 1"),
+    );
+}
+
+#[test]
+fn compute_projected_amount_when_goal_target_is_target_by_date() {
+    let mut category = Category {
+        goal_type: Some(GoalType::TargetBalanceByDate),
+        goal_target: Some((0..100000).fake()),
+        goal_under_funded: Some((1..100000).fake()),
+        budgeted: (0..100000).fake(),
+        ..Faker.fake()
+    };
+    let goal_under_funded = category.goal_under_funded.unwrap();
+    let budgeted = category.budgeted;
+    check_method_projected_amount(
+        category.clone(),
+        vec![],
+        ExpectedProjected {
+            projected_amount: goal_under_funded + budgeted,
+        },
+        Some("Is goal underfunded plus what was budgeted"),
+    );
+
+    category.goal_under_funded = Some(0);
+    let budgeted = category.budgeted;
+    check_method_projected_amount(
+        category.clone(),
+        vec![],
+        ExpectedProjected {
+            projected_amount: budgeted,
+        },
+        Some("Is what was budgeted"),
+    );
+
+    category.goal_under_funded = None;
+    check_method_projected_amount(
+        category,
+        vec![],
+        ExpectedProjected {
+            projected_amount: 0,
+        },
+        Some("Is 0"),
     );
 }
 

@@ -89,6 +89,10 @@ impl TestContext {
         self.month_repo.get(month, year).await
     }
 
+    pub(crate) async fn get_resources(&self) -> Vec<FinancialResourceYearly> {
+        self.fin_res_repo.get_from_all_years().await.unwrap()
+    }
+
     pub(crate) async fn set_resources(&self, fin_res: &[FinancialResourceYearly]) {
         for res in fin_res {
             self.fin_res_repo.update(res).await.unwrap();

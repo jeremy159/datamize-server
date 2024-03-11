@@ -31,7 +31,7 @@ pub struct RefreshFinResService {
 
 #[async_trait]
 impl RefreshFinResServiceExt for RefreshFinResService {
-    #[tracing::instrument(skip_all)]
+    #[tracing::instrument(skip(self))]
     async fn refresh_fin_res(
         &self,
         resources_to_refresh: Option<ResourcesToRefresh>,

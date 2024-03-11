@@ -33,7 +33,7 @@ async fn check_refresh(
     if create_year {
         context.insert_year(year).await;
 
-        let resources = correctly_stub_resources(resources, year);
+        let resources = correctly_stub_resources(resources.clone(), year);
 
         // Create all months
         for r in &resources {
@@ -66,6 +66,10 @@ async fn check_refresh(
             let saved_month = saved_month.unwrap();
             // Since net_assets are computed from all resources' type
             assert_ne!(saved_month.net_assets().total, 0);
+
+            let saved_resources = context.get_resources().await;
+            // At least one resource should have been updated
+            assert_ne!(resources, saved_resources);
         }
     } else {
         assert_err(response.unwrap_err(), expected_err);

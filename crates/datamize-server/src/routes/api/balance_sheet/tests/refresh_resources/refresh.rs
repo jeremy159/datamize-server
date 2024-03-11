@@ -6,6 +6,7 @@ use chrono::{Datelike, Local};
 use datamize_domain::{BaseFinancialResource, FinancialResourceYearly, Uuid, YearlyBalances};
 use fake::{Dummy, Fake, Faker};
 use http_body_util::BodyExt;
+use itertools::Itertools;
 use pretty_assertions::{assert_eq, assert_ne};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
@@ -17,14 +18,14 @@ use crate::routes::api::balance_sheet::tests::refresh_resources::testutils::{
 };
 
 #[derive(Debug, Deserialize, Serialize, Clone, Dummy)]
-struct CreateBody {
+struct QueryParams {
     pub ids: Vec<Uuid>,
 }
 
 async fn check_refresh(
     pool: SqlitePool,
     create_year: bool,
-    body: Option<CreateBody>,
+    query: Option<QueryParams>,
     ynab_accounts: Vec<Account>,
     resources: Vec<FinancialResourceYearly>,
     expected_status: StatusCode,
@@ -55,6 +56,14 @@ async fn check_refresh(
 
         context.set_resources(&resources).await;
     }
+    let query = query
+        .map(|p| {
+            format!(
+                "?ids={}",
+                p.ids.into_iter().map(|u| u.to_string()).join(",")
+            )
+        })
+        .unwrap_or(String::from(""));
 
     let response = context
         .app()
@@ -62,8 +71,8 @@ async fn check_refresh(
             Request::builder()
                 .method("POST")
                 .header("Content-Type", "application/json")
-                .uri("/resources/refresh")
-                .body(Body::from(serde_json::to_string(&body).unwrap()))
+                .uri(format!("/resources/refresh{}", query))
+                .body(Body::empty())
                 .unwrap(),
         )
         .await
@@ -232,7 +241,7 @@ async fn only_update_requested_ids(pool: SqlitePool) {
     check_refresh(
         pool,
         true,
-        Some(CreateBody { ids: vec![res_id] }),
+        Some(QueryParams { ids: vec![res_id] }),
         ynab_accounts,
         vec![res, res2],
         StatusCode::OK,
@@ -242,49 +251,52 @@ async fn only_update_requested_ids(pool: SqlitePool) {
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
-async fn returns_422_for_invalid_body_format_data(pool: SqlitePool) {
+async fn returns_400_for_invalid_body_format_data(pool: SqlitePool) {
     let context = TestContext::setup(pool, 0, Faker.fake()).await;
 
     #[derive(Debug, Clone, Serialize, Dummy)]
-    struct ReqBody {
-        pub id: Uuid,
-        pub name: String,
+    struct ReqParams {
+        pub ids: u64,
     }
-    let body = Faker.fake::<ReqBody>();
+    let query = Faker.fake::<ReqParams>();
 
     let response = context
         .app()
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/resources/refresh")
+                .uri(format!("/resources/refresh?ids={}", query.ids))
                 .header("Content-Type", "application/json")
-                .body(Body::from(serde_json::to_string(&body).unwrap()))
+                .body(Body::empty())
                 .unwrap(),
         )
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
-async fn returns_415_for_missing_json_content_type(pool: SqlitePool) {
+async fn returns_400_for_missing_json_content_type(pool: SqlitePool) {
     let context = TestContext::setup(pool, 0, Faker.fake()).await;
 
-    let body = Faker.fake::<CreateBody>();
+    let query = Faker.fake::<QueryParams>();
+    let query = format!(
+        "?ids={}",
+        query.ids.into_iter().map(|u| u.to_string()).join(",")
+    );
 
     let response = context
         .app()
         .oneshot(
             Request::builder()
                 .method("POST")
-                .uri("/resources/refresh")
-                .body(Body::from(serde_json::to_string(&body).unwrap()))
+                .uri(format!("/resources/refresh{}", query))
+                .body(Body::empty())
                 .unwrap(),
         )
         .await
         .unwrap();
 
-    assert_eq!(response.status(), StatusCode::UNSUPPORTED_MEDIA_TYPE);
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 }

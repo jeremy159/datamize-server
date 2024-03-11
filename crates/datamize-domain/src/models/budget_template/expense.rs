@@ -190,6 +190,15 @@ impl Expense<Uncomputed> {
                     (_, _, _) => 0,
                 }
             }
+            Some(GoalType::TargetBalanceByDate) => {
+                match self.category.goal_under_funded {
+                    // If goal was fully funded, simply return what was budgeted
+                    Some(0) => self.category.budgeted,
+                    // If goal was partially funded, add the budgeted amount + what is left to reach goal
+                    Some(i) => i + self.category.budgeted,
+                    None => 0,
+                }
+            }
             Some(_) => self.category.goal_target.unwrap_or(0),
             None => 0,
         }
