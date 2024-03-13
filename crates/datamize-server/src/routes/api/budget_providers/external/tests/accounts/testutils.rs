@@ -11,7 +11,7 @@ use fake::{Fake, Faker};
 use sqlx::SqlitePool;
 
 use crate::{
-    routes::budget_providers::external::get_external_routes,
+    routes::api::budget_providers::external::get_external_routes,
     services::budget_providers::ExternalAccountService,
 };
 

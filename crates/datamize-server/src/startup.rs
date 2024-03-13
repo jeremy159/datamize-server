@@ -11,7 +11,7 @@ use tracing::error_span;
 
 use crate::{
     config::Settings,
-    routes::{get_api_routes, get_budget_providers_routes, health_check},
+    routes::{get_api_routes, health_check},
 };
 
 #[derive(Clone)]
@@ -54,7 +54,6 @@ impl Application {
         let port = socket_addr.port();
 
         let api_routes = get_api_routes(&app_state);
-        let budget_providers_routes = get_budget_providers_routes(&app_state);
 
         let origins = [
             "https://tauri.localhost"
@@ -69,7 +68,6 @@ impl Application {
             .route("/", get(|| async { "Welcome to Datamize!" }))
             .route("/health_check", get(health_check))
             .nest("/api", api_routes)
-            .nest("/budget_providers", budget_providers_routes)
             .layer(
                 CorsLayer::new()
                     .allow_origin(origins)

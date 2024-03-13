@@ -9,7 +9,7 @@ use sqlx::SqlitePool;
 use ynab::{MockPayeeRequestsImpl, Payee, PayeesDelta};
 
 use crate::{
-    routes::budget_providers::ynab::get_ynab_payee_routes,
+    routes::api::budget_providers::ynab::get_ynab_payee_routes,
     services::budget_providers::YnabPayeeService,
 };
 

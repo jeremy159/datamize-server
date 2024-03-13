@@ -9,7 +9,7 @@ use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 
-use crate::routes::budget_providers::external::tests::accounts::testutils::{
+use crate::routes::api::budget_providers::external::tests::accounts::testutils::{
     correctly_stub_accounts, TestContext,
 };
 

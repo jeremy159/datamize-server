@@ -7,14 +7,14 @@ use http_body_util::BodyExt;
 use pretty_assertions::assert_eq;
 use sqlx::SqlitePool;
 use tower::ServiceExt;
-use ynab::{Payee, PayeesDelta};
+use ynab::{Account, AccountsDelta};
 
-use crate::routes::budget_providers::ynab::tests::payees::testutils::TestContext;
+use crate::routes::api::budget_providers::ynab::tests::accounts::testutils::TestContext;
 
-struct YnabData(PayeesDelta);
+struct YnabData(AccountsDelta);
 
 #[derive(Clone)]
-struct DbData(Vec<Payee>);
+struct DbData(Vec<Account>);
 
 async fn check_get_all(
     pool: SqlitePool,
@@ -24,16 +24,16 @@ async fn check_get_all(
 ) {
     let context = TestContext::setup(pool, ynab_data.0.clone()).await;
 
-    if let Some(DbData(mut payees)) = db_data.clone() {
-        payees.retain(|a| !a.deleted);
-        context.set_payees(&payees).await;
+    if let Some(DbData(mut accounts)) = db_data.clone() {
+        accounts.retain(|a| !a.deleted);
+        context.set_accounts(&accounts).await;
     }
 
     let response = context
         .into_app()
         .oneshot(
             Request::builder()
-                .uri("/payees")
+                .uri("/accounts")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -43,8 +43,8 @@ async fn check_get_all(
     assert_eq!(response.status(), expected_status);
 
     let body = response.into_body().collect().await.unwrap().to_bytes();
-    let mut body: Vec<Payee> = serde_json::from_slice(&body).unwrap();
-    let mut expected = ynab_data.0.payees;
+    let mut body: Vec<Account> = serde_json::from_slice(&body).unwrap();
+    let mut expected = ynab_data.0.accounts;
     if let Some(DbData(saved)) = &mut db_data {
         expected.append(saved);
     }
