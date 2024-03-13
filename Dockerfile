@@ -6,7 +6,7 @@ FROM lukemathwalker/cargo-chef:latest-rust-1.75.0 as chef
 # exist already.
 WORKDIR /app
 # Install the required system dependencies for our linking configuration
-RUN apt update && apt install lld clang -y
+RUN apt update && apt upgrade -y && apt install lld clang -y
 
 FROM chef as planner
 # Copy all files from our working environment to our Docker image
@@ -24,7 +24,7 @@ ENV SQLX_OFFLINE true
 RUN cargo build --release --bin datamize-server
 
 # Runtime stage
-FROM debian:bullseye-slim AS runtime
+FROM debian:bookworm-slim AS runtime
 WORKDIR /app
 # Install OpenSSL - it is dynamically linked by some of our dependencies
 # Install ca-certificates - it is needed to verify TLS certificates

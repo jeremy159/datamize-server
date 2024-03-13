@@ -26,6 +26,7 @@ And that's it, you should be able to run the server with access to YNAB's API.
 - [x] Better representation of Net Totals
 - [x] Improved Error logs
 - [x] Better representation of Financial Resource throughout years
+- [ ] Explore building html page from the server instead of having a separate frontend application duplicating the work.
 - [ ] Oauth with YNAB
 - [ ] Saving User Preferences in the DB
 - [ ] Better handling of newly deleted elements from YNAB's API
