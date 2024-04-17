@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <link href="/assets/main.css" rel="stylesheet" />
+    <link href="https://rsms.me/inter/inter.css" rel="stylesheet" />
+    <!-- Allow any inheriting page to set it's own title -->
+    <title>{% block title %}{{ title }}{% endblock %}</title>
+
+    <script src="/assets/htmx.min.js"></script>
+
+    <!-- Allow any inheriting page to extend head with additional assets -->
+    {% block head %}{% endblock %}
+  </head>
+  <body hx-boost="true">
+    <div class="flex">
+      <!-- Side Navigation -->
+      {% include "partials/sidenav.html" %}
+
+      <!-- Main Content Area -->
+      <!-- Inheriting pages will have their content rendered here, similar to app root in React, Angular, etc. -->
+      <div class="w-full" id="main">{% block content %}{% endblock %}</div>
+    </div>
+  </body>
+</html>

@@ -402,6 +402,19 @@ impl fmt::Display for ExpenseType {
     }
 }
 
+impl ExpenseType {
+    pub fn to_display_name(&self) -> String {
+        match self {
+            ExpenseType::Fixed => "Fixed Expenses".to_string(),
+            ExpenseType::Variable => "Variable Expenses (fun)".to_string(),
+            ExpenseType::ShortTermSaving => "Short Term Saving".to_string(),
+            ExpenseType::LongTermSaving => "Long Term Saving".to_string(),
+            ExpenseType::RetirementSaving => "Retirement Saving".to_string(),
+            ExpenseType::Undefined => "Undefined".to_string(),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParseExpenseTypeError;
 

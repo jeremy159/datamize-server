@@ -5,13 +5,13 @@ use axum::{body::Body, routing::get, Router};
 use http::{header::CONTENT_TYPE, Request};
 use sqlx::PgPool;
 use tokio::{net::TcpListener, signal};
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tower_http::{cors::CorsLayer, services::ServeDir, trace::TraceLayer};
 use tower_request_id::{RequestId, RequestIdLayer};
 use tracing::error_span;
 
 use crate::{
     config::Settings,
-    routes::{get_api_routes, health_check},
+    routes::{get_api_routes, get_ui_routes, health_check},
 };
 
 #[derive(Clone)]
@@ -53,6 +53,7 @@ impl Application {
         ))?;
         let port = socket_addr.port();
 
+        let ui_routes = get_ui_routes(&app_state);
         let api_routes = get_api_routes(&app_state);
 
         let origins = [
@@ -64,8 +65,20 @@ impl Application {
                 .unwrap(),
         ];
 
+        let base_path = {
+            let p = std::env::current_dir().expect("Failed to determine the current directory");
+            if !p.ends_with("crates/datamize-server") {
+                p.join("crates/datamize-server")
+            } else {
+                p
+            }
+        };
+        let assets_directory = base_path.join("assets");
+
         let app = Router::new()
-            .route("/", get(|| async { "Welcome to Datamize!" }))
+            // TODO: Convert pages to server side with HTMX + Askama + Tailwind + DaisyUI. Check out https://joeymckenzie.tech/blog/templates-with-rust-axum-htmx-askama
+            .nest("/", ui_routes)
+            .nest_service("/assets", ServeDir::new(assets_directory.to_str().unwrap()))
             .route("/health_check", get(health_check))
             .nest("/api", api_routes)
             .layer(

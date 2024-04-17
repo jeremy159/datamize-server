@@ -17,6 +17,7 @@ async fn main() -> anyhow::Result<()> {
 
     let configuration = config::Settings::build()?;
     let db_conn_pool = get_connection_pool(configuration.database.with_db());
+    // TODO: Check https://willcrichton.net/rust-api-type-patterns/registries.html for a different way of build a server with different dependencies
     let application = Application::build(configuration, db_conn_pool)
         .await
         .context("failed to build application")?;

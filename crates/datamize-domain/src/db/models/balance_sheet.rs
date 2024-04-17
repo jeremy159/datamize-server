@@ -12,6 +12,7 @@ use crate::{
     NetTotals, UpdateResource,
 };
 
+// TODO: Check out https://medium.com/@disserman/working-with-data-storages-in-rust-a1428fd9ba2c to be better DB independant.
 #[async_trait]
 pub trait YearRepo: Send + Sync {
     async fn get_years(&self) -> DbResult<Vec<Year>>;

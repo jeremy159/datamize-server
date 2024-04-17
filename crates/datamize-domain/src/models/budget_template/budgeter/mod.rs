@@ -56,12 +56,12 @@ pub struct Configured {
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct SalaryFragment {
     /// Name of the payee if defined.
-    payee_name: Option<String>,
+    pub payee_name: Option<String>,
     /// Amount of this salary.
-    payee_amount: i64,
+    pub payee_amount: i64,
     /// Dates when this salary fragment is repeated throughout the month.
     #[cfg_attr(any(feature = "testutils", test), dummy(default))]
-    occurrences: Vec<NaiveDate>,
+    pub occurrences: Vec<NaiveDate>,
 }
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]

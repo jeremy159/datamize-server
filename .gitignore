@@ -18,3 +18,5 @@ target
 **/*ynab_pat.txt
 **/*local.toml
 sqlite.db
+
+node_modules

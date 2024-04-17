@@ -31,6 +31,7 @@ impl YnabPayeeRepo for PostgresYnabPayeeRepo {
                 transfer_account_id,
                 deleted
             FROM payees
+            ORDER BY name
             "#
         )
         .fetch_all(&self.db_conn_pool)

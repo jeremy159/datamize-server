@@ -1,0 +1,92 @@
+<div class="flex items-center flex-col">
+  <span
+    id="month-change-spinner"
+    class="htmx-indicator loading loading-spinner loading-md"
+  ></span>
+  <div
+    class="join my-4"
+    hx-indicator="#month-change-spinner"
+    hx-target="#main"
+    hx-select="#main"
+  >
+    {% match month %} {% when MonthTarget::Previous %}
+    <input
+      class="join-item btn"
+      type="radio"
+      name="month"
+      aria-label="{{ self::prev_month() }}"
+      value="previous"
+      hx-get
+      checked
+    />
+    <input
+      class="join-item btn"
+      type="radio"
+      name="month"
+      aria-label="{{ self::curr_month() }}"
+      value="current"
+      hx-get
+    />
+    <input
+      class="join-item btn"
+      type="radio"
+      name="month"
+      aria-label="{{ self::next_month() }}"
+      value="next"
+      hx-get
+    />
+    {% when MonthTarget::Current %}
+    <input
+      class="join-item btn"
+      type="radio"
+      name="month"
+      aria-label="{{ self::prev_month() }}"
+      value="previous"
+      hx-get
+    />
+    <input
+      class="join-item btn"
+      type="radio"
+      name="month"
+      aria-label="{{ self::curr_month() }}"
+      value="current"
+      hx-get
+      checked
+    />
+    <input
+      class="join-item btn"
+      type="radio"
+      name="month"
+      aria-label="{{ self::next_month() }}"
+      value="next"
+      hx-get
+    />
+    {% when MonthTarget::Next %}
+    <input
+      class="join-item btn"
+      type="radio"
+      name="month"
+      aria-label="{{ self::prev_month() }}"
+      value="previous"
+      hx-get
+    />
+    <input
+      class="join-item btn"
+      type="radio"
+      name="month"
+      aria-label="{{ self::curr_month() }}"
+      value="current"
+      hx-get
+    />
+    <input
+      class="join-item btn"
+      type="radio"
+      name="month"
+      aria-label="{{ self::next_month() }}"
+      value="next"
+      hx-get
+      checked
+    />
+    {% endmatch %}
+  </div>
+</div>

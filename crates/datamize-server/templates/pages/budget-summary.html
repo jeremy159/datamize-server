@@ -1,0 +1,120 @@
+<!-- prettier-ignore -->
+{% extends "layouts/main.html" %}
+
+{% block title %}Budget Summary{% endblock %}
+
+{% block content %}
+{% include "partials/month-selection.html" %}
+
+<table class="table max-w-4xl mx-auto my-4">
+  <thead>
+    <tr>
+      <th></th>
+      {% for budgeter in budgeters %}
+      <th class="text-right">
+        <a
+          class="link link-hover"
+          href="/budget/budgeter/{{ budgeter.id() }}"
+          hx-push-url="false"
+          hx-target="#budgeter-edit"
+          title="Edit or Delete"
+          >{{ budgeter.name() }}</a
+        >
+      </th>
+      {% endfor %}
+      <th class="text-right">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Salary per month</td>
+      {% for budgeter in budgeters %}
+      <td class="text-right">
+        <div class="flex flex-col items-end">
+          <div class="font-bold">
+            {{ self::num_to_currency(budgeter.salary_month()) }}
+          </div>
+          <table class="mt-2">
+            <tbody>
+              {% for row in self::fragmented_salary(budgeter) %}
+              <tr>
+                <td class="!py-0">
+                  <ul>
+                    {% for date in row.dates %}
+                    <li class="text-nowrap">{{ date }}</li>
+                    {% endfor %}
+                  </ul>
+                </td>
+                <td class="text-right !py-0 !pr-0" title="{{row.name}}">
+                  {{ row.amount }}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </td>
+      {% endfor %}
+      <td class="text-right">
+        {{ self::num_to_currency(total_budgeter.salary_month()) }}
+      </td>
+    </tr>
+    <tr>
+      <td>Proportion</td>
+      {% for budgeter in budgeters %}
+      <td class="text-right">
+        {{ self::num_to_percentage(budgeter.proportion()) }}
+      </td>
+      {% endfor %}
+      <td class="text-right">
+        {{ self::num_to_percentage(total_budgeter.proportion()) }}
+      </td>
+    </tr>
+    <tr>
+      <td>Common Expenses Estimation</td>
+      {% for budgeter in budgeters %}
+      <td class="text-right">
+        {{ self::num_to_currency(budgeter.common_expenses()) }}
+      </td>
+      {% endfor %}
+      <td class="text-right">
+        {{ self::num_to_currency(total_budgeter.common_expenses()) }}
+      </td>
+    </tr>
+    <tr>
+      <td>Individual Expenses Estimation</td>
+      {% for budgeter in budgeters %}
+      <td class="text-right">
+        {{ self::num_to_currency(budgeter.individual_expenses()) }}
+      </td>
+      {% endfor %}
+      <td class="text-right">
+        {{ self::num_to_currency(total_budgeter.individual_expenses()) }}
+      </td>
+    </tr>
+    <tr>
+      <td>Left over</td>
+      {% for budgeter in budgeters %}
+      <td class="text-right">
+        {{ self::num_to_currency(budgeter.left_over()) }}
+      </td>
+      {% endfor %}
+      <td class="text-right">
+        {{ self::num_to_currency(total_budgeter.left_over()) }}
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<p class="my-4 flex justify-center">
+  <a
+    class="btn btn-primary"
+    href="/budget/budgeter/new"
+    hx-push-url="false"
+    hx-target="#budgeter-edit"
+    >Add Budgeter</a
+  >
+</p>
+
+<div id="budgeter-edit"></div>
+{% endblock %}

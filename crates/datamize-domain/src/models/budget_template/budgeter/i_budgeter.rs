@@ -156,6 +156,16 @@ impl Budgeter<ComputedSalary> {
             },
         }
     }
+
+    pub fn fragmented_salary(&self) -> &HashMap<Uuid, Vec<SalaryFragment>> {
+        &self.extra.fragmented_salary
+    }
+}
+
+impl Budgeter<ComputedExpenses> {
+    pub fn fragmented_salary(&self) -> &HashMap<Uuid, Vec<SalaryFragment>> {
+        &self.extra.compuded_salary.fragmented_salary
+    }
 }
 
 impl BudgeterExt for Budgeter<ComputedSalary> {

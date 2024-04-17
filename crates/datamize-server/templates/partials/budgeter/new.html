@@ -1,0 +1,72 @@
+<form
+  action="/budget/budgeter/new"
+  method="post"
+  class="flex justify-center flex-col mx-auto w-full max-w-xs"
+>
+  <fieldset>
+    <label class="form-control w-full">
+      <div class="label">
+        <span class="label-text">Name</span>
+      </div>
+      <input
+        name="name"
+        id="name"
+        class="input input-bordered w-full"
+        type="text"
+        placeholder="Name"
+        value="{{ name }}"
+      />
+    </label>
+
+    <div>
+      <div class="label">
+        <span class="label-text">YNAB Payees</span>
+      </div>
+      <div class="max-h-80 overflow-y-auto">
+        {% for payee in ynab_payees %}
+        <div class="form-control">
+          <label class="label cursor-pointer">
+            <span class="label-text">{{ payee.name }}</span>
+            {% if payees.contains(payee.id) %}
+            <input
+              type="checkbox"
+              class="checkbox"
+              name="payee"
+              value="{{ payee.id }}"
+              checked
+            />
+            {% else %}
+            <input
+              type="checkbox"
+              class="checkbox"
+              name="payee"
+              value="{{ payee.id }}"
+            />
+            {% endif %}
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </fieldset>
+  {% match error %} {% when Some with (val) %}
+  <div role="alert" class="alert alert-error">
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      class="stroke-current shrink-0 h-6 w-6"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+      />
+    </svg>
+    <span>{{ val }}</span>
+  </div>
+  {% when None %} {% endmatch %}
+  <a class="btn mt-4" href="/budget/summary">Cancel</a>
+  <button class="btn btn-primary mt-4">Save</button>
+</form>

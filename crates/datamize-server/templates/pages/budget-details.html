@@ -1,0 +1,156 @@
+<!-- prettier-ignore -->
+{% extends "layouts/main.html" %}
+
+{% block title %}Budget Details{% endblock %}
+
+{% block content %}
+{% include "partials/month-selection.html" %}
+
+<div>
+  <table class="table table-pin-rows">
+    <thead>
+      <tr>
+        <th>Expense</th>
+        <td class="text-right">Budgeted</td>
+        <td class="text-right">Spent</td>
+        <td class="text-right">Difference</td>
+        <td class="text-right">Proportion</td>
+        <td class="text-right">Target</td>
+      </tr>
+    </thead>
+    <tbody>
+      {% for group in groups %}
+      <tr>
+        <td class="font-semibold">
+          {{ group.name }} ({{ group.total_counts }})
+        </td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+      {% if group.sub_groups.len() == 1 %} {%for row in group.rows %}
+      <tr>
+        <td>{{ row.name }}</td>
+        <td class="text-right">
+          {{ self::num_to_currency(row.budgeted.clone()) }}
+        </td>
+        <td class="text-right">
+          {{ self::num_to_currency(row.spent.clone()) }}
+        </td>
+        <td class="text-right">
+          {{ self::num_to_currency(row.difference.clone()) }}
+        </td>
+        <td class="text-right">
+          {{ self::num_to_percentage(row.proportion.clone()) }}
+        </td>
+        <td class="text-right"></td>
+      </tr>
+      {% endfor %} {% else %} {% for sub_group in group.sub_groups %}
+      <tr>
+        <td class="font-semibold">
+          {{ sub_group.name }} ({{ sub_group.total_counts }})
+        </td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+      {%for row in sub_group.rows %}
+      <tr>
+        <td>{{ row.name }}</td>
+        <td class="text-right">
+          {{ self::num_to_currency(row.budgeted.clone()) }}
+        </td>
+        <td class="text-right">
+          {{ self::num_to_currency(row.spent.clone()) }}
+        </td>
+        <td class="text-right">
+          {{ self::num_to_currency(row.difference.clone()) }}
+        </td>
+        <td class="text-right">
+          {{ self::num_to_percentage(row.proportion.clone()) }}
+        </td>
+        <td class="text-right"></td>
+      </tr>
+      {% endfor %}
+      <tr class="bg-base-200 font-medium">
+        <td>{{ sub_group.total_row.name }}</td>
+        <td class="text-right">
+          {{ self::num_to_currency(sub_group.total_row.budgeted.clone()) }}
+        </td>
+        <td class="text-right">
+          {{ self::num_to_currency(sub_group.total_row.spent.clone()) }}
+        </td>
+        <td class="text-right">
+          {{ self::num_to_currency(sub_group.total_row.difference.clone()) }}
+        </td>
+        <td class="text-right">
+          {{ self::num_to_percentage(sub_group.total_row.proportion.clone()) }}
+        </td>
+        <td class="text-right">
+          {% match sub_group.total_row.target_proportion %} {% when Some with
+          (val) %} {{ self::num_to_percentage(val.clone()) }} {% when None %} {%
+          endmatch %}
+        </td>
+      </tr>
+      {% endfor %} {% endif %}
+      <tr class="text-primary bg-base-200 font-medium">
+        <td>{{ group.total_row.name }}</td>
+        <td class="text-right">
+          {{ self::num_to_currency(group.total_row.budgeted.clone()) }}
+        </td>
+        <td class="text-right">
+          {{ self::num_to_currency(group.total_row.spent.clone()) }}
+        </td>
+        <td class="text-right">
+          {{ self::num_to_currency(group.total_row.difference.clone()) }}
+        </td>
+        <td class="text-right">
+          {{ self::num_to_percentage(group.total_row.proportion.clone()) }}
+        </td>
+        <td class="text-right">
+          {% match group.total_row.target_proportion %} {% when Some with (val)
+          %} {{ self::num_to_percentage(val.clone()) }} {% when None %} {%
+          endmatch %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr class="bottom-[40px]">
+        <th>Total</th>
+        <td class="text-right">
+          {{ self::num_to_currency(total_row.budgeted.clone()) }}
+        </td>
+        <td class="text-right">
+          {{ self::num_to_currency(total_row.spent.clone()) }}
+        </td>
+        <td class="text-right">
+          {{ self::num_to_currency(total_row.difference.clone()) }}
+        </td>
+        <td class="text-right">
+          {{ self::num_to_percentage(total_row.proportion.clone()) }}
+        </td>
+        <td class="text-right">{{ self::num_to_percentage(1.0) }}</td>
+      </tr>
+      <tr>
+        <th>Income and Left Over</th>
+        <td class="text-right text-primary">
+          {{ self::num_to_currency(projected_income_left_over.clone()) }}
+        </td>
+        <td class="text-right text-primary">
+          {{ self::num_to_currency(income_left_over.clone()) }}
+        </td>
+        <td></td>
+        <td></td>
+        <td class="text-right text-success">
+          {{ self::num_to_currency(total_income.clone()) }}
+        </td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+{% endblock %}

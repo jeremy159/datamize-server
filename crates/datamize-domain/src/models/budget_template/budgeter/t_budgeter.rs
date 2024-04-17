@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::{
     models::budget_template::expense, Budgeter, BudgeterExt, BudgeterState, ComputedExpenses,
-    ComputedSalary, Configured, Empty, Expense,
+    ComputedSalary, Configured, Empty, Expense, SalaryFragment,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
@@ -98,6 +98,16 @@ impl TotalBudgeter<ComputedSalary> {
             },
             individual_expenses,
         )
+    }
+
+    pub fn fragmented_salary(&self) -> &HashMap<Uuid, Vec<SalaryFragment>> {
+        &self.extra.fragmented_salary
+    }
+}
+
+impl TotalBudgeter<ComputedExpenses> {
+    pub fn fragmented_salary(&self) -> &HashMap<Uuid, Vec<SalaryFragment>> {
+        &self.extra.compuded_salary.fragmented_salary
     }
 }
 
