@@ -1,0 +1,29 @@
+<form
+  hx-put="/balance_sheet/years/{{ year }}/{{ month.to_num() }}/{{ fin_res_id }}/edit_balance"
+  hx-target="this"
+  hx-swap="outerHTML"
+>
+  {% if let Some(balance) = balance -%} {% let balance = format!("{:.2}",
+  *balance as f64 / 1000_f64) -%}
+  <input
+    class="input input-bordered w-full max-w-xs balance-input"
+    type="text"
+    name="balance"
+    value="{{ balance }}"
+    pattern="\d*((.|,)\d{0,2})?"
+    autofocus
+    hx-put="/balance_sheet/years/{{ year }}/{{ month.to_num() }}/{{ fin_res_id }}/edit_balance"
+    hx-trigger="blur changed"
+  />
+  {% else -%}
+  <input
+    class="input input-bordered w-full max-w-xs balance-input"
+    type="text"
+    name="balance"
+    pattern="\d*((.|,)\d{0,2})?"
+    autofocus
+    hx-put="/balance_sheet/years/{{ year }}/{{ month.to_num() }}/{{ fin_res_id }}/edit_balance"
+    hx-trigger="blur changed"
+  />
+  {% endif -%}
+</form>

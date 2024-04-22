@@ -1,5 +1,5 @@
 use axum::extract::{Path, State};
-use datamize_domain::{FinancialResourceYearly, UpdateResource, Uuid};
+use datamize_domain::{FinancialResourceYearly, Uuid};
 
 use crate::{
     error::{AppJson, HttpJsonDatamizeResult},
@@ -21,7 +21,7 @@ pub async fn balance_sheet_resource(
 pub async fn update_balance_sheet_resource(
     Path(_): Path<Uuid>,
     State(fin_res_service): State<DynFinResService>,
-    AppJson(body): AppJson<UpdateResource>,
+    AppJson(body): AppJson<FinancialResourceYearly>,
 ) -> HttpJsonDatamizeResult<FinancialResourceYearly> {
     Ok(AppJson(fin_res_service.update_fin_res(body).await?))
 }

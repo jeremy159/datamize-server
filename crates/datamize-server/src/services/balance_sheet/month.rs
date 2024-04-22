@@ -11,7 +11,9 @@ use crate::error::{AppError, DatamizeResult};
 #[async_trait]
 pub trait MonthServiceExt: Send + Sync {
     async fn get_all_months(&self) -> DatamizeResult<Vec<Month>>;
+    /// Also returns months without resources
     async fn get_all_months_from_year(&self, year: i32) -> DatamizeResult<Vec<Month>>;
+    async fn get_months_from_year(&self, year: i32) -> DatamizeResult<Vec<Month>>;
     async fn create_month(&self, year: i32, new_month: SaveMonth) -> DatamizeResult<Month>;
     async fn get_month(&self, month: MonthNum, year: i32) -> DatamizeResult<Month>;
     async fn delete_month(&self, month: MonthNum, year: i32) -> DatamizeResult<Month>;
@@ -38,6 +40,13 @@ impl MonthServiceExt for MonthService {
 
     #[tracing::instrument(skip(self))]
     async fn get_all_months_from_year(&self, year: i32) -> DatamizeResult<Vec<Month>> {
+        Ok(self
+            .month_repo
+            .get_months_of_year_without_resources(year)
+            .await?)
+    }
+
+    async fn get_months_from_year(&self, year: i32) -> DatamizeResult<Vec<Month>> {
         Ok(self.month_repo.get_months_of_year(year).await?)
     }
 

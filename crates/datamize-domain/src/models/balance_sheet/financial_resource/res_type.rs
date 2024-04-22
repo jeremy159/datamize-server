@@ -44,6 +44,14 @@ impl FinancialResourceType {
         }
     }
 
+    pub fn is_asset(&self) -> bool {
+        matches!(self, FinancialResourceType::Asset(_))
+    }
+
+    pub fn is_liability(&self) -> bool {
+        matches!(self, FinancialResourceType::Liability(_))
+    }
+
     pub fn asset_type(&self) -> Option<AssetType> {
         match self {
             FinancialResourceType::Asset(t) => Some(t.clone()),

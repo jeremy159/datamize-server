@@ -6,6 +6,9 @@ use super::{BalancePerYearPerMonth, BaseFinancialResource, FinancialResourceType
 use crate::YearlyBalances;
 
 /// A resource represented within a year. It has a BTreeMap of balance per months.
+/// To update a balance, send month_num: Some(balance)
+/// but to delete a balance, send month_num: None. This differs from a missing month which
+/// just does not update anything on the month.
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub struct FinancialResourceYearly {
     #[serde(flatten)]

@@ -1,4 +1,4 @@
-<nav class="w-56 p-4">
+<nav class="min-w-56 p-4">
   <ol>
     <li>
       <a
@@ -28,6 +28,17 @@
         hx-select="#main"
         class="link link-hover"
         >Budget Transactions</a
+      >
+    </li>
+    <li>
+      <!-- TODO: don't forget to change year to 'current' -->
+      <a
+        href="/balance_sheet/years/2024"
+        hx-push-url="true"
+        hx-target="#main"
+        hx-select="#main"
+        class="link link-hover"
+        >Year Details</a
       >
     </li>
   </ol>

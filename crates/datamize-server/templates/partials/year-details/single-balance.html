@@ -1,0 +1,17 @@
+<div
+  class="input hover:input-bordered cursor-text !p-0 flex items-center justify-end"
+  hx-target="this"
+  hx-swap="outerHTML"
+  hx-get="/balance_sheet/years/{{ year }}/{{ month.to_num() }}/{{ fin_res_id }}/edit_balance"
+>
+  {% if let Some(balance) = balance %}
+  <span
+    class="inline-block"
+    title="{{ self::num_to_currency(balance.clone()) }}"
+  >
+    {{ self::num_to_currency_rounded(balance.clone()) }}
+  </span>
+  {% else %}
+  <span class="inline-block"></span>
+  {% endif %}
+</div>

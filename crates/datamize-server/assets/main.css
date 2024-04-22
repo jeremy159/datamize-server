@@ -1671,6 +1671,10 @@ html {
   display: block;
 }
 
+.inline-block {
+  display: inline-block;
+}
+
 .flex {
   display: flex;
 }
@@ -1699,6 +1703,10 @@ html {
   width: 100%;
 }
 
+.min-w-56 {
+  min-width: 14rem;
+}
+
 .max-w-4xl {
   max-width: 56rem;
 }
@@ -1715,6 +1723,10 @@ html {
   cursor: pointer;
 }
 
+.cursor-text {
+  cursor: text;
+}
+
 .flex-col {
   flex-direction: column;
 }
@@ -1725,6 +1737,10 @@ html {
 
 .items-center {
   align-items: center;
+}
+
+.justify-end {
+  justify-content: flex-end;
 }
 
 .justify-center {
@@ -1739,19 +1755,40 @@ html {
   text-wrap: nowrap;
 }
 
-.bg-error {
-  --tw-bg-opacity: 1;
-  background-color: var(--fallback-er,oklch(var(--er)/var(--tw-bg-opacity)));
+.rounded {
+  border-radius: 0.25rem;
 }
 
-.bg-primary-content {
-  --tw-bg-opacity: 1;
-  background-color: var(--fallback-pc,oklch(var(--pc)/var(--tw-bg-opacity)));
+.border {
+  border-width: 1px;
 }
 
-.bg-base-300 {
-  --tw-bg-opacity: 1;
-  background-color: var(--fallback-b3,oklch(var(--b3)/var(--tw-bg-opacity)));
+.border-t-2 {
+  border-top-width: 2px;
+}
+
+.border-transparent {
+  border-color: transparent;
+}
+
+.border-t-error {
+  --tw-border-opacity: 1;
+  border-top-color: var(--fallback-er,oklch(var(--er)/var(--tw-border-opacity)));
+}
+
+.border-t-info {
+  --tw-border-opacity: 1;
+  border-top-color: var(--fallback-in,oklch(var(--in)/var(--tw-border-opacity)));
+}
+
+.border-t-success {
+  --tw-border-opacity: 1;
+  border-top-color: var(--fallback-su,oklch(var(--su)/var(--tw-border-opacity)));
+}
+
+.border-t-warning {
+  --tw-border-opacity: 1;
+  border-top-color: var(--fallback-wa,oklch(var(--wa)/var(--tw-border-opacity)));
 }
 
 .bg-base-200 {
@@ -1759,8 +1796,17 @@ html {
   background-color: var(--fallback-b2,oklch(var(--b2)/var(--tw-bg-opacity)));
 }
 
+.bg-error {
+  --tw-bg-opacity: 1;
+  background-color: var(--fallback-er,oklch(var(--er)/var(--tw-bg-opacity)));
+}
+
 .stroke-current {
   stroke: currentColor;
+}
+
+.\!p-0 {
+  padding: 0px !important;
 }
 
 .p-4 {
@@ -1792,6 +1838,11 @@ html {
   font-weight: 600;
 }
 
+.text-error {
+  --tw-text-opacity: 1;
+  color: var(--fallback-er,oklch(var(--er)/var(--tw-text-opacity)));
+}
+
 .text-error-content {
   --tw-text-opacity: 1;
   color: var(--fallback-erc,oklch(var(--erc)/var(--tw-text-opacity)));
@@ -1805,4 +1856,26 @@ html {
 .text-success {
   --tw-text-opacity: 1;
   color: var(--fallback-su,oklch(var(--su)/var(--tw-text-opacity)));
+}
+
+.blur {
+  --tw-blur: blur(8px);
+  filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
+}
+
+.min-w-lg-content {
+  min-width: 200px;
+}
+
+.min-w-md-content {
+  min-width: 136px;
+}
+
+.hover\:input-bordered:hover {
+  border-color: var(--fallback-bc,oklch(var(--bc)/0.2));
+}
+
+.hover\:border-neutral:hover {
+  --tw-border-opacity: 1;
+  border-color: var(--fallback-n,oklch(var(--n)/var(--tw-border-opacity)));
 }

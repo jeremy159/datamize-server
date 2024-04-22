@@ -1,0 +1,80 @@
+<!-- prettier-ignore -->
+{% extends "layouts/main.html" %}
+
+{% block title %}Year Details{% endblock %}
+
+{% block content %}
+<div>
+  <h1>{{ year }} Net Assets</h1>
+  <table
+    id="assets-table"
+    class="table table-pin-rows"
+    hx-get="/balance_sheet/years/{{ year }}/total_assets"
+    hx-trigger="balance-updated from:body"
+    hx-target="#assets-table tbody > tr:last-of-type"
+    hx-swap="outerHTML"
+  >
+    <thead>
+      <tr class="border-t-success border-t-2">
+        <th class="min-w-lg-content">Assets</th>
+        {% for month in months %}
+        <th class="text-right min-w-md-content">{{ month.month.name() }}</th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for res in fin_res %} {% if res.base.resource_type.is_asset() %}
+      <tr>
+        <td class="min-w-lg-content">{{ res.base.name }}</td>
+        {% for y_m_and_b in res.iter_all_balances() %}
+        <td class="text-right min-w-md-content">
+          {% let month = y_m_and_b.1 %} {% let balance = y_m_and_b.2 %} {% let
+          fin_res_id = res.base.id %} {% include
+          "partials/year-details/single-balance.html" %}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endif %} {% endfor %} {% include
+      "partials/year-details/total-assets.html" %}
+    </tbody>
+  </table>
+  <table
+    id="liabilities-table"
+    class="table"
+    hx-get="/balance_sheet/years/{{ year }}/total_liabilities"
+    hx-trigger="balance-updated from:body"
+    hx-target="#liabilities-table tbody > tr:last-of-type"
+    hx-swap="outerHTML"
+  >
+    <thead>
+      <tr class="border-t-error border-t-2">
+        <th>Liabilities</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for res in fin_res %} {% if res.base.resource_type.is_liability() %}
+      <tr>
+        <td class="min-w-lg-content">{{ res.base.name }}</td>
+        {% for y_m_and_b in res.iter_all_balances() %}
+        <td class="text-right min-w-md-content">
+          {% let month = y_m_and_b.1 %} {% let balance = y_m_and_b.2 %} {% let
+          fin_res_id = res.base.id %} {% include
+          "partials/year-details/single-balance.html" %}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endif %} {% endfor %} {% include
+      "partials/year-details/total-liabilities.html" %}
+    </tbody>
+  </table>
+  <table
+    id="total-monthly-table"
+    class="table"
+    hx-get="/balance_sheet/years/{{ year }}/total_monthly"
+    hx-trigger="balance-updated from:body"
+    hx-target="this"
+  >
+    {% include "partials/year-details/total-monthly.html" %}
+  </table>
+</div>
+{% endblock %}

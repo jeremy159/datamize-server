@@ -9,7 +9,7 @@ use crate::{
     models::{
         FinancialResourceMonthly, FinancialResourceYearly, Month, MonthNum, SavingRate, Year,
     },
-    NetTotals, UpdateResource,
+    NetTotals,
 };
 
 // TODO: Check out https://medium.com/@disserman/working-with-data-storages-in-rust-a1428fd9ba2c to be better DB independant.
@@ -79,7 +79,7 @@ pub trait FinResRepo: Send + Sync {
     async fn get(&self, resource_id: Uuid) -> DbResult<FinancialResourceYearly>;
     async fn get_by_name(&self, name: &str) -> DbResult<FinancialResourceYearly>;
     async fn update(&self, resource: &FinancialResourceYearly) -> DbResult<()>;
-    async fn update_and_delete(&self, resource: &UpdateResource) -> DbResult<()>;
+    async fn update_and_delete(&self, resource: &FinancialResourceYearly) -> DbResult<()>;
     async fn delete(&self, resource_id: Uuid) -> DbResult<()>;
 }
 

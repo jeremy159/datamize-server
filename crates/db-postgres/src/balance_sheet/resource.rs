@@ -6,8 +6,7 @@ use std::{
 use datamize_domain::{
     async_trait,
     db::{DbError, DbResult, FinResRepo},
-    FinancialResourceMonthly, FinancialResourceYearly, MonthNum, UpdateResource, Uuid,
-    YearlyBalances,
+    FinancialResourceMonthly, FinancialResourceYearly, MonthNum, Uuid, YearlyBalances,
 };
 use sqlx::PgPool;
 
@@ -363,7 +362,7 @@ impl FinResRepo for PostgresFinResRepo {
     }
 
     #[tracing::instrument(skip_all)]
-    async fn update_and_delete(&self, resource: &UpdateResource) -> DbResult<()> {
+    async fn update_and_delete(&self, resource: &FinancialResourceYearly) -> DbResult<()> {
         let mut transaction = self.db_conn_pool.begin().await?;
 
         let resource_type = resource.base.resource_type.to_string();

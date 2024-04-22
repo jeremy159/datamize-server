@@ -3,8 +3,7 @@ use std::{collections::HashSet, sync::Arc};
 use datamize_domain::{
     async_trait,
     db::{DbError, DynFinResRepo, DynMonthRepo, DynYearRepo},
-    FinancialResourceYearly, Month, MonthNum, SaveResource, UpdateResource, Uuid, Year,
-    YearlyBalances,
+    FinancialResourceYearly, Month, MonthNum, SaveResource, Uuid, Year, YearlyBalances,
 };
 
 use crate::error::{AppError, DatamizeResult};
@@ -23,7 +22,7 @@ pub trait FinResServiceExt: Send + Sync {
     async fn get_fin_res(&self, fin_res_id: Uuid) -> DatamizeResult<FinancialResourceYearly>;
     async fn update_fin_res(
         &self,
-        new_fin_res: UpdateResource,
+        new_fin_res: FinancialResourceYearly,
     ) -> DatamizeResult<FinancialResourceYearly>;
     async fn delete_fin_res(&self, fin_res_id: Uuid) -> DatamizeResult<FinancialResourceYearly>;
 }
@@ -78,7 +77,7 @@ impl FinResServiceExt for FinResService {
     #[tracing::instrument(skip(self, updated_res))]
     async fn update_fin_res(
         &self,
-        updated_res: UpdateResource,
+        updated_res: FinancialResourceYearly,
     ) -> DatamizeResult<FinancialResourceYearly> {
         self.fin_res_repo.get(updated_res.base.id).await?;
         self.ensure_month_year_exist(&updated_res).await?;

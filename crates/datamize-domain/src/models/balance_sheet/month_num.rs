@@ -191,4 +191,8 @@ impl MonthNum {
             MonthNum::December => "December",
         }
     }
+
+    pub fn to_num(&self) -> i16 {
+        *self as i16
+    }
 }

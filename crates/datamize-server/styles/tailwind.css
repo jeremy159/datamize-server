@@ -1,3 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer utilities {
+  .min-w-lg-content {
+    @apply min-w-[200px];
+  }
+
+  .min-w-md-content {
+    @apply min-w-[136px];
+  }
+
+  .min-w-sm-content {
+    @apply min-w-[124px];
+  }
+}

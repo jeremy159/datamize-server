@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashSet};
 
 use chrono::{Datelike, NaiveDate};
-use datamize_domain::{FinancialResourceYearly, UpdateResource, YearlyBalances};
+use datamize_domain::{FinancialResourceYearly, YearlyBalances};
 use fake::{Fake, Faker};
 use pretty_assertions::{assert_eq, assert_ne};
 use sqlx::SqlitePool;
@@ -13,7 +13,7 @@ use crate::services::{
 
 async fn check_update(
     pool: SqlitePool,
-    updated_res: UpdateResource,
+    updated_res: FinancialResourceYearly,
     db_data: Option<FinancialResourceYearly>,
     expected_resp: Option<FinancialResourceYearly>,
     expected_err: Option<ErrorType>,
@@ -91,7 +91,7 @@ async fn returns_success_with_the_update(pool: SqlitePool) {
     let year = current_date.year();
     db_data.insert_balance(year, month, (-1000000..1000000).fake());
 
-    let mut body = UpdateResource {
+    let mut body = FinancialResourceYearly {
         base: db_data.clone().base,
         balances: BTreeMap::new(),
     };
@@ -117,7 +117,7 @@ async fn returns_success_with_the_update(pool: SqlitePool) {
 async fn updated_resource_updates_all_months_and_all_years(pool: SqlitePool) {
     let mut db_data: FinancialResourceYearly = Faker.fake();
     db_data.clear_all_balances();
-    let mut body = UpdateResource {
+    let mut body = FinancialResourceYearly {
         base: db_data.clone().base,
         balances: BTreeMap::new(),
     };
@@ -151,7 +151,7 @@ async fn updated_resource_updates_all_months_and_all_years(pool: SqlitePool) {
 async fn updated_resource_creates_or_deletes_balance_of_provided_month(pool: SqlitePool) {
     let mut db_data: FinancialResourceYearly = Faker.fake();
     db_data.clear_all_balances();
-    let mut body = UpdateResource {
+    let mut body = FinancialResourceYearly {
         base: db_data.clone().base,
         balances: BTreeMap::new(),
     };

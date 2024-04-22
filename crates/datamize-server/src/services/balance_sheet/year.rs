@@ -35,6 +35,7 @@ impl YearServiceExt for YearService {
         Ok(self.year_repo.get_years().await?)
     }
 
+    // TODO: Create year should also create all months with no resources linked to them.
     #[tracing::instrument(skip_all)]
     async fn create_year(&self, new_year: SaveYear) -> DatamizeResult<Year> {
         let Err(DbError::NotFound) = self.year_repo.get_year_data_by_number(new_year.year).await

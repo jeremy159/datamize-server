@@ -1,0 +1,77 @@
+<thead>
+  <tr class="border-t-info border-t-2">
+    <th>Net Assets</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td class="min-w-lg-content">Net Assets Total</td>
+    {% for month in months %}
+    <td class="text-right min-w-md-content">
+      <div class="input !p-0 flex items-center justify-end">
+        <span
+          title="{{ self::num_to_currency(month.net_totals.assets.total.clone()) }}"
+        >
+          {{
+          self::num_to_currency_rounded(month.net_totals.assets.total.clone())
+          }}
+        </span>
+      </div>
+    </td>
+    {% endfor %}
+  </tr>
+  <tr>
+    <td class="min-w-lg-content">Net Assets Variation</td>
+    {% for month in months %} {% let txt_color -%} {% if
+    month.net_totals.assets.percent_var > 0.0 -%} {% let txt_color =
+    "text-success" -%} {% else -%} {% let txt_color = "text-error" -%} {% endif
+    -%}
+    <td class="text-right {{ txt_color }} min-w-md-content">
+      <div class="input !p-0 flex items-center justify-end">
+        {{
+        self::num_to_percentage_f32(month.net_totals.assets.percent_var.clone())
+        }}
+      </div>
+    </td>
+    {% endfor %}
+  </tr>
+</tbody>
+
+<thead>
+  <tr class="border-t-warning border-t-2">
+    <th>Net Cash</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td class="min-w-lg-content">Net Cash Total</td>
+    {% for month in months %}
+    <td class="text-right min-w-md-content">
+      <div class="input !p-0 flex items-center justify-end">
+        <span
+          title="{{ self::num_to_currency(month.net_totals.portfolio.total.clone()) }}"
+        >
+          {{
+          self::num_to_currency_rounded(month.net_totals.portfolio.total.clone())
+          }}
+        </span>
+      </div>
+    </td>
+    {% endfor %}
+  </tr>
+  <tr>
+    <td class="min-w-lg-content">Net Cash Variation</td>
+    {% for month in months %} {% let txt_color -%} {% if
+    month.net_totals.portfolio.percent_var > 0.0 -%} {% let txt_color =
+    "text-success" -%} {% else -%} {% let txt_color = "text-error" -%} {% endif
+    -%}
+    <td class="text-right {{ txt_color }} min-w-md-content">
+      <div class="input !p-0 flex items-center justify-end">
+        {{
+        self::num_to_percentage_f32(month.net_totals.portfolio.percent_var.clone())
+        }}
+      </div>
+    </td>
+    {% endfor %}
+  </tr>
+</tbody>

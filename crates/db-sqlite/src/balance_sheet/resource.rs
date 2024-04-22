@@ -6,8 +6,7 @@ use std::{
 use datamize_domain::{
     async_trait,
     db::{DbError, DbResult, FinResRepo},
-    FinancialResourceMonthly, FinancialResourceYearly, MonthNum, UpdateResource, Uuid,
-    YearlyBalances,
+    FinancialResourceMonthly, FinancialResourceYearly, MonthNum, Uuid, YearlyBalances,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
@@ -474,7 +473,7 @@ impl FinResRepo for SqliteFinResRepo {
     }
 
     #[tracing::instrument(skip_all)]
-    async fn update_and_delete(&self, resource: &UpdateResource) -> DbResult<()> {
+    async fn update_and_delete(&self, resource: &FinancialResourceYearly) -> DbResult<()> {
         let ynab_account_ids = serde_json::to_string(&IdsRecord {
             ids: resource.base.ynab_account_ids.clone(),
         })

@@ -3,13 +3,11 @@ mod monthly;
 mod res_type;
 #[cfg(any(feature = "testutils", test))]
 pub mod testutils;
-mod update;
 mod yearly;
 
 pub use create::*;
 pub use monthly::*;
 pub use res_type::*;
-pub use update::*;
 pub use yearly::*;
 
 use std::collections::BTreeMap;
@@ -20,6 +18,22 @@ use uuid::Uuid;
 use crate::MonthNum;
 
 pub type BalancePerMonth = BTreeMap<MonthNum, Option<i64>>;
+pub fn get_all_months_empty() -> BalancePerMonth {
+    BTreeMap::from([
+        (MonthNum::January, None),
+        (MonthNum::February, None),
+        (MonthNum::March, None),
+        (MonthNum::April, None),
+        (MonthNum::May, None),
+        (MonthNum::June, None),
+        (MonthNum::July, None),
+        (MonthNum::August, None),
+        (MonthNum::September, None),
+        (MonthNum::October, None),
+        (MonthNum::November, None),
+        (MonthNum::December, None),
+    ])
+}
 pub type BalancePerYearPerMonth = BTreeMap<i32, BalancePerMonth>;
 
 /// A resource with economic value. It represents either an asset or a liability

@@ -32,7 +32,7 @@ async fn check_get_all_from_year(
         }
     }
 
-    let response = context.service().get_all_months_from_year(year).await;
+    let response = context.service().get_months_from_year(year).await;
     let expected_resp = transform_expected_months(expected_resp);
 
     if let Some(expected_resp) = expected_resp {

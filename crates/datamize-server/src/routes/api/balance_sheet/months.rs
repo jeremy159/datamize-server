@@ -24,7 +24,7 @@ pub async fn balance_sheet_months(
     Path(year): Path<i32>,
     State(month_service): State<DynMonthService>,
 ) -> HttpJsonDatamizeResult<Vec<Month>> {
-    Ok(AppJson(month_service.get_all_months_from_year(year).await?))
+    Ok(AppJson(month_service.get_months_from_year(year).await?))
 }
 
 /// Creates a new month if it doesn't already exist and returns the newly created entity.
