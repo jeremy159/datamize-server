@@ -1,0 +1,117 @@
+<!-- prettier-ignore -->
+{% extends "layouts/main.html" %}
+
+{% block title %}Financial Resource - {{ fin_res.base.name }}{% endblock %}
+
+{% block content %}
+<div>
+  <div class="card bg-base-100 shadow-xl my-4 mx-auto max-w-4xl">
+    <div class="card-body">
+      <h2 class="card-title">{{ fin_res.base.name }}</h2>
+      <p>{{ year }}</p>
+      <div class="grid grid-flow-col grid-cols-[1fr_auto_1fr] w-full">
+        <div class="grid place-items-center">
+          <div class="stat-title">Category</div>
+          <div class="stat-value text-xl whitespace-normal">
+            {{ fin_res.base.resource_type.category()|capitalize }}
+          </div>
+        </div>
+
+        <div class="divider divider-horizontal"></div>
+
+        <div class="grid place-items-center">
+          <div class="stat-title">Type</div>
+          {% if let Some(t) = fin_res.base.resource_type.asset_type() %}
+          <div class="stat-value text-xl whitespace-normal">
+            {{ t|capitalize }}
+          </div>
+          {% endif %} {% if let Some(t) =
+          fin_res.base.resource_type.liability_type() %}
+          <div class="stat-value text-xl whitespace-normal">
+            {{ t|capitalize }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="grid grid-flow-col grid-cols-[1fr_auto_1fr] w-full">
+        <div class="grid place-items-center">
+          <div class="stat-title">YNAB Accounts</div>
+          {% if ynab_accounts.len() > 0 %}
+          <ul>
+            {% for a in ynab_accounts %}
+            <li class="stat-value text-xl whitespace-normal">{{ a.name }}</li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <div class="stat-value text-xl whitespace-normal">None</div>
+          {% endif %}
+        </div>
+
+        <div class="divider divider-horizontal"></div>
+
+        <div class="grid place-items-center">
+          <div class="stat-title">External Accounts</div>
+          {% if external_accounts.len() > 0 %}
+          <ul>
+            {% for a in external_accounts %}
+            <li class="stat-value text-xl whitespace-normal">{{ a.name }}</li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <div class="stat-value text-xl whitespace-normal">None</div>
+          {% endif %}
+        </div>
+      </div>
+      {% if let Some(balances) = balances %}
+      <div class="grid grid-cols-3">
+        {% for (m, b) in balances %}
+        <div class="stat">
+          <div class="stat-title">{{ m.name() }}</div>
+          {% if let Some(b) = b %}
+          <div class="stat-value text-2xl whitespace-normal">
+            {{ self::num_to_currency(b.clone()) }}
+          </div>
+          {% else %}
+          <div class="stat-value text-2xl whitespace-normal">
+            {{ self::num_to_currency(0) }}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="card-actions justify-between">
+        <div>
+          <a
+            class="btn"
+            hx-target="#main"
+            hx-select="#main > *"
+            href="/balance_sheet/years/{{ year }}"
+            >Back</a
+          >
+        </div>
+        <div>
+          <a
+            id="delete-btn"
+            class="btn btn-outline btn-error"
+            href="#"
+            hx-delete="/balance_sheet/years/{{ year }}/{{ fin_res.base.id }}"
+            hx-confirm="Are you sure you want to delete {{ fin_res.base.name }}?"
+            hx-target="body"
+            >Delete</a
+          >
+          <a
+            class="btn btn-primary"
+            hx-target="#main"
+            hx-select="#main > *"
+            href="/balance_sheet/years/{{ year }}/{{ fin_res.base.id }}/edit"
+            >Edit</a
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,18 +1,20 @@
 mod edit_balance;
+mod financial_resource;
 mod year_detail;
 
-use axum::{
-    routing::{get, post},
-    Router,
-};
+use axum::{routing::get, Router};
 use db_postgres::{
     balance_sheet::{
         PostgresFinResRepo, PostgresMonthRepo, PostgresSavingRateRepo, PostgresYearRepo,
     },
-    budget_providers::{external::PostgresExternalAccountRepo, ynab::PostgresYnabTransactionRepo},
+    budget_providers::{
+        external::PostgresExternalAccountRepo,
+        ynab::{PostgresYnabAccountRepo, PostgresYnabTransactionRepo},
+    },
 };
 use db_redis::budget_providers::{
-    external::RedisEncryptionKeyRepo, ynab::RedisYnabTransactionMetaRepo,
+    external::RedisEncryptionKeyRepo,
+    ynab::{RedisYnabAccountMetaRepo, RedisYnabTransactionMetaRepo},
 };
 
 use crate::{
@@ -22,7 +24,10 @@ use crate::{
             DynYearService, FinResService, MonthService, RefreshFinResService, SavingRateService,
             YearService,
         },
-        budget_providers::{ExternalAccountService, TransactionService},
+        budget_providers::{
+            DynExternalAccountService, DynYnabAccountService, ExternalAccountService,
+            TransactionService, YnabAccountService,
+        },
     },
     startup::AppState,
 };
@@ -57,11 +62,26 @@ pub fn get_balance_sheets_routes<S: Clone + Send + Sync + 'static>(
         fin_res_repo,
         month_repo,
         year_repo,
-        external_acount_service,
+        external_acount_service.clone(),
         app_state.ynab_client.clone(),
     );
 
-    Router::new().merge(get_year_routes(month_service, fin_res_service))
+    let ynab_account_repo = PostgresYnabAccountRepo::new_arced(app_state.db_conn_pool.clone());
+    let ynab_account_meta_repo =
+        RedisYnabAccountMetaRepo::new_arced(app_state.redis_conn_pool.clone());
+    let ynab_account_service = YnabAccountService::new_arced(
+        ynab_account_repo,
+        ynab_account_meta_repo,
+        app_state.ynab_client.clone(),
+    );
+
+    Router::new()
+        .merge(get_year_routes(month_service, fin_res_service.clone()))
+        .merge(get_fin_res_routes(
+            fin_res_service,
+            ynab_account_service,
+            external_acount_service,
+        ))
 }
 
 fn get_year_routes<S>(
@@ -70,10 +90,6 @@ fn get_year_routes<S>(
 ) -> Router<S> {
     Router::new()
         .route("/years/:year", get(year_detail::get))
-        .route(
-            "/years/:year/:month/:fin_res_id/edit_balance",
-            get(edit_balance::get).put(edit_balance::put),
-        )
         .route(
             "/years/:year/total_monthly",
             get(year_detail::total_monthly::get),
@@ -87,6 +103,40 @@ fn get_year_routes<S>(
             get(year_detail::total_liabilities::get),
         )
         .with_state((month_service, fin_res_service))
+}
+
+fn get_fin_res_routes<S: Clone + Send + Sync + 'static>(
+    fin_res_service: DynFinResService,
+    ynab_account_service: DynYnabAccountService,
+    external_account_service: DynExternalAccountService,
+) -> Router<S> {
+    let first = Router::new()
+        .route(
+            "/years/:year/:month/:fin_res_id/edit_balance",
+            get(edit_balance::get).put(edit_balance::put),
+        )
+        .with_state(fin_res_service.clone());
+
+    let second = Router::new()
+        .route(
+            "/years/:year/:fin_res_id",
+            get(financial_resource::get).delete(financial_resource::delete),
+        )
+        .route(
+            "/years/:year/:fin_res_id/edit",
+            get(financial_resource::edit::get).put(financial_resource::edit::put),
+        )
+        .route(
+            "/years/:year/new",
+            get(financial_resource::new::get).post(financial_resource::new::post),
+        )
+        .with_state((
+            fin_res_service,
+            ynab_account_service,
+            external_account_service,
+        ));
+
+    Router::new().merge(first).merge(second)
 }
 
 // fn get_refresh_fin_res_routes<S>(refresh_fin_res_service: DynRefreshFinResService) -> Router<S> {

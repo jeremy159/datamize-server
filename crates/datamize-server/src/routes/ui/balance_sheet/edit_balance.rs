@@ -8,12 +8,12 @@ use serde::Deserialize;
 use crate::{
     error::DatamizeResult,
     routes::ui::{num_to_currency, num_to_currency_rounded},
-    services::balance_sheet::{DynFinResService, DynMonthService},
+    services::balance_sheet::DynFinResService,
 };
 
 pub async fn get(
     Path((year, month, fin_res_id)): Path<(i32, MonthNum, Uuid)>,
-    State((_, fin_res_service)): State<(DynMonthService, DynFinResService)>,
+    State(fin_res_service): State<DynFinResService>,
 ) -> DatamizeResult<impl IntoResponse> {
     let fin_res = fin_res_service.get_fin_res(fin_res_id).await?;
     let balance = fin_res.get_balance(year, month);
@@ -36,7 +36,7 @@ struct YearDetailsBalanceFormTemplate {
 
 pub async fn put(
     Path((year, month, fin_res_id)): Path<(i32, MonthNum, Uuid)>,
-    State((_, fin_res_service)): State<(DynMonthService, DynFinResService)>,
+    State(fin_res_service): State<DynFinResService>,
     Form(payload): Form<Payload>,
 ) -> DatamizeResult<impl IntoResponse> {
     let mut fin_res = fin_res_service.get_fin_res(fin_res_id).await?;

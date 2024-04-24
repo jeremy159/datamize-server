@@ -6,8 +6,7 @@ use askama::Template;
 use askama_axum::IntoResponse;
 use axum::extract::{Path, State};
 use datamize_domain::{
-    get_all_months_empty, BalancePerYearPerMonth, FinancialResourceYearly, Month, ResourceCategory,
-    YearlyBalances,
+    BalancePerYearPerMonth, FinancialResourceYearly, Month, ResourceCategory, YearlyBalances,
 };
 
 use crate::{
@@ -20,23 +19,7 @@ pub async fn get(
     Path(year): Path<i32>,
     State((month_service, fin_res_service)): State<(DynMonthService, DynFinResService)>,
 ) -> DatamizeResult<impl IntoResponse> {
-    let mut fin_res = fin_res_service.get_all_fin_res_from_year(year).await?;
-    let empty_months = get_all_months_empty();
-    for fin_res in &mut fin_res {
-        match fin_res.get_balance_for_year(year) {
-            Some(current_year_balances) => {
-                if current_year_balances.len() < 12 {
-                    fin_res.insert_balance_for_year(year, empty_months.clone());
-                    for (m, b) in current_year_balances {
-                        fin_res.insert_balance_opt(year, m, b);
-                    }
-                }
-            }
-            None => {
-                fin_res.insert_balance_for_year(year, empty_months.clone());
-            }
-        }
-    }
+    let fin_res = fin_res_service.get_all_fin_res_from_year(year).await?;
     let months = month_service.get_all_months_from_year(year).await?;
 
     let mut total_assets = TotalRow::default();
@@ -62,34 +45,6 @@ pub async fn get(
                     }
                 },
             }
-        }
-    }
-
-    match total_assets.get_balance_for_year(year) {
-        Some(current_year_balances) => {
-            if current_year_balances.len() < 12 {
-                total_assets.insert_balance_for_year(year, empty_months.clone());
-                for (m, b) in current_year_balances {
-                    total_assets.insert_balance_opt(year, m, b);
-                }
-            }
-        }
-        None => {
-            total_assets.insert_balance_for_year(year, empty_months.clone());
-        }
-    }
-
-    match total_liabilities.get_balance_for_year(year) {
-        Some(current_year_balances) => {
-            if current_year_balances.len() < 12 {
-                total_liabilities.insert_balance_for_year(year, empty_months.clone());
-                for (m, b) in current_year_balances {
-                    total_liabilities.insert_balance_opt(year, m, b);
-                }
-            }
-        }
-        None => {
-            total_liabilities.insert_balance_for_year(year, empty_months.clone());
         }
     }
 

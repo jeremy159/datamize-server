@@ -9,7 +9,7 @@ use crate::YearlyBalances;
 /// To update a balance, send month_num: Some(balance)
 /// but to delete a balance, send month_num: None. This differs from a missing month which
 /// just does not update anything on the month.
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, Default)]
 pub struct FinancialResourceYearly {
     #[serde(flatten)]
     pub base: BaseFinancialResource,

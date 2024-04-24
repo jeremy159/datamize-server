@@ -15,3 +15,8 @@
     @apply min-w-[124px];
   }
 }
+
+#main {
+  /* TODO: Maybe find a better approach. Right now substracting the width of sidenav */
+  max-width: calc(100vw - 15rem);
+}

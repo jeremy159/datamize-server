@@ -1,43 +1,19 @@
-<nav class="min-w-56 p-4">
+<nav class="min-w-56 p-4" hx-target="#main" hx-select="#main > *">
   <ol>
     <li>
-      <a
-        href="/budget/summary"
-        hx-push-url="true"
-        hx-target="#main"
-        hx-select="#main"
-        class="link link-hover"
-        >Budget Summary</a
-      >
+      <a href="/budget/summary" class="link link-hover">Budget Summary</a>
     </li>
     <li>
-      <a
-        href="/budget/details"
-        hx-push-url="true"
-        hx-target="#main"
-        hx-select="#main"
-        class="link link-hover"
-        >Budget Details</a
-      >
+      <a href="/budget/details" class="link link-hover">Budget Details</a>
     </li>
     <li>
-      <a
-        href="/budget/transactions"
-        hx-push-url="true"
-        hx-target="#main"
-        hx-select="#main"
-        class="link link-hover"
+      <a href="/budget/transactions" class="link link-hover"
         >Budget Transactions</a
       >
     </li>
     <li>
       <!-- TODO: don't forget to change year to 'current' -->
-      <a
-        href="/balance_sheet/years/2024"
-        hx-push-url="true"
-        hx-target="#main"
-        hx-select="#main"
-        class="link link-hover"
+      <a href="/balance_sheet/years/2024" class="link link-hover"
         >Year Details</a
       >
     </li>

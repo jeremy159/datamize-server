@@ -87,13 +87,19 @@ pub trait YearlyBalances {
     fn balances_mut(&mut self) -> &mut BalancePerYearPerMonth;
 
     fn insert_balance(&mut self, year: i32, month: MonthNum, balance: i64) {
-        let year_entry = self.balances_mut().entry(year).or_default();
+        let year_entry = self
+            .balances_mut()
+            .entry(year)
+            .or_insert_with(get_all_months_empty);
 
         year_entry.insert(month, Some(balance));
     }
 
     fn insert_balance_opt(&mut self, year: i32, month: MonthNum, balance: Option<i64>) {
-        let year_entry = self.balances_mut().entry(year).or_default();
+        let year_entry = self
+            .balances_mut()
+            .entry(year)
+            .or_insert_with(get_all_months_empty);
 
         year_entry.insert(month, balance);
     }

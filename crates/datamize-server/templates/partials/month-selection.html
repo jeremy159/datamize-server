@@ -7,7 +7,7 @@
     class="join my-4"
     hx-indicator="#month-change-spinner"
     hx-target="#main"
-    hx-select="#main"
+    hx-select="#main > *"
   >
     {% match month %} {% when MonthTarget::Previous %}
     <input
