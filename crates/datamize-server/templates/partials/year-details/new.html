@@ -1,0 +1,65 @@
+  <form
+    id="new_year_form"
+    action="/balance_sheet/years/new"
+    method="post"
+  >
+  <h3 class="font-bold text-lg">New Year</h3>
+
+  <label class="form-control w-full">
+    <div class="label">
+      <span class="label-text">Year</span>
+    </div>
+    {% if let Some(year) = year %}
+    <input
+      name="year"
+      id="year"
+      class="input input-bordered w-full"
+      type="number"
+      value="{{ year }}"
+      required
+    />
+    {% else %}
+    <input
+      name="year"
+      id="year"
+      class="input input-bordered w-full"
+      type="number"
+      required
+    />
+    {% endif%}
+    <div class="label">
+      <span class="label-text-alt">YYYY</span>
+    </div>
+  </label>
+
+  {% if let Some(val) = error %}
+  <p>
+    <div role="alert" class="alert alert-error">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="stroke-current shrink-0 h-6 w-6"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+      <span>{{ val }}</span>
+    </div>
+  </p>
+  {% endif %}
+
+</form>
+<div class="modal-action">
+  <button class="btn" hx-on:click="new_year_modal.close()">Cancel</button>
+  <button
+    type="submit"
+    form="new_year_form"
+    class="btn btn-primary"
+    >Save</button
+  >
+</div>

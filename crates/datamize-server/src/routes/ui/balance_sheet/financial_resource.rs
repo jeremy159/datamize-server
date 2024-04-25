@@ -1,5 +1,6 @@
 pub mod edit;
 pub mod new;
+pub mod refresh;
 
 use askama::Template;
 use askama_axum::IntoResponse;
@@ -80,7 +81,8 @@ pub async fn delete(
     )>,
     headers: HeaderMap,
 ) -> DatamizeResult<impl IntoResponse> {
-    fin_res_service.delete_fin_res(fin_res_id).await?;
+    // No matter the result of the deletion, we either redirect or do nothing.
+    _ = fin_res_service.delete_fin_res(fin_res_id).await;
 
     Ok(match headers.get("Hx-Trigger") {
         Some(trigger) => {

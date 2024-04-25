@@ -6,12 +6,12 @@ use datamize_domain::{BalancePerYearPerMonth, YearlyBalances};
 use crate::{
     error::DatamizeResult,
     routes::ui::{num_to_currency, num_to_currency_rounded},
-    services::balance_sheet::{DynFinResService, DynMonthService},
+    services::balance_sheet::{DynFinResService, DynMonthService, DynYearService},
 };
 
 pub async fn get(
     Path(year): Path<i32>,
-    State((_, fin_res_service)): State<(DynMonthService, DynFinResService)>,
+    State((_, _, fin_res_service)): State<(DynYearService, DynMonthService, DynFinResService)>,
 ) -> DatamizeResult<impl IntoResponse> {
     let mut fin_res = fin_res_service.get_all_fin_res_from_year(year).await?;
     let mut total_assets = TotalRow::default();

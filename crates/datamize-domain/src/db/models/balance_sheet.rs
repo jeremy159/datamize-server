@@ -16,6 +16,7 @@ use crate::{
 #[async_trait]
 pub trait YearRepo: Send + Sync {
     async fn get_years(&self) -> DbResult<Vec<Year>>;
+    async fn get_years_data(&self) -> DbResult<Vec<YearData>>;
     async fn get_years_starting_from(&self, year: i32) -> DbResult<Vec<Year>>;
     async fn get_year_data_by_number(&self, year: i32) -> DbResult<YearData>;
     async fn add(&self, year: &Year) -> DbResult<()>;

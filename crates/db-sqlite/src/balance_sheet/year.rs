@@ -66,6 +66,20 @@ impl YearRepo for SqliteYearRepo {
     }
 
     #[tracing::instrument(skip(self))]
+    async fn get_years_data(&self) -> DbResult<Vec<YearData>> {
+        sqlx::query_as!(
+            YearData,
+            r#"
+            SELECT year_id as "id: Uuid", year as "year: i32", refreshed_at as "refreshed_at: DateTime<Utc>"
+            FROM balance_sheet_years;
+            "#
+        )
+        .fetch_all(&self.db_conn_pool)
+        .await
+        .map_err(Into::into)
+    }
+
+    #[tracing::instrument(skip(self))]
     async fn get_years_starting_from(&self, year: i32) -> DbResult<Vec<Year>> {
         let year_datas = sqlx::query_as!(
             YearData,

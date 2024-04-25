@@ -11,6 +11,7 @@ use crate::error::{AppError, DatamizeResult};
 #[async_trait]
 pub trait YearServiceExt: Send + Sync {
     async fn get_all_years(&self) -> DatamizeResult<Vec<Year>>;
+    async fn get_all_years_num(&self) -> DatamizeResult<Vec<i32>>;
     async fn create_year(&self, new_year: SaveYear) -> DatamizeResult<Year>;
     async fn get_year(&self, year: i32) -> DatamizeResult<Year>;
     async fn delete_year(&self, year: i32) -> DatamizeResult<Year>;
@@ -33,6 +34,17 @@ impl YearServiceExt for YearService {
     #[tracing::instrument(skip(self))]
     async fn get_all_years(&self) -> DatamizeResult<Vec<Year>> {
         Ok(self.year_repo.get_years().await?)
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn get_all_years_num(&self) -> DatamizeResult<Vec<i32>> {
+        Ok(self
+            .year_repo
+            .get_years_data()
+            .await?
+            .into_iter()
+            .map(|y| y.year)
+            .collect())
     }
 
     // TODO: Create year should also create all months with no resources linked to them.

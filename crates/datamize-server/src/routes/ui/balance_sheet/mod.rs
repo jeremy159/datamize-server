@@ -2,7 +2,10 @@ mod edit_balance;
 mod financial_resource;
 mod year_detail;
 
-use axum::{routing::get, Router};
+use axum::{
+    routing::{get, post},
+    Router,
+};
 use db_postgres::{
     balance_sheet::{
         PostgresFinResRepo, PostgresMonthRepo, PostgresSavingRateRepo, PostgresYearRepo,
@@ -76,20 +79,33 @@ pub fn get_balance_sheets_routes<S: Clone + Send + Sync + 'static>(
     );
 
     Router::new()
-        .merge(get_year_routes(month_service, fin_res_service.clone()))
+        .merge(get_year_routes(
+            year_service,
+            month_service,
+            fin_res_service.clone(),
+        ))
         .merge(get_fin_res_routes(
             fin_res_service,
             ynab_account_service,
             external_acount_service,
         ))
+        .merge(get_refresh_fin_res_routes(refresh_fin_res_service))
 }
 
 fn get_year_routes<S>(
+    year_service: DynYearService,
     month_service: DynMonthService,
     fin_res_service: DynFinResService,
 ) -> Router<S> {
     Router::new()
-        .route("/years/:year", get(year_detail::get))
+        .route(
+            "/years/new",
+            get(year_detail::new::get).post(year_detail::new::post),
+        )
+        .route(
+            "/years/:year",
+            get(year_detail::get).delete(year_detail::delete),
+        )
         .route(
             "/years/:year/total_monthly",
             get(year_detail::total_monthly::get),
@@ -102,7 +118,7 @@ fn get_year_routes<S>(
             "/years/:year/total_liabilities",
             get(year_detail::total_liabilities::get),
         )
-        .with_state((month_service, fin_res_service))
+        .with_state((year_service, month_service, fin_res_service))
 }
 
 fn get_fin_res_routes<S: Clone + Send + Sync + 'static>(
@@ -139,8 +155,11 @@ fn get_fin_res_routes<S: Clone + Send + Sync + 'static>(
     Router::new().merge(first).merge(second)
 }
 
-// fn get_refresh_fin_res_routes<S>(refresh_fin_res_service: DynRefreshFinResService) -> Router<S> {
-//     Router::new()
-//         .route("/resources/refresh", post(refresh_balance_sheet_resources))
-//         .with_state(refresh_fin_res_service)
-// }
+fn get_refresh_fin_res_routes<S>(refresh_fin_res_service: DynRefreshFinResService) -> Router<S> {
+    Router::new()
+        .route(
+            "/resources/refresh",
+            post(financial_resource::refresh::post),
+        )
+        .with_state(refresh_fin_res_service)
+}
