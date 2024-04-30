@@ -103,7 +103,7 @@
         class="btn btn-primary btn-square btn-ghost"
         hx-target="#main"
         hx-select="#main > *"
-        href="/balance_sheet/years/{{ year }}/new"
+        href="/balance_sheet/resources/new?year={{ year }}"
         title="Add Financial Resource"
         ><svg
           xmlns="http://www.w3.org/2000/svg"
@@ -124,14 +124,7 @@
   </div>
   {# TODO: this overflow breaks table-pin-rows... #}
   <div class="overflow-x-auto">
-    <table
-      id="assets-table"
-      class="table table-pin-rows"
-      hx-get="/balance_sheet/years/{{ year }}/total_assets"
-      hx-trigger="balance-updated from:body"
-      hx-target="#assets-table tbody > tr:last-of-type"
-      hx-swap="outerHTML"
-    >
+    <table id="assets-table" class="table table-pin-rows">
       <thead>
         <tr class="border-t-success border-t-2">
           <th class="min-w-lg-content">Assets</th>
@@ -140,168 +133,47 @@
           {% endfor %}
         </tr>
       </thead>
-      <tbody>
-        {% for res in fin_res %} {% if res.base.resource_type.is_asset() %}
-        <tr>
-          <td class="min-w-lg-content">
-            <div class="flex flex-row">
-              <span class="self-center mr-2">{{ res.base.name }}</span>
-              <div class="dropdown">
-                <div
-                  tabindex="0"
-                  role="button"
-                  class="btn btn-sm btn-square btn-ghost"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                    class="w-6 h-6"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z"
-                    />
-                  </svg>
-                </div>
-                <ul
-                  class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box"
-                >
-                  <li>
-                    <a
-                      hx-target="#main"
-                      hx-select="#main > *"
-                      href="/balance_sheet/years/{{ year }}/{{ res.base.id }}/edit"
-                      >Edit</a
-                    >
-                  </li>
-                  <li>
-                    <a
-                      hx-target="#main"
-                      hx-select="#main > *"
-                      href="/balance_sheet/years/{{ year }}/{{ res.base.id }}"
-                      >View</a
-                    >
-                  </li>
-                  <li>
-                    <a
-                      href="#"
-                      hx-delete="/balance_sheet/years/{{ year }}/{{ res.base.id }}"
-                      hx-confirm="Are you sure you want to delete {{ res.base.name }}?"
-                      hx-swap="outerHTML swap:1s"
-                      hx-target="closest tr"
-                      >Delete</a
-                    >
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </td>
-          {% for y_m_and_b in res.iter_all_balances() %}
-          <td class="text-right min-w-md-content">
-            {% let month = y_m_and_b.1 %} {% let balance = y_m_and_b.2 %} {% let
-            fin_res_id = res.base.id %} {% include
-            "partials/year-details/single-balance.html" %}
-          </td>
-          {% endfor %}
-        </tr>
-        {% endif %} {% endfor %} {% include
-        "partials/year-details/total-assets.html" %}
-      </tbody>
+      <tbody
+        id="asset-rows"
+        hx-get="/balance_sheet/years/{{ year }}/resources/asset"
+        hx-trigger="load"
+      ></tbody>
+      <tbody
+        id="total-assets"
+        hx-get="/balance_sheet/years/{{ year }}/resources/asset/total"
+        hx-trigger="load, balance-updated from:body"
+        hx-target="#total-assets"
+      ></tbody>
     </table>
-    <table
-      id="liabilities-table"
-      class="table"
-      hx-get="/balance_sheet/years/{{ year }}/total_liabilities"
-      hx-trigger="balance-updated from:body"
-      hx-target="#liabilities-table tbody > tr:last-of-type"
-      hx-swap="outerHTML"
-    >
+    <table id="liabilities-table" class="table">
       <thead>
         <tr class="border-t-error border-t-2">
           <th>Liabilities</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for res in fin_res %} {% if res.base.resource_type.is_liability() %}
-        <tr>
-          <td class="min-w-lg-content">
-            <div class="flex flex-row">
-              <span class="self-center mr-2">{{ res.base.name }}</span>
-              <div class="dropdown">
-                <div tabindex="0" role="button" class="btn btn-sm btn-ghost">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                    class="w-6 h-6"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z"
-                    />
-                  </svg>
-                </div>
-                <ul
-                  class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box"
-                >
-                  <li>
-                    <a
-                      hx-target="#main"
-                      hx-select="#main > *"
-                      href="/balance_sheet/years/{{ year }}/{{ res.base.id }}/edit"
-                      >Edit</a
-                    >
-                  </li>
-                  <li>
-                    <a
-                      hx-target="#main"
-                      hx-select="#main > *"
-                      href="/balance_sheet/years/{{ year }}/{{ res.base.id }}"
-                      >View</a
-                    >
-                  </li>
-                  <li>
-                    <a
-                      href="#"
-                      hx-delete="/balance_sheet/years/{{ year }}/{{ res.base.id }}"
-                      hx-confirm="Are you sure you want to delete this Financial Resource?"
-                      hx-swap="outerHTML swap:1s"
-                      hx-target="closest tr"
-                      >Delete</a
-                    >
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </td>
-          {% for y_m_and_b in res.iter_all_balances() %}
-          <td class="text-right min-w-md-content">
-            {% let month = y_m_and_b.1 %} {% let balance = y_m_and_b.2 %} {% let
-            fin_res_id = res.base.id %} {% include
-            "partials/year-details/single-balance.html" %}
-          </td>
+          {% for month in months %}
+          <th class="text-right min-w-md-content opacity-0">
+            {{ month.month.name() }}
+          </th>
           {% endfor %}
         </tr>
-        {% endif %} {% endfor %} {% include
-        "partials/year-details/total-liabilities.html" %}
-      </tbody>
+      </thead>
+      <tbody
+        id="liability-rows"
+        hx-get="/balance_sheet/years/{{ year }}/resources/liability"
+        hx-trigger="load"
+      ></tbody>
+      <tbody
+        id="total-liabilities"
+        hx-get="/balance_sheet/years/{{ year }}/resources/liability/total"
+        hx-trigger="load, balance-updated from:body"
+        hx-target="#total-liabilities"
+      ></tbody>
     </table>
     <table
       id="total-monthly-table"
       class="table"
       hx-get="/balance_sheet/years/{{ year }}/total_monthly"
-      hx-trigger="balance-updated from:body"
-      hx-target="this"
-    >
-      {% include "partials/year-details/total-monthly.html" %}
-    </table>
+      hx-trigger="load, balance-updated from:body"
+    ></table>
   </div>
 </div>
 {% endblock %}

@@ -6,18 +6,18 @@ use axum::{
     extract::{Path, State},
     response::Redirect,
 };
-use axum_extra::extract::Form;
+use axum_extra::extract::{Form, OptionalQuery};
+use chrono::{Datelike, Local};
 use datamize_domain::{
-    get_res_cat_options, get_res_type_options, BalancePerMonth, BaseFinancialResource,
-    FinancialResourceYearly, MonthNum, ResourceCategory, ResourceCategoryOption,
-    ResourceTypeOption, Uuid, YearlyBalances,
+    get_res_cat_options, BalancePerMonth, BaseFinancialResource, FinancialResourceYearly, MonthNum,
+    ResourceCategory, ResourceCategoryOption, Uuid, YearQuery, YearlyBalances,
 };
 use serde::Deserialize;
 
 use crate::{
     error::DatamizeResult,
     services::{
-        balance_sheet::DynFinResService,
+        balance_sheet::{DynFinResService, DynYearService},
         budget_providers::{DynExternalAccountService, DynYnabAccountService},
     },
 };
@@ -28,12 +28,12 @@ struct FinancialResourceFormTemplate {
     fin_res: FinancialResourceYearly,
     year: i32,
     resource_categories: [ResourceCategoryOption; 2],
-    resource_types: [ResourceTypeOption; 3],
     balances: Option<BalancePerMonth>,
     ynab_accounts: Vec<ynab::Account>,
     selected_ynab_accounts: Vec<Uuid>,
     external_accounts: Vec<datamize_domain::ExternalAccount>,
     selected_external_accounts: Vec<Uuid>,
+    years: Vec<i32>,
     error: Option<String>,
 }
 
@@ -44,6 +44,7 @@ impl FinancialResourceFormTemplate {
         error: Option<String>,
         ynab_account_service: DynYnabAccountService,
         external_account_service: DynExternalAccountService,
+        year_service: DynYearService,
     ) -> DatamizeResult<Self> {
         let balances = fin_res.get_balance_for_year(year);
         let ynab_accounts: Vec<ynab::Account> =
@@ -59,50 +60,59 @@ impl FinancialResourceFormTemplate {
             external_account_service.get_all_external_accounts().await?;
 
         let resource_categories = get_res_cat_options(&fin_res.base.resource_type);
-        // TODO: Populate resource type based on resource category. check https://htmx.org/examples/value-select/
-        let resource_types = get_res_type_options(&fin_res.base.resource_type);
 
         Ok(Self {
             fin_res,
             year,
             resource_categories,
-            resource_types,
             balances,
             ynab_accounts,
             selected_ynab_accounts,
             external_accounts,
             selected_external_accounts,
+            years: year_service.get_all_years_num().await?,
             error,
         })
     }
 }
 
 pub async fn get(
-    Path((year, fin_res_id)): Path<(i32, Uuid)>,
-    State((fin_res_service, ynab_account_service, external_account_service)): State<(
-        DynFinResService,
-        DynYnabAccountService,
-        DynExternalAccountService,
-    )>,
+    Path(fin_res_id): Path<Uuid>,
+    OptionalQuery(param): OptionalQuery<YearQuery>,
+    State((fin_res_service, ynab_account_service, external_account_service, year_service)): State<
+        (
+            DynFinResService,
+            DynYnabAccountService,
+            DynExternalAccountService,
+            DynYearService,
+        ),
+    >,
 ) -> DatamizeResult<impl IntoResponse> {
     let fin_res = fin_res_service.get_fin_res(fin_res_id).await?;
+    let year = param.map_or(Local::now().date_naive().year(), |p| p.year);
+
     FinancialResourceFormTemplate::build(
         fin_res,
         year,
         None,
         ynab_account_service,
         external_account_service,
+        year_service,
     )
     .await
 }
 
 pub async fn put(
-    Path((year, fin_res_id)): Path<(i32, Uuid)>,
-    State((fin_res_service, ynab_account_service, external_account_service)): State<(
-        DynFinResService,
-        DynYnabAccountService,
-        DynExternalAccountService,
-    )>,
+    Path(fin_res_id): Path<Uuid>,
+    OptionalQuery(param): OptionalQuery<YearQuery>,
+    State((fin_res_service, ynab_account_service, external_account_service, year_service)): State<
+        (
+            DynFinResService,
+            DynYnabAccountService,
+            DynExternalAccountService,
+            DynYearService,
+        ),
+    >,
     Form(payload): Form<Payload>,
 ) -> DatamizeResult<impl IntoResponse> {
     let mut fin_res = FinancialResourceYearly {
@@ -158,12 +168,13 @@ pub async fn put(
             payload.december.map(|b| (b * 1000_f64) as i64),
         ),
     ]);
+    let year = param.map_or(Local::now().date_naive().year(), |p| p.year);
     fin_res.insert_balance_for_year(year, balances.clone());
 
     match fin_res_service.update_fin_res(fin_res.clone()).await {
         Ok(_) => Ok(Redirect::to(&format!(
-            "/balance_sheet/years/{}/{}",
-            year, fin_res.base.id
+            "/balance_sheet/resources/{}?year={}",
+            fin_res.base.id, year
         ))
         .into_response()),
         Err(e) => Ok(FinancialResourceFormTemplate::build(
@@ -172,6 +183,7 @@ pub async fn put(
             Some(e.to_string()),
             ynab_account_service,
             external_account_service,
+            year_service,
         )
         .await?
         .into_response()),

@@ -7,7 +7,7 @@ use serde_json::json;
 
 use crate::{
     error::DatamizeResult,
-    services::balance_sheet::{DynFinResService, DynMonthService, DynYearService},
+    services::balance_sheet::{DynMonthService, DynYearService},
 };
 
 #[derive(Template, Default)]
@@ -22,7 +22,7 @@ pub async fn get() -> impl IntoResponse {
 }
 
 pub async fn post(
-    State((year_service, _, _)): State<(DynYearService, DynMonthService, DynFinResService)>,
+    State((year_service, _)): State<(DynYearService, DynMonthService)>,
     Form(payload): Form<SaveYear>,
 ) -> DatamizeResult<impl IntoResponse> {
     match year_service.create_year(payload.clone()).await {

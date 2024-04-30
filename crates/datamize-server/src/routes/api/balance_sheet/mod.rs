@@ -20,8 +20,9 @@ use db_postgres::{
     },
     budget_providers::{external::PostgresExternalAccountRepo, ynab::PostgresYnabTransactionRepo},
 };
-use db_redis::budget_providers::{
-    external::RedisEncryptionKeyRepo, ynab::RedisYnabTransactionMetaRepo,
+use db_redis::{
+    balance_sheet::resource::RedisFinResOrderRepo,
+    budget_providers::{external::RedisEncryptionKeyRepo, ynab::RedisYnabTransactionMetaRepo},
 };
 use month::*;
 use months::*;
@@ -51,10 +52,15 @@ pub fn get_balance_sheets_routes<S: Clone + Send + Sync + 'static>(
     let year_repo = PostgresYearRepo::new_arced(app_state.db_conn_pool.clone());
     let month_repo = PostgresMonthRepo::new_arced(app_state.db_conn_pool.clone());
     let fin_res_repo = PostgresFinResRepo::new_arced(app_state.db_conn_pool.clone());
-    let year_service = YearService::new_arced(year_repo.clone());
+    let fin_res_order_repo = RedisFinResOrderRepo::new_arced(app_state.redis_conn_pool.clone());
+    let year_service = YearService::new_arced(year_repo.clone(), month_repo.clone());
     let month_service = MonthService::new_arced(month_repo.clone());
-    let fin_res_service =
-        FinResService::new_arced(fin_res_repo.clone(), month_repo.clone(), year_repo.clone());
+    let fin_res_service = FinResService::new_arced(
+        fin_res_repo.clone(),
+        month_repo.clone(),
+        year_repo.clone(),
+        fin_res_order_repo,
+    );
     let saving_rate_repo = PostgresSavingRateRepo::new_arced(app_state.db_conn_pool.clone());
     let ynab_transaction_repo =
         PostgresYnabTransactionRepo::new_arced(app_state.db_conn_pool.clone());

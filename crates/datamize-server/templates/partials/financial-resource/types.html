@@ -1,0 +1,5 @@
+{% for t in resource_types %} {% if t.selected -%}
+<option selected value="{{ t.value }}">{{ t.value|capitalize }}</option>
+{% else -%}
+<option value="{{ t.value }}">{{ t.value|capitalize }}</option>
+{% endif -%} {% endfor %}

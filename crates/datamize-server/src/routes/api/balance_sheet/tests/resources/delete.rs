@@ -18,7 +18,7 @@ async fn check_delete(
     expected_status: StatusCode,
     expected_resp: Option<FinancialResourceYearly>,
 ) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
     let mut checked_years = HashSet::<i32>::new();
 
     // Create all months and years
@@ -108,7 +108,7 @@ async fn returns_success_with_the_deletion(pool: SqlitePool) {
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_400_for_invalid_id_in_path(pool: SqlitePool) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     let response = context
         .app()

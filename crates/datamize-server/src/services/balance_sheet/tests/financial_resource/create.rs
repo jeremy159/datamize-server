@@ -18,7 +18,7 @@ async fn check_create(
     expected_resp: Option<FinancialResourceYearly>,
     expected_err: Option<ErrorType>,
 ) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     let response = context.service().create_fin_res(new_res).await;
 
@@ -91,7 +91,7 @@ async fn returns_error_already_exists_when_resource_already_exists(pool: SqliteP
         name: resource.base.name.clone(),
         ..Faker.fake()
     };
-    let context = TestContext::setup(pool.clone());
+    let context = TestContext::setup(pool.clone()).await;
     context.insert_year(year).await;
     context.insert_month(month, year).await;
     context.set_resources(&[resource]).await;

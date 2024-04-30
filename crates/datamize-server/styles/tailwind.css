@@ -4,15 +4,15 @@
 
 @layer utilities {
   .min-w-lg-content {
-    @apply min-w-[200px];
+    @apply min-w-60;
   }
 
   .min-w-md-content {
-    @apply min-w-[136px];
+    @apply min-w-36;
   }
 
   .min-w-sm-content {
-    @apply min-w-[124px];
+    @apply min-w-32;
   }
 }
 

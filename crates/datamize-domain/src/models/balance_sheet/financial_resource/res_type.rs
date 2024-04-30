@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 #[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -83,7 +83,7 @@ impl FinancialResourceType {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ResourceCategory {
     /// Things you own. These can be cash or something you can convert into cash such as property, vehicles, equipment and inventory.
@@ -167,21 +167,33 @@ pub struct ResourceTypeOption {
     pub selected: bool,
 }
 
-pub fn get_res_type_options(resource_type: &FinancialResourceType) -> [ResourceTypeOption; 3] {
-    [
+pub fn get_res_type_options(
+    category: ResourceCategory,
+    resource_type: &Option<FinancialResourceType>,
+) -> Vec<ResourceTypeOption> {
+    let mut common = vec![
         ResourceTypeOption {
             value: AssetType::Cash.to_string(),
-            selected: resource_type.is_asset_type(AssetType::Cash)
-                || resource_type.is_liability_type(LiabilityType::Cash),
-        },
-        ResourceTypeOption {
-            value: AssetType::Investment.to_string(),
-            selected: resource_type.is_asset_type(AssetType::Investment),
+            selected: resource_type.as_ref().map_or(false, |rt| {
+                rt.is_asset_type(AssetType::Cash) || rt.is_liability_type(LiabilityType::Cash)
+            }),
         },
         ResourceTypeOption {
             value: AssetType::LongTerm.to_string(),
-            selected: resource_type.is_asset_type(AssetType::LongTerm)
-                || resource_type.is_liability_type(LiabilityType::LongTerm),
+            selected: resource_type.as_ref().map_or(false, |rt| {
+                rt.is_asset_type(AssetType::LongTerm)
+                    || rt.is_liability_type(LiabilityType::LongTerm)
+            }),
         },
-    ]
+    ];
+    if category == ResourceCategory::Asset {
+        common.push(ResourceTypeOption {
+            value: AssetType::Investment.to_string(),
+            selected: resource_type
+                .as_ref()
+                .map_or(false, |rt| rt.is_asset_type(AssetType::Investment)),
+        });
+    }
+
+    common
 }

@@ -1,8 +1,10 @@
+use std::collections::BTreeMap;
+
 use askama::Template;
 use askama_axum::IntoResponse;
 use axum::extract::{Path, State};
 use axum_extra::extract::Form;
-use datamize_domain::{MonthNum, Uuid, YearlyBalances};
+use datamize_domain::{BalancePerMonth, MonthNum, Uuid, YearlyBalances};
 use serde::Deserialize;
 
 use crate::{
@@ -42,7 +44,9 @@ pub async fn put(
     let mut fin_res = fin_res_service.get_fin_res(fin_res_id).await?;
     // clear other balances to only update net assets of modified month
     fin_res.clear_all_balances();
-    fin_res.insert_balance_opt(year, month, payload.balance.map(|b| (b * 1000_f64) as i64));
+    let balance: BalancePerMonth =
+        BTreeMap::from([(month, payload.balance.map(|b| (b * 1000_f64) as i64))]);
+    fin_res.insert_balance_for_year(year, balance);
     let fin_res = fin_res_service.update_fin_res(fin_res).await?;
 
     Ok((

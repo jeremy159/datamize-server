@@ -18,7 +18,7 @@ async fn check_update(
     expected_resp: Option<FinancialResourceYearly>,
     expected_err: Option<ErrorType>,
 ) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
     let mut checked_years = HashSet::<i32>::new();
 
     if let Some(ref db_data) = db_data {

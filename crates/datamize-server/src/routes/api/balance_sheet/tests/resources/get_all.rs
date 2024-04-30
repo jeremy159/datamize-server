@@ -22,7 +22,7 @@ async fn check_get_all(
     expected_status: StatusCode,
     expected_resp: Option<Vec<FinancialResourceYearly>>,
 ) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     if let Some(years) = years {
         context.insert_year(years.0).await;

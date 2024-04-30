@@ -6,7 +6,8 @@ use std::{
 use datamize_domain::{
     async_trait,
     db::{DbError, DbResult, FinResRepo},
-    FinancialResourceMonthly, FinancialResourceYearly, MonthNum, Uuid, YearlyBalances,
+    FinancialResourceMonthly, FinancialResourceYearly, MonthNum, ResourceCategory, Uuid,
+    YearlyBalances,
 };
 use sqlx::PgPool;
 
@@ -91,6 +92,58 @@ impl FinResRepo for PostgresFinResRepo {
             WHERE y.year = $1;
             "#,
             year,
+        )
+        .fetch_all(&self.db_conn_pool)
+        .await?;
+
+        for r in db_rows {
+            resources
+                .entry(r.id)
+                .or_insert_with(|| {
+                    FinancialResourceYearly::new(
+                        r.id,
+                        r.name,
+                        r.resource_type.parse().unwrap(),
+                        r.ynab_account_ids,
+                        r.external_account_ids,
+                    )
+                })
+                .insert_balance(r.year, r.month, r.balance);
+        }
+
+        let mut resources: Vec<FinancialResourceYearly> = resources.into_values().collect();
+
+        resources.sort_by(|a, b| a.base.name.cmp(&b.base.name));
+
+        Ok(resources)
+    }
+
+    async fn get_from_year_and_category(
+        &self,
+        year: i32,
+        category: &ResourceCategory,
+    ) -> DbResult<Vec<FinancialResourceYearly>> {
+        let mut resources: BTreeMap<Uuid, FinancialResourceYearly> = BTreeMap::new();
+
+        let db_rows = sqlx::query!(
+            r#"
+            SELECT
+                r.resource_id AS "id: Uuid",
+                r.name,
+                r.resource_type,
+                r.ynab_account_ids,
+                r.external_account_ids,
+                rm.balance,
+                m.month AS "month: MonthNum",
+                y.year AS "year: i32"
+            FROM balance_sheet_unique_resources AS r
+            JOIN resources_balance_per_months AS rm ON r.resource_id = rm.resource_id
+            JOIN balance_sheet_months AS m ON rm.month_id = m.month_id
+            JOIN balance_sheet_years AS y ON y.year_id = m.year_id
+            WHERE y.year = $1 AND r.resource_type LIKE '%' || $2 || '%';
+            "#,
+            year,
+            category.to_string(),
         )
         .fetch_all(&self.db_conn_pool)
         .await?;

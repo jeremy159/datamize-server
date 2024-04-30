@@ -67,7 +67,7 @@ async fn check_update(
     expected_status: StatusCode,
     expected_resp: Option<FinancialResourceYearly>,
 ) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
     let mut checked_years = HashSet::<i32>::new();
 
     if let Some(ref db_data) = db_data {
@@ -202,7 +202,7 @@ async fn returns_success_with_the_update(pool: SqlitePool) {
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_400_for_invalid_id_in_path(pool: SqlitePool) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     let response = context
         .app()
@@ -222,7 +222,7 @@ async fn returns_400_for_invalid_id_in_path(pool: SqlitePool) {
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_422_for_invalid_body_format_data(pool: SqlitePool) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     #[derive(Debug, Clone, Serialize, Dummy)]
     struct ReqBody {
@@ -249,7 +249,7 @@ async fn returns_422_for_invalid_body_format_data(pool: SqlitePool) {
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_400_for_empty_body(pool: SqlitePool) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     let response = context
         .app()
@@ -269,7 +269,7 @@ async fn returns_400_for_empty_body(pool: SqlitePool) {
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_415_for_missing_json_content_type(pool: SqlitePool) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     let body = Faker.fake::<UpdateBody>();
 

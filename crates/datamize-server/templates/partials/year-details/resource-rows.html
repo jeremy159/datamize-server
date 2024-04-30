@@ -1,0 +1,64 @@
+{% for res in resources -%}
+<tr>
+  <td class="min-w-lg-content">
+    <div class="flex flex-row items-center justify-between">
+      <span class="self-center mr-2">{{ res.base.name }}</span>
+      <div class="dropdown" hx-swap="innerHTML">
+        <div tabindex="0" role="button" class="btn btn-sm btn-square btn-ghost">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-6 h-6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z"
+            />
+          </svg>
+        </div>
+        <ul
+          class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box"
+        >
+          <li>
+            <a
+              hx-target="#main"
+              hx-select="#main > *"
+              href="/balance_sheet/resources/{{ res.base.id }}/edit?year={{ year }}"
+              >Edit</a
+            >
+          </li>
+          <li>
+            <a
+              hx-target="#main"
+              hx-select="#main > *"
+              href="/balance_sheet/resources/{{ res.base.id }}?year={{ year }}"
+              >View</a
+            >
+          </li>
+          <li>
+            <a
+              href="#"
+              hx-delete="/balance_sheet/resources/{{ res.base.id }}?year={{ year }}"
+              hx-confirm="Are you sure you want to delete {{ res.base.name }}?"
+              hx-swap="outerHTML swap:1s"
+              hx-target="closest tr"
+              >Delete</a
+            >
+          </li>
+        </ul>
+      </div>
+    </div>
+  </td>
+  {% for y_m_and_b in res.iter_all_balances() %}
+  <td class="text-right min-w-md-content">
+    {% let month = y_m_and_b.1 %} {% let balance = y_m_and_b.2 %} {% let
+    fin_res_id = res.base.id %} {% include
+    "partials/year-details/single-balance.html" %}
+  </td>
+  {% endfor %}
+</tr>
+{% endfor -%}

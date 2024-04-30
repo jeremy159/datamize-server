@@ -64,7 +64,7 @@ async fn check_create(
     expected_status: StatusCode,
     expected_resp: Option<FinancialResourceYearly>,
 ) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     let response = context
         .app()
@@ -166,7 +166,7 @@ async fn returns_409_when_resource_already_exists(pool: SqlitePool) {
         ynab_account_ids: res.base.ynab_account_ids,
         external_account_ids: res.base.external_account_ids,
     };
-    let context = TestContext::setup(pool.clone());
+    let context = TestContext::setup(pool.clone()).await;
     context.insert_year(year).await;
     context.insert_month(month, year).await;
     context.set_resources(&[resource]).await;
@@ -176,7 +176,7 @@ async fn returns_409_when_resource_already_exists(pool: SqlitePool) {
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_422_for_invalid_body_format_data(pool: SqlitePool) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     #[derive(Debug, Clone, Serialize, Dummy)]
     struct ReqBody {
@@ -204,7 +204,7 @@ async fn returns_422_for_invalid_body_format_data(pool: SqlitePool) {
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_400_for_empty_body(pool: SqlitePool) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     let response = context
         .app()
@@ -224,7 +224,7 @@ async fn returns_400_for_empty_body(pool: SqlitePool) {
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_415_for_missing_json_content_type(pool: SqlitePool) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     let body = Faker.fake::<CreateBody>();
 

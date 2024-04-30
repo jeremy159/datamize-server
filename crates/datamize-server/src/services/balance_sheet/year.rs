@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use datamize_domain::{
     async_trait,
-    db::{DbError, DynYearRepo},
-    SaveYear, Year,
+    db::{DbError, DynMonthRepo, DynYearRepo},
+    Month, SaveYear, Year,
 };
 
 use crate::error::{AppError, DatamizeResult};
@@ -21,11 +21,15 @@ pub type DynYearService = Arc<dyn YearServiceExt>;
 
 pub struct YearService {
     pub year_repo: DynYearRepo,
+    pub month_repo: DynMonthRepo,
 }
 
 impl YearService {
-    pub fn new_arced(year_repo: DynYearRepo) -> Arc<Self> {
-        Arc::new(Self { year_repo })
+    pub fn new_arced(year_repo: DynYearRepo, month_repo: DynMonthRepo) -> Arc<Self> {
+        Arc::new(Self {
+            year_repo,
+            month_repo,
+        })
     }
 }
 
@@ -47,7 +51,6 @@ impl YearServiceExt for YearService {
             .collect())
     }
 
-    // TODO: Create year should also create all months with no resources linked to them.
     #[tracing::instrument(skip_all)]
     async fn create_year(&self, new_year: SaveYear) -> DatamizeResult<Year> {
         let Err(DbError::NotFound) = self.year_repo.get_year_data_by_number(new_year.year).await
@@ -59,6 +62,16 @@ impl YearServiceExt for YearService {
         self.year_repo.add(&year).await?;
 
         self.year_repo.update_net_totals(new_year.year).await?;
+
+        // TODO: To optimize, create a batch insert
+        for i in 1..=12 {
+            let month = Month::new(i.try_into().unwrap(), year.year);
+            self.month_repo.add(&month, year.year).await?;
+
+            self.month_repo
+                .update_net_totals(month.month, year.year)
+                .await?;
+        }
 
         Ok(self.year_repo.get(new_year.year).await?)
     }

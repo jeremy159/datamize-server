@@ -7,215 +7,233 @@
 <div>
   <div class="card bg-base-100 shadow-xl my-4 mx-auto max-w-4xl">
     <div class="card-body">
+      <h2 class="card-title">New Financial Resource</h2>
+      <div>
+        <select
+          name="year"
+          class="select select-sm"
+          hx-get="/balance_sheet/resources/new"
+          hx-push-url="true"
+          hx-target="#main"
+          hx-select="#main > *"
+        >
+          {% for y in years %} {% if y.clone() == year %}
+          <option selected value="{{ y }}">{{ y }}</option>
+          {% else %}
+          <option value="{{ y }}">{{ y }}</option>
+          {% endif %} {% endfor %}
+        </select>
+      </div>
       <form
         id="fin_res_form"
-        action="/balance_sheet/years/{{ year }}/new"
+        action="/balance_sheet/resources/new?year={{ year }}"
         method="post"
       >
-      <h2 class="card-title">New Financial Resource</h2>
-      <fieldset>
-        <div class="grid grid-flow-col grid-cols-[1fr_auto_1fr] w-full">
-          <div class="grid place-items-center">
-            <label class="form-control w-full">
-              <div class="label">
-                <span class="label-text">Name</span>
-              </div>
-              <input
-                name="name"
-                id="name"
-                class="input input-bordered w-full"
-                type="text"
-                placeholder="Name"
-                value="{{ fin_res.base.name }}"
-                required
-              />
-            </label>
-          </div>
-
-          <div class="divider divider-horizontal"></div>
-
-          <div class="grid place-items-center">
-            <label class="form-control w-full">
-              <div class="label">
-                <span class="label-text">Year</span>
-              </div>
-              <input
-                name="year"
-                id="year"
-                class="input input-bordered w-full"
-                type="number"
-                placeholder="Year"
-                value="{{ year }}"
-                disabled
-              />
-            </label>
-          </div>
-        </div>
-
-        <div class="grid grid-flow-col grid-cols-[1fr_auto_1fr] w-full">
-          <div class="grid place-items-center">
-            <label class="form-control w-full">
-              <div class="label">
-                <span class="label-text">Category</span>
-              </div>
-              <select name="category" class="select select-bordered" required>
-                {% for cat in resource_categories %}
-                {% if cat.selected %}
-                <option selected value="{{ cat.value }}">{{ cat.value|capitalize }}</option>
-                {% else %}
-                <option value="{{ cat.value }}">{{ cat.value|capitalize }}</option>
-                {% endif %}
-                {% endfor %}
-              </select>
-            </label>
-          </div>
-
-          <div class="divider divider-horizontal"></div>
-
-          <div class="grid place-items-center">
-            <label class="form-control w-full">
-              <div class="label">
-                <span class="label-text">Type</span>
-              </div>
-              <select name="type" class="select select-bordered" required>
-                {% for t in resource_types %}
-                {% if t.selected %}
-                <option selected value="{{ t.value }}">{{ t.value|capitalize }}</option>
-                {% else %}
-                <option value="{{ t.value }}">{{ t.value|capitalize }}</option>
-                {% endif %}
-                {% endfor %}
-              </select>
-            </label>
-          </div>
-        </div>
-
-        <div class="grid grid-flow-col grid-cols-[1fr_auto_1fr] w-full">
-          <div class="grid place-items-center">
-            <div class="label">
-              <span class="label-text">YNAB Accounts</span>
+        <fieldset>
+          <div class="grid grid-flow-col grid-cols-[1fr_auto_1fr] w-full">
+            <div class="grid place-items-center">
+              <label class="form-control w-full">
+                <div class="label">
+                  <span class="label-text">Name</span>
+                </div>
+                <input
+                  name="name"
+                  id="name"
+                  class="input input-bordered w-full"
+                  type="text"
+                  placeholder="Name"
+                  value="{{ fin_res.base.name }}"
+                  required
+                />
+              </label>
             </div>
-            <div class="max-h-40 overflow-y-auto w-full">
-              {% for ynab_account in ynab_accounts %}
-              <div class="form-control">
-                <label class="label cursor-pointer">
-                  <span class="label-text">{{ ynab_account.name }}</span>
-                  {% if selected_ynab_accounts.contains(ynab_account.id) %}
-                  <input
-                    type="checkbox"
-                    class="checkbox"
-                    name="ynab_account_ids"
-                    value="{{ ynab_account.id }}"
-                    checked
-                  />
+
+            <div class="divider divider-horizontal"></div>
+
+            <div class="grid place-items-center">
+              <label class="form-control w-full">
+                <div class="label">
+                  <span class="label-text">Year</span>
+                </div>
+                <input
+                  name="year"
+                  id="year"
+                  class="input input-bordered w-full"
+                  type="number"
+                  placeholder="Year"
+                  value="{{ year }}"
+                  disabled
+                />
+              </label>
+            </div>
+          </div>
+
+          <div class="grid grid-flow-col grid-cols-[1fr_auto_1fr] w-full">
+            <div class="grid place-items-center">
+              <label class="form-control w-full">
+                <div class="label">
+                  <span class="label-text">Category</span>
+                </div>
+                <select
+                  name="category"
+                  class="select select-bordered"
+                  required
+                  hx-get="/balance_sheet/resources/types"
+                  hx-target="#types"
+                  hx-trigger="change, load"
+                >
+                  {% for cat in resource_categories %} {% if cat.selected %}
+                  <option selected value="{{ cat.value }}">
+                    {{ cat.value|capitalize }}
+                  </option>
                   {% else %}
-                  <input
-                    type="checkbox"
-                    class="checkbox"
-                    name="ynab_account_ids"
-                    value="{{ ynab_account.id }}"
-                  />
-                  {% endif %}
-                </label>
-              </div>
-              {% endfor %}
+                  <option value="{{ cat.value }}">
+                    {{ cat.value|capitalize }}
+                  </option>
+                  {% endif %} {% endfor %}
+                </select>
+              </label>
+            </div>
+
+            <div class="divider divider-horizontal"></div>
+
+            <div class="grid place-items-center">
+              <label class="form-control w-full">
+                <div class="label">
+                  <span class="label-text">Type</span>
+                </div>
+                <select
+                  id="types"
+                  name="type"
+                  class="select select-bordered"
+                  required
+                ></select>
+              </label>
             </div>
           </div>
 
-          <div class="divider divider-horizontal"></div>
-
-          <div class="grid place-items-center">
-            <div class="label">
-              <span class="label-text">External Accounts</span>
-            </div>
-            <div class="max-h-40 overflow-y-auto w-full">
-              {% for external_account in external_accounts %}
-              <div class="form-control">
-                <label class="label cursor-pointer">
-                  <span class="label-text">{{ external_account.name }}</span>
-                  {% if selected_external_accounts.contains(external_account.id) %}
-                  <input
-                    type="checkbox"
-                    class="checkbox"
-                    name="external_account_ids"
-                    value="{{ external_account.id }}"
-                    checked
-                  />
-                  {% else %}
-                  <input
-                    type="checkbox"
-                    class="checkbox"
-                    name="external_account_ids"
-                    value="{{ external_account.id }}"
-                  />
-                  {% endif %}
-                </label>
+          <div class="grid grid-flow-col grid-cols-[1fr_auto_1fr] w-full">
+            <div class="grid place-items-center">
+              <div class="label">
+                <span class="label-text">YNAB Accounts</span>
               </div>
-              {% endfor %}
+              <div class="max-h-40 overflow-y-auto w-full">
+                {% for ynab_account in ynab_accounts %}
+                <div class="form-control">
+                  <label class="label cursor-pointer">
+                    <span class="label-text">{{ ynab_account.name }}</span>
+                    {% if selected_ynab_accounts.contains(ynab_account.id) %}
+                    <input
+                      type="checkbox"
+                      class="checkbox"
+                      name="ynab_account_ids"
+                      value="{{ ynab_account.id }}"
+                      checked
+                    />
+                    {% else %}
+                    <input
+                      type="checkbox"
+                      class="checkbox"
+                      name="ynab_account_ids"
+                      value="{{ ynab_account.id }}"
+                    />
+                    {% endif %}
+                  </label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="divider divider-horizontal"></div>
+
+            <div class="grid place-items-center">
+              <div class="label">
+                <span class="label-text">External Accounts</span>
+              </div>
+              <div class="max-h-40 overflow-y-auto w-full">
+                {% for external_account in external_accounts %}
+                <div class="form-control">
+                  <label class="label cursor-pointer">
+                    <span class="label-text">{{ external_account.name }}</span>
+                    {% if
+                    selected_external_accounts.contains(external_account.id) %}
+                    <input
+                      type="checkbox"
+                      class="checkbox"
+                      name="external_account_ids"
+                      value="{{ external_account.id }}"
+                      checked
+                    />
+                    {% else %}
+                    <input
+                      type="checkbox"
+                      class="checkbox"
+                      name="external_account_ids"
+                      value="{{ external_account.id }}"
+                    />
+                    {% endif %}
+                  </label>
+                </div>
+                {% endfor %}
+              </div>
             </div>
           </div>
-        </div>
-      </fieldset>
+        </fieldset>
 
-      {% if let Some(balances) = balances %}
-      <fieldset name="balances">
-        <div class="grid grid-cols-3 gap-2">
-          {% for (m, b) in balances %}
-          <label class="form-control w-full">
-            <div class="label">
-              <span class="label-text">{{ m.name() }}</span>
-            </div>
-            <div class="input input-bordered flex items-center gap-1 w-full">
-              $
-              {% if let Some(balance) = b -%} {% let balance = format!("{:.2}",
-              *balance as f64 / 1000_f64) -%}
-              <input
-                class="grow"
-                type="text"
-                name="{{ m.name()|lower }}"
-                id="balance-month-{{ m.to_num() }}"
-                value="{{ balance }}"
-                pattern="\d*((.|,)\d{0,2})?"
-              />
-              {% else -%}
-              <input
-                class="grow"
-                type="text"
-                name="{{ m.name()|lower }}"
-                id="balance-month-{{ m.to_num() }}"
-                placeholder="0"
-                pattern="\d*((.|,)\d{0,2})?"
-              />
-              {% endif -%}
-            </div>
-          </label>
-          {% endfor %}
-        </div>
-      </fieldset>
-      {% endif %}
-
+        {% if let Some(balances) = balances %}
+        <fieldset name="balances">
+          <div class="grid grid-cols-3 gap-2">
+            {% for (m, b) in balances %}
+            <label class="form-control w-full">
+              <div class="label">
+                <span class="label-text">{{ m.name() }}</span>
+              </div>
+              <div class="input input-bordered flex items-center gap-1 w-full">
+                $ {% if let Some(balance) = b -%} {% let balance =
+                format!("{:.2}", *balance as f64 / 1000_f64) -%}
+                <input
+                  class="grow"
+                  type="text"
+                  name="{{ m.name()|lower }}"
+                  id="balance-month-{{ m.to_num() }}"
+                  value="{{ balance }}"
+                  pattern="\d*((.|,)\d{0,2})?"
+                />
+                {% else -%}
+                <input
+                  class="grow"
+                  type="text"
+                  name="{{ m.name()|lower }}"
+                  id="balance-month-{{ m.to_num() }}"
+                  placeholder="0"
+                  pattern="\d*((.|,)\d{0,2})?"
+                />
+                {% endif -%}
+              </div>
+            </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+        {% endif %}
+      </form>
       {% if let Some(val) = error %}
-      <p>
-        <div role="alert" class="alert alert-error">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="stroke-current shrink-0 h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <span>{{ val }}</span>
-        </div>
-      </p>
+      <div role="alert" class="alert alert-error">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="stroke-current shrink-0 h-6 w-6"
+          fill="none"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+        <span>{{ val }}</span>
+      </div>
       {% endif %}
-
-    </form>
       <div class="card-actions justify-end">
         <a
           class="btn"
@@ -224,12 +242,9 @@
           href="/balance_sheet/years/{{ year }}"
           >Cancel</a
         >
-        <button
-          type="submit"
-          form="fin_res_form"
-          class="btn btn-primary"
-          >Save</button
-        >
+        <button type="submit" form="fin_res_form" class="btn btn-primary">
+          Save
+        </button>
       </div>
     </div>
   </div>

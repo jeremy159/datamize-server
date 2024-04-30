@@ -52,3 +52,9 @@ impl From<fred::error::RedisError> for DbError {
         }
     }
 }
+
+impl From<uuid::Error> for DbError {
+    fn from(value: uuid::Error) -> Self {
+        Self::DataIntegrityError(value.to_string())
+    }
+}

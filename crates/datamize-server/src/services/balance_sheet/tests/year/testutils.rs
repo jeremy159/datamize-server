@@ -27,7 +27,7 @@ impl TestContext {
         let fin_res_repo = SqliteFinResRepo::new_arced(pool.clone());
         let saving_rate_repo = SqliteSavingRateRepo::new_arced(pool.clone());
 
-        let year_service = YearService::new_arced(year_repo.clone());
+        let year_service = YearService::new_arced(year_repo.clone(), month_repo.clone());
         Self {
             year_repo,
             month_repo,

@@ -1,76 +1,31 @@
+pub mod latest;
 pub mod new;
-pub mod total_assets;
-pub mod total_liabilities;
+pub mod resources;
 pub mod total_monthly;
 
 use askama::Template;
 use askama_axum::IntoResponse;
 use axum::extract::{Path, State};
-use datamize_domain::{
-    BalancePerYearPerMonth, FinancialResourceYearly, Month, ResourceCategory, YearlyBalances,
-};
+use datamize_domain::{BalancePerYearPerMonth, Month, YearlyBalances};
 use serde_json::json;
 
 use crate::{
     error::DatamizeResult,
-    routes::ui::{num_to_currency, num_to_currency_rounded, num_to_percentage_f32},
-    services::balance_sheet::{DynFinResService, DynMonthService, DynYearService},
+    services::balance_sheet::{DynMonthService, DynYearService},
 };
 
 use self::new::YearFormTemplate;
 
 pub async fn get(
     Path(year): Path<i32>,
-    State((year_service, month_service, fin_res_service)): State<(
-        DynYearService,
-        DynMonthService,
-        DynFinResService,
-    )>,
+    State((year_service, month_service)): State<(DynYearService, DynMonthService)>,
 ) -> DatamizeResult<impl IntoResponse> {
-    let fin_res = fin_res_service.get_all_fin_res_from_year(year).await?;
-    let years = year_service.get_all_years_num().await?;
-    let months = month_service.get_all_months_from_year(year).await?;
-
-    let mut total_assets = TotalRow::default();
-    let mut total_liabilities = TotalRow::default();
-
-    for fin_res in &fin_res {
-        for (year, month, balance) in fin_res.iter_balances() {
-            match fin_res.base.resource_type.category() {
-                ResourceCategory::Asset => match total_assets.get_balance(year, month) {
-                    Some(total_balance) => {
-                        total_assets.insert_balance(year, month, total_balance + balance);
-                    }
-                    None => {
-                        total_assets.insert_balance(year, month, balance);
-                    }
-                },
-                ResourceCategory::Liability => match total_liabilities.get_balance(year, month) {
-                    Some(total_balance) => {
-                        total_liabilities.insert_balance(year, month, total_balance + balance);
-                    }
-                    None => {
-                        total_liabilities.insert_balance(year, month, balance);
-                    }
-                },
-            }
-        }
-    }
-
-    Ok(YearDetailsTemplate {
-        new_year_form: YearFormTemplate::default(),
-        year,
-        years,
-        months,
-        fin_res,
-        total_assets,
-        total_liabilities,
-    })
+    YearDetailsTemplate::build(year_service, month_service, year).await
 }
 
 pub async fn delete(
     Path(year): Path<i32>,
-    State((year_service, _, _)): State<(DynYearService, DynMonthService, DynFinResService)>,
+    State((year_service, _)): State<(DynYearService, DynMonthService)>,
 ) -> DatamizeResult<impl IntoResponse> {
     _ = year_service.delete_year(year).await;
 
@@ -82,14 +37,29 @@ pub async fn delete(
 
 #[derive(Template)]
 #[template(path = "pages/year-details.html")]
-struct YearDetailsTemplate {
+pub struct YearDetailsTemplate {
     new_year_form: YearFormTemplate,
     year: i32,
     years: Vec<i32>,
     months: Vec<Month>,
-    fin_res: Vec<FinancialResourceYearly>,
-    total_assets: TotalRow,
-    total_liabilities: TotalRow,
+}
+
+impl YearDetailsTemplate {
+    pub async fn build(
+        year_service: DynYearService,
+        month_service: DynMonthService,
+        year: i32,
+    ) -> DatamizeResult<Self> {
+        let years = year_service.get_all_years_num().await?;
+        let months = month_service.get_all_months_from_year(year).await?;
+
+        Ok(Self {
+            new_year_form: YearFormTemplate::default(),
+            year,
+            years,
+            months,
+        })
+    }
 }
 
 #[derive(Debug, Clone, Default)]

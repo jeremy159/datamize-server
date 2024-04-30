@@ -25,10 +25,9 @@ use crate::{
             CategoryService, DynYnabPayeeService, ScheduledTransactionService, YnabPayeeService,
         },
         budget_template::{
-            BudgeterService, DynBudgeterService, DynExpenseCategorizationService,
-            DynTemplateDetailService, DynTemplateSummaryService, DynTemplateTransactionService,
-            ExpenseCategorizationService, TemplateDetailService, TemplateSummaryService,
-            TemplateTransactionService,
+            BudgeterService, DynBudgeterService, DynTemplateDetailService,
+            DynTemplateSummaryService, DynTemplateTransactionService, ExpenseCategorizationService,
+            TemplateDetailService, TemplateSummaryService, TemplateTransactionService,
         },
     },
     startup::AppState,
@@ -88,7 +87,7 @@ pub fn get_budget_template_routes<S: Clone + Send + Sync + 'static>(
         app_state.ynab_client.clone(),
     );
 
-    let expense_categorization_service =
+    let _expense_categorization_service =
         ExpenseCategorizationService::new_arced(expense_categorization_repo);
 
     Router::new()

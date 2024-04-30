@@ -6,12 +6,12 @@ use datamize_domain::Month;
 use crate::{
     error::DatamizeResult,
     routes::ui::{num_to_currency, num_to_currency_rounded, num_to_percentage_f32},
-    services::balance_sheet::{DynFinResService, DynMonthService, DynYearService},
+    services::balance_sheet::{DynMonthService, DynYearService},
 };
 
 pub async fn get(
     Path(year): Path<i32>,
-    State((_, month_service, _)): State<(DynYearService, DynMonthService, DynFinResService)>,
+    State((_, month_service)): State<(DynYearService, DynMonthService)>,
 ) -> DatamizeResult<impl IntoResponse> {
     let months = month_service.get_all_months_from_year(year).await?;
 

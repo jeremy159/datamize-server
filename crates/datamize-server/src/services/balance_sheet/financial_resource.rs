@@ -2,8 +2,9 @@ use std::{collections::HashSet, sync::Arc};
 
 use datamize_domain::{
     async_trait,
-    db::{DbError, DynFinResRepo, DynMonthRepo, DynYearRepo},
-    FinancialResourceYearly, Month, MonthNum, SaveResource, Uuid, Year, YearlyBalances,
+    db::{DbError, DynFinResOrderRepo, DynFinResRepo, DynMonthRepo, DynYearRepo},
+    FinancialResourceYearly, Month, MonthNum, ResourceCategory, SaveResource, Uuid, Year,
+    YearlyBalances,
 };
 
 use crate::error::{AppError, DatamizeResult};
@@ -15,6 +16,17 @@ pub trait FinResServiceExt: Send + Sync {
         &self,
         year: i32,
     ) -> DatamizeResult<Vec<FinancialResourceYearly>>;
+    async fn get_from_year_and_category(
+        &self,
+        year: i32,
+        category: &ResourceCategory,
+    ) -> DatamizeResult<Vec<FinancialResourceYearly>>;
+    async fn save_resources_order(
+        &self,
+        year: i32,
+        category: &ResourceCategory,
+        order: &[Uuid],
+    ) -> DatamizeResult<()>;
     async fn create_fin_res(
         &self,
         new_fin_res: SaveResource,
@@ -33,6 +45,7 @@ pub struct FinResService {
     pub fin_res_repo: DynFinResRepo,
     pub month_repo: DynMonthRepo,
     pub year_repo: DynYearRepo,
+    pub fin_res_order_repo: DynFinResOrderRepo,
 }
 
 #[async_trait]
@@ -48,6 +61,46 @@ impl FinResServiceExt for FinResService {
         year: i32,
     ) -> DatamizeResult<Vec<FinancialResourceYearly>> {
         Ok(self.fin_res_repo.get_from_year(year).await?)
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn get_from_year_and_category(
+        &self,
+        year: i32,
+        category: &ResourceCategory,
+    ) -> DatamizeResult<Vec<FinancialResourceYearly>> {
+        let resources = self
+            .fin_res_repo
+            .get_from_year_and_category(year, category)
+            .await?;
+        let order = self.fin_res_order_repo.get_order(year, category).await?;
+        let mut indexed_resources: Vec<_> = resources.iter().enumerate().collect();
+        indexed_resources.sort_by_key(|(_, res)| {
+            order
+                .iter()
+                .position(|&id| id == res.base.id)
+                .unwrap_or(usize::MAX)
+        });
+
+        let resources: Vec<_> = indexed_resources
+            .into_iter()
+            .map(|(_, res)| res.clone())
+            .collect();
+
+        Ok(resources)
+    }
+
+    #[tracing::instrument(skip(self))]
+    async fn save_resources_order(
+        &self,
+        year: i32,
+        category: &ResourceCategory,
+        order: &[Uuid],
+    ) -> DatamizeResult<()> {
+        self.fin_res_order_repo
+            .set_order(year, category, order)
+            .await
+            .map_err(Into::into)
     }
 
     #[tracing::instrument(skip_all)]
@@ -104,11 +157,13 @@ impl FinResService {
         fin_res_repo: DynFinResRepo,
         month_repo: DynMonthRepo,
         year_repo: DynYearRepo,
+        fin_res_order_repo: DynFinResOrderRepo,
     ) -> Arc<Self> {
         Arc::new(Self {
             year_repo,
             month_repo,
             fin_res_repo,
+            fin_res_order_repo,
         })
     }
 

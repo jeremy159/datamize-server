@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT\n                r.resource_id AS \"id: Uuid\",\n                r.name,\n                r.resource_type,\n                r.ynab_account_ids,\n                r.external_account_ids,\n                rm.balance,\n                m.month AS \"month: MonthNum\",\n                y.year AS \"year: i32\"\n            FROM balance_sheet_resources AS r\n            JOIN balance_sheet_resources_months AS rm ON r.resource_id = rm.resource_id\n            JOIN balance_sheet_months AS m ON rm.month_id = m.month_id\n            JOIN balance_sheet_years AS y ON y.year_id = m.year_id\n            WHERE y.year = $1 AND r.resource_type LIKE '%' || $2 || '%';\n            ",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "resource_type",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "ynab_account_ids",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "external_account_ids",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "balance",
+        "ordinal": 5,
+        "type_info": "Int64"
+      },
+      {
+        "name": "month: MonthNum",
+        "ordinal": 6,
+        "type_info": "Int64"
+      },
+      {
+        "name": "year: i32",
+        "ordinal": 7,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ae6096dcc1c0837fa076be2009731703afe8981c3998d60399f998b1b299e472"
+}

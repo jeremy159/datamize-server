@@ -250,6 +250,18 @@ pub struct ResourcesToRefresh {
     pub ids: Vec<Uuid>,
 }
 
+#[cfg_attr(any(feature = "testutils", test), derive(fake::Dummy))]
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct YearQuery {
+    pub year: i32,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ResourceCategoryQuery {
+    pub category: ResourceCategory,
+    pub fin_res_id: Option<Uuid>,
+}
+
 pub mod string {
     use std::fmt::Display;
     use std::str::FromStr;

@@ -22,7 +22,7 @@ async fn check_get_all_from_year(
     expected_status: StatusCode,
     expected_resp: Option<Vec<FinancialResourceYearly>>,
 ) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     if let Some(year) = year {
         context.insert_year(year).await;
@@ -93,7 +93,7 @@ async fn returns_500_when_db_corrupted(pool: SqlitePool) {
 
 #[sqlx::test(migrations = "../db-sqlite/migrations")]
 async fn returns_400_for_invalid_year_in_path(pool: SqlitePool) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     let response = context
         .app()

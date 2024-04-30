@@ -9,7 +9,7 @@ use crate::{
     models::{
         FinancialResourceMonthly, FinancialResourceYearly, Month, MonthNum, SavingRate, Year,
     },
-    NetTotals,
+    NetTotals, ResourceCategory,
 };
 
 // TODO: Check out https://medium.com/@disserman/working-with-data-storages-in-rust-a1428fd9ba2c to be better DB independant.
@@ -72,6 +72,11 @@ pub struct MonthData {
 pub trait FinResRepo: Send + Sync {
     async fn get_from_all_years(&self) -> DbResult<Vec<FinancialResourceYearly>>;
     async fn get_from_year(&self, year: i32) -> DbResult<Vec<FinancialResourceYearly>>;
+    async fn get_from_year_and_category(
+        &self,
+        year: i32,
+        category: &ResourceCategory,
+    ) -> DbResult<Vec<FinancialResourceYearly>>;
     async fn get_from_month(
         &self,
         month: MonthNum,
@@ -96,6 +101,19 @@ pub trait SavingRateRepo: Send + Sync {
 }
 
 pub type DynSavingRateRepo = Arc<dyn SavingRateRepo>;
+
+#[async_trait]
+pub trait FinResOrderRepo: Send + Sync {
+    async fn get_order(&self, year: i32, category: &ResourceCategory) -> DbResult<Vec<Uuid>>;
+    async fn set_order(
+        &self,
+        year: i32,
+        category: &ResourceCategory,
+        order: &[Uuid],
+    ) -> DbResult<()>;
+}
+
+pub type DynFinResOrderRepo = Arc<dyn FinResOrderRepo>;
 
 #[derive(Debug, PartialEq, Clone, sqlx::Type)]
 #[sqlx(type_name = "net_type")]

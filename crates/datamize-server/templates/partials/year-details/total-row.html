@@ -1,6 +1,6 @@
 <tr class="font-bold">
   <td class="min-w-lg-content">Total</td>
-  {% for (y, m, b) in total_liabilities.iter_all_balances() %}
+  {% for (y, m, b) in total_row.iter_all_balances() %}
   <td class="text-right min-w-md-content">
     <div class="input !p-0 flex items-center justify-end">
       {% if let Some(b) = b -%}

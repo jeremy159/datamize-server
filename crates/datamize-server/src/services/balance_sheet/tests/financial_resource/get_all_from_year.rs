@@ -19,7 +19,7 @@ async fn check_get_all_from_year(
     expected_resp: Option<Vec<FinancialResourceYearly>>,
     expected_err: Option<ErrorType>,
 ) {
-    let context = TestContext::setup(pool);
+    let context = TestContext::setup(pool).await;
 
     if let Some(year) = year {
         context.insert_year(year).await;

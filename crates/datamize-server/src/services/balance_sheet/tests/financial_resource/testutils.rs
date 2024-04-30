@@ -4,6 +4,7 @@ use datamize_domain::{
     db::{DbResult, FinResRepo, MonthRepo, YearRepo},
     FinancialResourceYearly, Month, MonthNum, Uuid, Year,
 };
+use db_redis::{balance_sheet::resource::RedisFinResOrderRepo, get_test_pool};
 use db_sqlite::balance_sheet::{SqliteFinResRepo, SqliteMonthRepo, SqliteYearRepo};
 use sqlx::SqlitePool;
 
@@ -17,13 +18,19 @@ pub(crate) struct TestContext {
 }
 
 impl TestContext {
-    pub(crate) fn setup(pool: SqlitePool) -> Self {
+    pub(crate) async fn setup(pool: SqlitePool) -> Self {
+        let redis_conn_pool = get_test_pool().await;
         let year_repo = SqliteYearRepo::new_arced(pool.clone());
         let month_repo = SqliteMonthRepo::new_arced(pool.clone());
         let fin_res_repo = SqliteFinResRepo::new_arced(pool.clone());
+        let fin_res_order_repo = RedisFinResOrderRepo::new_arced(redis_conn_pool);
 
-        let fin_res_service =
-            FinResService::new_arced(fin_res_repo.clone(), month_repo.clone(), year_repo.clone());
+        let fin_res_service = FinResService::new_arced(
+            fin_res_repo.clone(),
+            month_repo.clone(),
+            year_repo.clone(),
+            fin_res_order_repo,
+        );
         Self {
             year_repo,
             month_repo,
