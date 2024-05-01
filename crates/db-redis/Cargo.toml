@@ -20,6 +20,7 @@ datamize-domain.workspace = true
 # Non-Local Deps
 tracing.workspace = true
 fred.workspace = true
+serde_json.workspace = true
 
 [dev-dependencies]
 fred = { workspace = true, features = ["mocks"]}

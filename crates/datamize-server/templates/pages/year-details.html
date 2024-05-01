@@ -70,6 +70,18 @@
   </div>
 </div>
 <div role="tabpanel">
+  <form
+    hx-post="/balance_sheet/years/{{ year }}/resources/asset"
+    hx-trigger="sort from:#asset-rows"
+    hx-target="#asset-rows"
+    id="asset-rows-order"
+  ></form>
+  <form
+    hx-post="/balance_sheet/years/{{ year }}/resources/liability"
+    hx-trigger="sort from:#liability-rows"
+    hx-target="#liability-rows"
+    id="liability-rows-order"
+  ></form>
   <div class="navbar bg-base-100">
     <div class="flex-1">
       <h1>{{ year }} Net Assets</h1>
@@ -135,20 +147,38 @@
       </thead>
       <tbody
         id="asset-rows"
+        class="sortable-container"
         hx-get="/balance_sheet/years/{{ year }}/resources/asset"
-        hx-trigger="load"
-      ></tbody>
+        hx-trigger="load delay:0.5s, resources-refreshed from:body"
+      >
+        <tr>
+          <td colspan="13"><div class="skeleton h-8 w-full"></div></td>
+        </tr>
+        <tr>
+          <td colspan="13"><div class="skeleton h-8 w-full"></div></td>
+        </tr>
+        <tr>
+          <td colspan="13"><div class="skeleton h-8 w-full"></div></td>
+        </tr>
+        <tr>
+          <td colspan="13"><div class="skeleton h-8 w-full"></div></td>
+        </tr>
+      </tbody>
       <tbody
         id="total-assets"
         hx-get="/balance_sheet/years/{{ year }}/resources/asset/total"
-        hx-trigger="load, balance-updated from:body"
+        hx-trigger="load delay:0.5s, balance-updated from:body, resources-refreshed from:body"
         hx-target="#total-assets"
-      ></tbody>
+      >
+        <tr>
+          <td colspan="13"><div class="skeleton h-8 w-full"></div></td>
+        </tr>
+      </tbody>
     </table>
     <table id="liabilities-table" class="table">
       <thead>
         <tr class="border-t-error border-t-2">
-          <th>Liabilities</th>
+          <th class="min-w-lg-content">Liabilities</th>
           {% for month in months %}
           <th class="text-right min-w-md-content opacity-0">
             {{ month.month.name() }}
@@ -159,21 +189,91 @@
       <tbody
         id="liability-rows"
         hx-get="/balance_sheet/years/{{ year }}/resources/liability"
-        hx-trigger="load"
-      ></tbody>
+        hx-trigger="load delay:0.5s, resources-refreshed from:body"
+      >
+        <tr>
+          <td colspan="13"><div class="skeleton h-8 w-full"></div></td>
+        </tr>
+        <tr>
+          <td colspan="13"><div class="skeleton h-8 w-full"></div></td>
+        </tr>
+        <tr>
+          <td colspan="13"><div class="skeleton h-8 w-full"></div></td>
+        </tr>
+        <tr>
+          <td colspan="13"><div class="skeleton h-8 w-full"></div></td>
+        </tr>
+      </tbody>
       <tbody
         id="total-liabilities"
         hx-get="/balance_sheet/years/{{ year }}/resources/liability/total"
-        hx-trigger="load, balance-updated from:body"
+        hx-trigger="load delay:0.5s, balance-updated from:body, resources-refreshed from:body"
         hx-target="#total-liabilities"
-      ></tbody>
+      >
+        <tr>
+          <td colspan="13"><div class="skeleton h-8 w-full"></div></td>
+        </tr>
+      </tbody>
     </table>
     <table
       id="total-monthly-table"
       class="table"
       hx-get="/balance_sheet/years/{{ year }}/total_monthly"
-      hx-trigger="load, balance-updated from:body"
+      hx-trigger="load, balance-updated from:body, resources-refreshed from:body"
     ></table>
   </div>
 </div>
+<script>
+  htmx.on("#asset-rows", "htmx:afterOnLoad", function (event) {
+    const sortable = event.detail.elt;
+    const sortableInstance = new Sortable(sortable, {
+      handle: "#resource-name",
+      fallbackTolerance: 5,
+
+      /*setData: function (dataTransfer, dragEl) {
+        console.log(dragEl);
+        const resName = dragEl.querySelector("#resource-name");
+        console.log(resName);
+        dataTransfer.setData("text/plain", dragEl.textContent);
+        dataTransfer.setDragImage(resName, 0, 0);
+      },*/
+
+      // Disable sorting on the `sort` event
+      onSort: function (evt) {
+        this.option("disabled", true);
+      },
+    });
+
+    // Re-enable sorting on the `htmx:afterSwap` event
+    sortable.addEventListener("htmx:afterSwap", function () {
+      sortableInstance.option("disabled", false);
+    });
+  });
+
+  htmx.on("#liability-rows", "htmx:afterOnLoad", function (event) {
+    const sortable = event.detail.elt;
+    const sortableInstance = new Sortable(sortable, {
+      handle: "#resource-name",
+      fallbackTolerance: 5,
+
+      /*setData: function (dataTransfer, dragEl) {
+        console.log(dragEl);
+        const resName = dragEl.querySelector("#resource-name");
+        console.log(resName);
+        dataTransfer.setData("text/plain", dragEl.textContent);
+        dataTransfer.setDragImage(resName, 0, 0);
+      },*/
+
+      // Disable sorting on the `sort` event
+      onSort: function (evt) {
+        this.option("disabled", true);
+      },
+    });
+
+    // Re-enable sorting on the `htmx:afterSwap` event
+    sortable.addEventListener("htmx:afterSwap", function () {
+      sortableInstance.option("disabled", false);
+    });
+  });
+</script>
 {% endblock %}

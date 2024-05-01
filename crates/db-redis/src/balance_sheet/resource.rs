@@ -22,14 +22,15 @@ impl RedisFinResOrderRepo {
 impl FinResOrderRepo for RedisFinResOrderRepo {
     #[tracing::instrument(skip(self))]
     async fn get_order(&self, year: i32, category: &ResourceCategory) -> DbResult<Vec<Uuid>> {
-        let res: Vec<String> = self
+        let res: Option<String> = self
             .redis_conn_pool
             .get(&format!("{}_{}_order", year, category))
             .await?;
 
-        res.into_iter()
-            .map(|id| Uuid::try_parse(&id).map_err(Into::into))
-            .collect()
+        match res {
+            Some(res) => Ok(serde_json::from_str(&res)?),
+            None => Ok(vec![]),
+        }
     }
 
     #[tracing::instrument(skip(self))]
@@ -39,12 +40,12 @@ impl FinResOrderRepo for RedisFinResOrderRepo {
         category: &ResourceCategory,
         order: &[Uuid],
     ) -> DbResult<()> {
-        let order = order.iter().map(|id| id.to_string()).collect::<Vec<_>>();
+        let serialized = serde_json::to_string(order)?;
 
         self.redis_conn_pool
             .set(
                 &format!("{}_{}_order", year, category),
-                order,
+                serialized,
                 None,
                 None,
                 false,

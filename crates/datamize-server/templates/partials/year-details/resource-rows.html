@@ -1,6 +1,12 @@
 {% for res in resources -%}
 <tr>
-  <td class="min-w-lg-content">
+  <td id="resource-name" class="min-w-lg-content cursor-move">
+    <input
+      form="{{ category }}-rows-order"
+      type="hidden"
+      name="fin_res_id"
+      value="{{ res.base.id }}"
+    />
     <div class="flex flex-row items-center justify-between">
       <span class="self-center mr-2">{{ res.base.name }}</span>
       <div class="dropdown" hx-swap="innerHTML">

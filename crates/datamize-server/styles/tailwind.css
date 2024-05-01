@@ -20,3 +20,13 @@
   /* TODO: Maybe find a better approach. Right now substracting the width of sidenav */
   max-width: calc(100vw - 15rem);
 }
+
+/* Style for the targetted space */
+.sortable-ghost {
+  opacity: 0;
+}
+
+/* Style for dragged target. Note not all properties will be taken into account. */
+.sortable-drag {
+  background-color: oklch(var(--b3));
+}

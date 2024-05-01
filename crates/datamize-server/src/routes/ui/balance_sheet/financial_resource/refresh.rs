@@ -14,7 +14,7 @@ pub async fn post(
             if ids.is_empty() {
                 Html("").into_response()
             } else {
-                ([("Hx-Trigger", "balance-updated")], Html("")).into_response()
+                ([("Hx-Trigger", "resources-refreshed")], Html("")).into_response()
             }
         }
         Err(_) => Html("").into_response(),

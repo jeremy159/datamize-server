@@ -76,7 +76,6 @@ impl Application {
         let assets_directory = base_path.join("assets");
 
         let app = Router::new()
-            // TODO: Convert pages to server side with HTMX + Askama + Tailwind + DaisyUI. Check out https://joeymckenzie.tech/blog/templates-with-rust-axum-htmx-askama
             .nest("/", ui_routes)
             .nest_service("/assets", ServeDir::new(assets_directory.to_str().unwrap()))
             .route("/health_check", get(health_check))

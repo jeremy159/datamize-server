@@ -21,7 +21,11 @@ pub async fn get(
         .get_from_year_and_category(year, &category)
         .await?;
 
-    Ok(ResourceRowsTemplate { year, resources })
+    Ok(ResourceRowsTemplate {
+        year,
+        category,
+        resources,
+    })
 }
 
 /// To sort resources
@@ -38,7 +42,11 @@ pub async fn post(
         .get_from_year_and_category(year, &category)
         .await?;
 
-    Ok(ResourceRowsTemplate { year, resources })
+    Ok(ResourceRowsTemplate {
+        year,
+        category,
+        resources,
+    })
 }
 
 #[derive(Deserialize)]
@@ -51,5 +59,6 @@ pub struct Payload {
 #[template(path = "partials/year-details/resource-rows.html")]
 struct ResourceRowsTemplate {
     year: i32,
+    category: ResourceCategory,
     resources: Vec<FinancialResourceYearly>,
 }

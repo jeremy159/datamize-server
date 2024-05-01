@@ -58,3 +58,9 @@ impl From<uuid::Error> for DbError {
         Self::DataIntegrityError(value.to_string())
     }
 }
+
+impl From<serde_json::Error> for DbError {
+    fn from(value: serde_json::Error) -> Self {
+        Self::DataIntegrityError(value.to_string())
+    }
+}

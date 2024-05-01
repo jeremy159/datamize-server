@@ -100,15 +100,6 @@
       <div class="card-actions justify-between">
         <div>
           <a
-            class="btn"
-            hx-target="#main"
-            hx-select="#main > *"
-            href="/balance_sheet/years/{{ year }}"
-            >Back</a
-          >
-        </div>
-        <div>
-          <a
             id="delete-btn"
             class="btn btn-outline btn-error"
             href="#"
@@ -116,6 +107,15 @@
             hx-confirm="Are you sure you want to delete {{ fin_res.base.name }}?"
             hx-target="body"
             >Delete</a
+          >
+        </div>
+        <div>
+          <a
+            class="btn"
+            hx-target="#main"
+            hx-select="#main > *"
+            href="/balance_sheet/years/{{ year }}"
+            >Back</a
           >
           <a
             class="btn btn-primary"
