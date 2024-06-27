@@ -119,7 +119,7 @@ impl FinResServiceExt for FinResService {
         self.fin_res_repo.update(&resource).await?;
         self.update_net_totals(resource.get_first_month()).await?;
 
-        Ok(resource)
+        Ok(self.fin_res_repo.get(resource.base.id).await?)
     }
 
     #[tracing::instrument(skip(self))]

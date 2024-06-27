@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use datamize_domain::{FinancialResourceYearly, YearlyBalances};
+use datamize_domain::{get_all_months_empty, FinancialResourceYearly, YearlyBalances};
 use fake::{Fake, Faker};
 use pretty_assertions::{assert_eq, assert_ne};
 use sqlx::SqlitePool;
@@ -46,7 +46,23 @@ async fn check_delete(
         )
         .await;
 
-    if let Some(expected_resp) = expected_resp {
+    if let Some(mut expected_resp) = expected_resp {
+        let years: Vec<_> = expected_resp.iter_years().collect();
+        for year in years {
+            match expected_resp.get_balance_for_year(year) {
+                Some(current_year_balances) => {
+                    if current_year_balances.len() < 12 {
+                        expected_resp.insert_balance_for_year(year, get_all_months_empty());
+                        for (m, b) in current_year_balances {
+                            expected_resp.insert_balance_opt(year, m, b);
+                        }
+                    }
+                }
+                None => {
+                    expected_resp.insert_balance_for_year(year, get_all_months_empty());
+                }
+            }
+        }
         let res_body = response.unwrap();
         assert_eq!(res_body, expected_resp);
 

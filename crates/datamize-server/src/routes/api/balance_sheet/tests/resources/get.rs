@@ -4,7 +4,7 @@ use axum::{
     body::Body,
     http::{Request, StatusCode},
 };
-use datamize_domain::{FinancialResourceYearly, YearlyBalances};
+use datamize_domain::{get_all_months_empty, FinancialResourceYearly, YearlyBalances};
 use db_sqlite::balance_sheet::sabotage_resources_table;
 use fake::{Fake, Faker};
 use http_body_util::BodyExt;
@@ -61,7 +61,23 @@ async fn check_get(
 
     let body = response.into_body().collect().await.unwrap().to_bytes();
 
-    if let Some(expected) = expected_resp {
+    if let Some(mut expected) = expected_resp {
+        let years: Vec<_> = expected.iter_years().collect();
+        for year in years {
+            match expected.get_balance_for_year(year) {
+                Some(current_year_balances) => {
+                    if current_year_balances.len() < 12 {
+                        expected.insert_balance_for_year(year, get_all_months_empty());
+                        for (m, b) in current_year_balances {
+                            expected.insert_balance_opt(year, m, b);
+                        }
+                    }
+                }
+                None => {
+                    expected.insert_balance_for_year(year, get_all_months_empty());
+                }
+            }
+        }
         let body: FinancialResourceYearly = serde_json::from_slice(&body).unwrap();
         assert_eq!(body, expected);
     }

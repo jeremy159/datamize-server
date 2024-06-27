@@ -79,6 +79,15 @@ fn test_iter_all_balances() {
     assert_eq!(iterator.next(), Some((2022, MonthNum::January, Some(100))));
     assert_eq!(iterator.next(), Some((2022, MonthNum::February, None)));
     assert_eq!(iterator.next(), Some((2022, MonthNum::March, None)));
+    assert_eq!(iterator.next(), Some((2022, MonthNum::April, None)));
+    assert_eq!(iterator.next(), Some((2022, MonthNum::May, None)));
+    assert_eq!(iterator.next(), Some((2022, MonthNum::June, None)));
+    assert_eq!(iterator.next(), Some((2022, MonthNum::July, None)));
+    assert_eq!(iterator.next(), Some((2022, MonthNum::August, None)));
+    assert_eq!(iterator.next(), Some((2022, MonthNum::September, None)));
+    assert_eq!(iterator.next(), Some((2022, MonthNum::October, None)));
+    assert_eq!(iterator.next(), Some((2022, MonthNum::November, None)));
+    assert_eq!(iterator.next(), Some((2022, MonthNum::December, None)));
     assert_eq!(iterator.next(), None);
 }
 
@@ -141,7 +150,10 @@ fn test_get_last_month() {
     };
     test_struct.insert_balance(2022, 3_i16.try_into().unwrap(), 100);
     test_struct.insert_balance(2022, 1_i16.try_into().unwrap(), 200);
-    assert_eq!(test_struct.get_last_month(), Some((2022, MonthNum::March)));
+    assert_eq!(
+        test_struct.get_last_month(),
+        Some((2022, MonthNum::December))
+    );
 }
 
 #[test]

@@ -2961,10 +2961,6 @@ input.tab:checked + .tab-content,
   height: 1.5rem;
 }
 
-.h-16 {
-  height: 4rem;
-}
-
 .h-8 {
   height: 2rem;
 }
@@ -2983,14 +2979,6 @@ input.tab:checked + .tab-content,
 
 .w-full {
   width: 100%;
-}
-
-.w-1\/5 {
-  width: 20%;
-}
-
-.w-3\/5 {
-  width: 60%;
 }
 
 .min-w-56 {
@@ -3091,10 +3079,6 @@ input.tab:checked + .tab-content,
 
 .gap-2 {
   gap: 0.5rem;
-}
-
-.gap-4 {
-  gap: 1rem;
 }
 
 .self-center {

@@ -1,7 +1,7 @@
 use chrono::{Datelike, NaiveDate};
 use datamize_domain::{
-    testutils::financial_resource_yearly_equal_without_id, FinancialResourceYearly, SaveResource,
-    YearlyBalances,
+    get_all_months_empty, testutils::financial_resource_yearly_equal_without_id,
+    FinancialResourceYearly, SaveResource, YearlyBalances,
 };
 use fake::{Fake, Faker};
 use pretty_assertions::{assert_eq, assert_ne};
@@ -22,7 +22,23 @@ async fn check_create(
 
     let response = context.service().create_fin_res(new_res).await;
 
-    if let Some(expected_resp) = expected_resp {
+    if let Some(mut expected_resp) = expected_resp {
+        let years: Vec<_> = expected_resp.iter_years().collect();
+        for year in years {
+            match expected_resp.get_balance_for_year(year) {
+                Some(current_year_balances) => {
+                    if current_year_balances.len() < 12 {
+                        expected_resp.insert_balance_for_year(year, get_all_months_empty());
+                        for (m, b) in current_year_balances {
+                            expected_resp.insert_balance_opt(year, m, b);
+                        }
+                    }
+                }
+                None => {
+                    expected_resp.insert_balance_for_year(year, get_all_months_empty());
+                }
+            }
+        }
         let res_body = response.unwrap();
         financial_resource_yearly_equal_without_id(&res_body, &expected_resp);
 
@@ -51,7 +67,7 @@ async fn check_create(
         assert!(saved_years.is_ok());
         let saved_years = saved_years.unwrap();
         for saved_year in saved_years {
-            assert_ne!(saved_year.net_assets().total, 0);
+            assert_ne!(saved_year.net_assets().total, 0); // TODO: To be fixed, now that we create all months of a year, the last month will be 0 until December arrives
         }
     } else {
         println!("{response:#?}");
