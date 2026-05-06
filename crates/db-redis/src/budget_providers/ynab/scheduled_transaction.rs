@@ -30,7 +30,7 @@ impl YnabScheduledTransactionMetaRepo for RedisYnabScheduledTransactionMetaRepo 
     #[tracing::instrument(skip(self))]
     async fn set_delta(&self, server_knowledge: i64) -> DbResult<()> {
         self.redis_conn_pool
-            .set(
+            .set::<(), _, _>(
                 "scheduled_transactions_delta",
                 server_knowledge,
                 None,
@@ -60,7 +60,7 @@ impl YnabScheduledTransactionMetaRepo for RedisYnabScheduledTransactionMetaRepo 
     #[tracing::instrument(skip(self))]
     async fn set_last_saved(&self, last_saved: String) -> DbResult<()> {
         self.redis_conn_pool
-            .set(
+            .set::<(), _, _>(
                 "scheduled_transactions_last_saved",
                 last_saved,
                 None,

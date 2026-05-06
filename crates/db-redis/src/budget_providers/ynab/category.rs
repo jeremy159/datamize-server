@@ -30,7 +30,7 @@ impl YnabCategoryMetaRepo for RedisYnabCategoryMetaRepo {
     #[tracing::instrument(skip(self))]
     async fn set_delta(&self, server_knowledge: i64) -> DbResult<()> {
         self.redis_conn_pool
-            .set("categories_delta", server_knowledge, None, None, false)
+            .set::<(), _, _>("categories_delta", server_knowledge, None, None, false)
             .await?;
         Ok(())
     }
@@ -54,7 +54,7 @@ impl YnabCategoryMetaRepo for RedisYnabCategoryMetaRepo {
     #[tracing::instrument(skip(self))]
     async fn set_last_saved(&self, last_saved: String) -> DbResult<()> {
         self.redis_conn_pool
-            .set("categories_last_saved", last_saved, None, None, false)
+            .set::<(), _, _>("categories_last_saved", last_saved, None, None, false)
             .await?;
         Ok(())
     }

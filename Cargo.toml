@@ -30,7 +30,7 @@ db-sqlite = { path = "./crates/db-sqlite" }
 datamize-server = { path = "./crates/datamize-server" }
 
 # Non-Local Crates
-sqlx = { version = "^0.7.0", features = ["runtime-tokio", "tls-rustls", "macros", "uuid", "chrono", "migrate", "json"] }
+sqlx = { version = "^0.8.1", features = ["runtime-tokio", "tls-rustls", "macros", "uuid", "chrono", "migrate", "json"] }
 fred = {version =  "8.0" }
 tokio = { version = "1.35", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }

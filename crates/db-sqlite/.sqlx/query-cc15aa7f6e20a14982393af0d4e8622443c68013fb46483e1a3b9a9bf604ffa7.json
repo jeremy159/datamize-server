@@ -36,17 +36,17 @@
       {
         "name": "balance",
         "ordinal": 6,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "cleared_balance",
         "ordinal": 7,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "uncleared_balance",
         "ordinal": 8,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "transfer_payee_id: Uuid",
@@ -76,7 +76,7 @@
       {
         "name": "debt_original_balance",
         "ordinal": 14,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "debt_interest_rates",

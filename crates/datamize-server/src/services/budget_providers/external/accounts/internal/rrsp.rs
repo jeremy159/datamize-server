@@ -14,6 +14,7 @@ pub async fn get_rrsp_ia_sandryne(
     let mut account = account;
 
     let c = ClientBuilder::rustls()
+        .expect("failed to build WebDriver client")
         .connect(webdriver_location)
         .await
         .expect("failed to connect to WebDriver");

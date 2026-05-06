@@ -11,7 +11,7 @@
       {
         "name": "month: MonthNum",
         "ordinal": 1,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "net_total_id: Uuid",
@@ -26,7 +26,7 @@
       {
         "name": "total",
         "ordinal": 4,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "percent_var: f32",
@@ -36,7 +36,7 @@
       {
         "name": "balance_var",
         "ordinal": 6,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "last_updated?: DateTime<Utc>",

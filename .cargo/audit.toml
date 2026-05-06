@@ -1,0 +1,4 @@
+[advisories]
+# rsa Marvin Attack: no fix available upstream. Pulled in by sqlx-macros-core
+# even without the mysql feature; this project does not use MySQL.
+ignore = ["RUSTSEC-2023-0071"]

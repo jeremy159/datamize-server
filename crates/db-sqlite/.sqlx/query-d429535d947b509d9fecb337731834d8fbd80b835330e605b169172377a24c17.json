@@ -41,17 +41,17 @@
       {
         "name": "budgeted",
         "ordinal": 7,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "activity",
         "ordinal": 8,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "balance",
         "ordinal": 9,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "goal_type?: GoalType",
@@ -66,7 +66,7 @@
       {
         "name": "goal_target",
         "ordinal": 12,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "goal_target_month",
@@ -76,27 +76,27 @@
       {
         "name": "goal_percentage_complete?: i32",
         "ordinal": 14,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "goal_months_to_budget?: i32",
         "ordinal": 15,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "goal_under_funded",
         "ordinal": 16,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "goal_overall_funded",
         "ordinal": 17,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "goal_overall_left",
         "ordinal": 18,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "deleted",
@@ -106,17 +106,17 @@
       {
         "name": "goal_day?: i32",
         "ordinal": 20,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "goal_cadence?: i32",
         "ordinal": 21,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "goal_cadence_frequency?: i32",
         "ordinal": 22,
-        "type_info": "Int64"
+        "type_info": "Integer"
       }
     ],
     "parameters": {

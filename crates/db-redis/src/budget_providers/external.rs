@@ -30,7 +30,7 @@ impl EncryptionKeyRepo for RedisEncryptionKeyRepo {
     #[tracing::instrument(skip_all)]
     async fn set(&self, encryption_key_str: &[u8]) -> DbResult<()> {
         self.redis_conn_pool
-            .set("encryption_key", encryption_key_str, None, None, false)
+            .set::<(), _, _>("encryption_key", encryption_key_str, None, None, false)
             .await?;
         Ok(())
     }

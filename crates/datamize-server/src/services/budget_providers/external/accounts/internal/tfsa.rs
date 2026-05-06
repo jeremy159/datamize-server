@@ -12,6 +12,7 @@ pub async fn get_tfsa(
 ) -> anyhow::Result<WebScrapingAccount> {
     let mut account = account;
     let c = ClientBuilder::rustls()
+        .expect("failed to build WebDriver client")
         .connect(webdriver_location)
         .await
         .expect("failed to connect to WebDriver");

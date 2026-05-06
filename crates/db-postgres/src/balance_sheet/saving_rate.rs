@@ -5,7 +5,7 @@ use datamize_domain::{
     db::{DbResult, SavingRateRepo, YearData},
     Incomes, SavingRate, Savings, Uuid,
 };
-use sqlx::{postgres::PgHasArrayType, PgPool};
+use sqlx::PgPool;
 
 #[derive(Debug, Clone)]
 pub struct PostgresSavingRateRepo {
@@ -218,8 +218,3 @@ struct IdsAndBalanceRecord {
     extra_balance: i64,
 }
 
-impl PgHasArrayType for IdsAndBalanceRecord {
-    fn array_type_info() -> sqlx::postgres::PgTypeInfo {
-        sqlx::postgres::PgTypeInfo::with_name("_ids_and_balance")
-    }
-}

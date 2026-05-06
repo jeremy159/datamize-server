@@ -43,7 +43,7 @@ impl FinResOrderRepo for RedisFinResOrderRepo {
         let serialized = serde_json::to_string(order)?;
 
         self.redis_conn_pool
-            .set(
+            .set::<(), _, _>(
                 &format!("{}_{}_order", year, category),
                 serialized,
                 None,

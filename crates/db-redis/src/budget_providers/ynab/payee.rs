@@ -30,7 +30,7 @@ impl YnabPayeeMetaRepo for RedisYnabPayeeMetaRepo {
     #[tracing::instrument(skip(self))]
     async fn set_delta(&self, server_knowledge: i64) -> DbResult<()> {
         self.redis_conn_pool
-            .set("payees_delta", server_knowledge, None, None, false)
+            .set::<(), _, _>("payees_delta", server_knowledge, None, None, false)
             .await?;
         Ok(())
     }

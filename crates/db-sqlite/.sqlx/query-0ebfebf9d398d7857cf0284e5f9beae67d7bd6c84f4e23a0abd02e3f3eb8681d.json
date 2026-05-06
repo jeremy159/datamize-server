@@ -16,7 +16,7 @@
       {
         "name": "total",
         "ordinal": 2,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "percent_var: f32",
@@ -26,7 +26,7 @@
       {
         "name": "balance_var",
         "ordinal": 4,
-        "type_info": "Int64"
+        "type_info": "Integer"
       },
       {
         "name": "last_updated?: DateTime<Utc>",

@@ -30,7 +30,7 @@ impl YnabTransactionMetaRepo for RedisYnabTransactionMetaRepo {
     #[tracing::instrument(skip(self))]
     async fn set_delta(&self, server_knowledge: i64) -> DbResult<()> {
         self.redis_conn_pool
-            .set("transactions_delta", server_knowledge, None, None, false)
+            .set::<(), _, _>("transactions_delta", server_knowledge, None, None, false)
             .await?;
         Ok(())
     }
