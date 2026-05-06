@@ -38,11 +38,11 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
 
+      - name: Install cargo-udeps
+        run: cargo install cargo-udeps --locked
+
       - name: Run cargo-udeps
-        uses: aig787/cargo-udeps-action@v1
-        with:
-          version: "latest"
-          args: "--all-targets"
+        run: cargo udeps --all-targets
 
   deny:
     name: Cargo deny
