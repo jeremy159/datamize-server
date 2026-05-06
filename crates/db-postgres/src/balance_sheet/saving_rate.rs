@@ -217,4 +217,3 @@ struct IdsAndBalanceRecord {
     ids: Vec<Uuid>,
     extra_balance: i64,
 }
-
