@@ -45,7 +45,7 @@ pub async fn get(
             .base
             .ynab_account_ids
             .clone()
-            .map_or(false, |accounts| accounts.contains(&a.id))
+            .is_some_and(|accounts| accounts.contains(&a.id))
     });
 
     let mut external_accounts: Vec<datamize_domain::ExternalAccount> =
@@ -56,7 +56,7 @@ pub async fn get(
             .base
             .external_account_ids
             .clone()
-            .map_or(false, |accounts| accounts.contains(&a.id))
+            .is_some_and(|accounts| accounts.contains(&a.id))
     });
 
     Ok(FinancialResourceTemplate {

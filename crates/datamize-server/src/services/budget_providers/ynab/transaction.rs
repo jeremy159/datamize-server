@@ -63,7 +63,6 @@ impl TransactionServiceExt for TransactionService {
             .get_all()
             .await?
             .into_iter()
-            .map(Into::into)
             .collect())
     }
 

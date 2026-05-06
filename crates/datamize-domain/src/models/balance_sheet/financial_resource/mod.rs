@@ -206,7 +206,7 @@ pub trait YearlyBalances {
         self.balances()
             .get(&year)
             .and_then(|month_balances| month_balances.get(&month))
-            .map_or(false, |&balance| balance.is_some())
+            .is_some_and(|&balance| balance.is_some())
     }
 
     fn get_first_year(&self) -> Option<i32> {

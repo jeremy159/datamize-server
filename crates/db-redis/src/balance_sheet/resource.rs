@@ -24,7 +24,7 @@ impl FinResOrderRepo for RedisFinResOrderRepo {
     async fn get_order(&self, year: i32, category: &ResourceCategory) -> DbResult<Vec<Uuid>> {
         let res: Option<String> = self
             .redis_conn_pool
-            .get(&format!("{}_{}_order", year, category))
+            .get(format!("{}_{}_order", year, category))
             .await?;
 
         match res {

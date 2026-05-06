@@ -174,13 +174,13 @@ pub fn get_res_type_options(
     let mut common = vec![
         ResourceTypeOption {
             value: AssetType::Cash.to_string(),
-            selected: resource_type.as_ref().map_or(false, |rt| {
+            selected: resource_type.as_ref().is_some_and(|rt| {
                 rt.is_asset_type(AssetType::Cash) || rt.is_liability_type(LiabilityType::Cash)
             }),
         },
         ResourceTypeOption {
             value: AssetType::LongTerm.to_string(),
-            selected: resource_type.as_ref().map_or(false, |rt| {
+            selected: resource_type.as_ref().is_some_and(|rt| {
                 rt.is_asset_type(AssetType::LongTerm)
                     || rt.is_liability_type(LiabilityType::LongTerm)
             }),
@@ -191,7 +191,7 @@ pub fn get_res_type_options(
             value: AssetType::Investment.to_string(),
             selected: resource_type
                 .as_ref()
-                .map_or(false, |rt| rt.is_asset_type(AssetType::Investment)),
+                .is_some_and(|rt| rt.is_asset_type(AssetType::Investment)),
         });
     }
 
