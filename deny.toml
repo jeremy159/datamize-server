@@ -36,8 +36,7 @@ yanked = "warn"
 # A list of advisory IDs to ignore. Note that ignored advisories will still
 # output a note when they are encountered.
 ignore = [
-    "RUSTSEC-2020-0071", # Issue in the time crate, check when all dependencies have upgraded their chrono version.
-    "RUSTSEC-2023-0071", # rsa Marvin Attack pulled in by sqlx-macros-core; no fix available upstream.
+    "RUSTSEC-2024-0384", # instant unmaintained, pulled in by wiremock (dev); no fix available upstream.
 ]
 # Threshold for security vulnerabilities, any vulnerability with a CVSS score
 # lower than the range specified will be ignored. Note that ignored advisories
