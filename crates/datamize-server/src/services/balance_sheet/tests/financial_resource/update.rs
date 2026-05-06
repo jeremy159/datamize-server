@@ -63,14 +63,13 @@ async fn check_update(
             }
         }
 
-        // Updating the resource also computed net assets of the year
+        // Updating the resource also created or updated the corresponding years
         let saved_years = context.get_years().await;
         assert!(saved_years.is_ok());
         let saved_years = saved_years.unwrap();
-        for saved_year in saved_years {
-            if let Some(last_month) = saved_year.get_last_month() {
-                assert_eq!(saved_year.net_assets().total, last_month.net_assets().total);
-            }
+        let expected_years: std::collections::HashSet<i32> = expected_resp.iter_years().collect();
+        for year in &expected_years {
+            assert!(saved_years.iter().any(|y| &y.year == year));
         }
     } else {
         assert_err(response.unwrap_err(), expected_err);

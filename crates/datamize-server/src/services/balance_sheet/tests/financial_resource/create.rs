@@ -66,8 +66,7 @@ async fn check_create(
         let saved_years = context.get_years().await;
         assert!(saved_years.is_ok());
         let saved_years = saved_years.unwrap();
-        let expected_years: std::collections::HashSet<i32> =
-            expected_resp.iter_years().collect();
+        let expected_years: std::collections::HashSet<i32> = expected_resp.iter_years().collect();
         for year in &expected_years {
             assert!(saved_years.iter().any(|y| &y.year == year));
         }
