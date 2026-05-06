@@ -14,7 +14,7 @@ doctest = false # TODO: To revolve test failing.
 default = []
 # Postgres support through sqlx. Useful for transforming data from sqlx::Postgres into the exposed structs of this crate.
 sqlx-postgres = ["dep:sqlx"]
-testutils = ["dep:mockall", "dep:fake"]
+testutils = ["dep:mockall", "dep:fake", "dep:rand"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -32,7 +32,9 @@ num-traits = "0.2"
 sqlx = { workspace = true, features = ["postgres"], optional = true }
 mockall = { version = "0.12", optional = true }
 fake = { version = "^2.9", optional = true, features = ["chrono", "derive", "uuid"] }
+rand = { version = "^0.8", optional = true }
 
 [dev-dependencies]
 fake = { version = "^2.9", features = ["chrono", "derive", "uuid"] }
 mockall = "0.12"
+rand = "^0.8"
